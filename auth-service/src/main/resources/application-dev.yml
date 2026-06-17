@@ -1,0 +1,32 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/delivera_auth_dev
+    username: delivera_auth_user
+    password: delivera_auth_pass
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+
+  flyway:
+    enabled: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:delivera-jwt-secret-key-para-desarrollo}
+    # in miliseconds
+    expiration: 900000
+  cors:
+    allowed-origins: http://localhost:3000
+  mail:
+    enabled: false
+    from: noreply@delivera.app
+  frontend-url: http://localhost:3000
+  contact-email: contact@delivera.com
+  auth:
+    rate-limit:
+      max-attempts: 5
+      window-ms: 60000
+  internal:
+    api-key: ${AUTH_INTERNAL_API_KEY:dev-internal-key}
