@@ -84,6 +84,7 @@ public class SecurityConfig {
                 auth.requestMatchers(api + UNITS_ALL).hasAnyRole(ADMIN, ANALYST, OPERATOR);
                 auth.requestMatchers(api + "/orders/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
                 auth.requestMatchers(api + "/loyal-users/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
+                auth.requestMatchers(api + "/fms/routing/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
                 auth.requestMatchers(api + "/user/**").authenticated();
                 auth.requestMatchers(api + "/activity/**").hasAnyRole(ADMIN, ANALYST);
 
