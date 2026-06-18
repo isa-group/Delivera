@@ -16,6 +16,9 @@ public record CustomerDto(
         Double lat,
 
         @NotNull
-        Double lng
+        Double lng,
+
+        @NotNull
+        Integer matrixIndex
 ) {
 }

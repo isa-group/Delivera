@@ -9,6 +9,8 @@ public record RouteDto(
         @NotBlank
         String vehicleId,
 
+        String depotId,
+
         @NotEmpty
         List<String> stops,
 

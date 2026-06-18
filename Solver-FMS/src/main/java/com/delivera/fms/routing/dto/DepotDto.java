@@ -11,6 +11,9 @@ public record DepotDto(
         Double lat,
 
         @NotNull
-        Double lng
+        Double lng,
+
+        @NotNull
+        Integer matrixIndex
 ) {
 }
