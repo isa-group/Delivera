@@ -44,6 +44,7 @@ public class SecurityConfig {
                 auth.requestMatchers(SWAGGER_PATHS).permitAll();
                 auth.requestMatchers(api + "/auth/internal/**").permitAll();
                 auth.requestMatchers(api + "/auth/**").permitAll();
+                auth.requestMatchers(api + "/.well-known/jwks.json").permitAll();
                 auth.anyRequest().denyAll();
             });
         http.addFilterBefore(internalApiKeyFilter, UsernamePasswordAuthenticationFilter.class);

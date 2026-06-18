@@ -14,9 +14,21 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:delivera-jwt-secret-key-para-desarrollo}
     # in miliseconds
     expiration: 900000
+    issuer: ${JWT_ISSUER:delivera-auth-service}
+    audience: ${JWT_AUDIENCE:delivera-api}
+    rotation:
+      enabled: true
+      period: MONTHLY
+    keys:
+      key-2026-06:
+        private-key: keys/private_key_2026_06.pem
+        public-key: keys/public_key_2026_06.pem
+      key-2026-07:
+        private-key: keys/private_key_2026_07.pem
+        public-key: keys/public_key_2026_07.pem
+    active-key-id: ${JWT_ACTIVE_KEY:key-2026-06}
   cors:
     allowed-origins: http://localhost:3000
   mail:
