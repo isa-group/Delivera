@@ -6,6 +6,7 @@ public record RoutingResponse(
         String problemId,
         String status,
         TypeSolver solverUsed,
+        Double totalCost,
         Long computationTimeMs,
         List<RouteDto> routes
 ) {

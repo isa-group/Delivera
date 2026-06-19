@@ -32,11 +32,13 @@ public class RandomRouteSolverImpl implements RouteSolver {
         );
 
         List<RouteDto> routes = new ArrayList<>();
+        double totalCost = 0.0;
         for (Map.Entry<DepotDto, List<CustomerDto>> entry : customersByDepot.entrySet()) {
             DepotDto depot = entry.getKey();
             List<CustomerDto> assignedCustomers = entry.getValue();
             RouteDto route = buildRouteForDepot(depot, assignedCustomers, distanceMatrix);
             routes.add(route);
+            totalCost += route.totalDistance();
         }
 
         long computationTime = System.currentTimeMillis() - startTime;
@@ -45,6 +47,7 @@ public class RandomRouteSolverImpl implements RouteSolver {
                 request.problemId(),
                 "COMPLETED",
                 TypeSolver.RANDOM,
+                totalCost,
                 computationTime,
                 routes
         );
