@@ -17,6 +17,28 @@ services:
       timeout: 5s
       retries: 5
     command: postgres -c 'max_connections=200'
+    
+  auth-postgres:
+    image: postgres:16
+    container_name: delivera_auth_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: delivera_auth_dev
+      POSTGRES_USER: delivera_auth_user
+      POSTGRES_PASSWORD: delivera_auth_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - delivera_auth_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U delivera_auth_user -d delivera_auth_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: postgres -c 'max_connections=200'
+
 
 volumes:
   delivera_pg_data:
+  delivera_auth_pg_data:
+

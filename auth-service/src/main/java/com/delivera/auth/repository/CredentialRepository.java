@@ -1,0 +1,27 @@
+package com.delivera.auth.repository;
+
+import java.util.Optional;
+import java.util.UUID;
+
+
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
+
+import com.delivera.auth.model.Credential;
+
+@Repository
+public interface CredentialRepository extends CrudRepository<Credential,UUID> {
+
+    Optional<Credential> findByEmailOrUsername(String email, String username);
+
+    Optional<Credential> findByEmail(String email);
+
+    Optional<Credential> findByUsername(String username);
+
+    Optional<Credential> findByUserId(UUID userId);
+
+    
+    Optional<Credential> findByEmailIgnoreCaseOrUsernameIgnoreCase(String email, String username);
+
+
+}
