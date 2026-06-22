@@ -81,7 +81,8 @@ npm run dev
 | Servicio | Puerto |
 |---|---|
 | PostgreSQL (host) | 5433 |
-| Spring Boot | 8080 |
+|Core Spring Boot | 8080 |
+|Auth Spring Boot | 9090 |
 | Vite dev server | 3000 |
 | Swagger UI | http://localhost:8080/swagger-ui/index.html |
 
