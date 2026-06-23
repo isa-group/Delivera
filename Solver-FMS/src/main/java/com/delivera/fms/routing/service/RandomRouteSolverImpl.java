@@ -69,7 +69,7 @@ public class RandomRouteSolverImpl implements RouteSolver {
         for (VehicleDto v : vehicles) {
             DepotDto depot = depotById.get(v.startDepotId());
             if (depot == null) continue;
-            routes.add(buildRoute(v.id(), depot, grouped.get(depot.id()), dist, v.capacity()));
+            routes.add(buildRoute(v.id(), depot, grouped.get(depot), dist, v.capacity()));
         }
         return routes;
     }
@@ -79,7 +79,7 @@ public class RandomRouteSolverImpl implements RouteSolver {
                                              double[][] dist) {
         List<RouteDto> routes = new ArrayList<>();
         for (DepotDto d : depots) {
-            routes.add(buildRoute("V-" + d.id(), d, grouped.get(d.id()), dist, Integer.MAX_VALUE));
+            routes.add(buildRoute("V-" + d.id(), d, grouped.get(d), dist, Integer.MAX_VALUE));
         }
         return routes;
     }
