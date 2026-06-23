@@ -65,6 +65,10 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.DELETE, api + "/units/*/workers/*").hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.DELETE, api + UNITS_ALL).hasRole(ADMIN);
 
+                auth.requestMatchers(HttpMethod.POST, api + "/vehicles").hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.PUT, api + "/vehicles/**").hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.DELETE, api + "/vehicles/**").hasRole(ADMIN);
+
                 auth.requestMatchers(HttpMethod.POST, api + "/orders").hasAnyRole(ADMIN, ANALYST);
                 auth.requestMatchers(HttpMethod.PATCH, api + "/orders/*/status").hasAnyRole(ADMIN, ANALYST, OPERATOR);
                 auth.requestMatchers(HttpMethod.DELETE, api + "/orders/**").hasRole(ADMIN);
@@ -82,6 +86,7 @@ public class SecurityConfig {
 
                 auth.requestMatchers(api + "/workers/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
                 auth.requestMatchers(api + UNITS_ALL).hasAnyRole(ADMIN, ANALYST, OPERATOR);
+                auth.requestMatchers(api + "/vehicles/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
                 auth.requestMatchers(api + "/orders/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
                 auth.requestMatchers(api + "/loyal-users/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
                 auth.requestMatchers(api + "/fms/routing/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
