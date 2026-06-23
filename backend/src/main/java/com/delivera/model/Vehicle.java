@@ -36,8 +36,17 @@ public class Vehicle {
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
+    @Column(name = "updated_at", insertable = false)
+    private Instant updatedAt;
+
     @PrePersist
     void onPrePersist() {
         if (createdAt == null) createdAt = Instant.now();
     }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
+
 }
