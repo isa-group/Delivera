@@ -103,6 +103,9 @@ fields:
   longitude: Longitude
   longitudePlaceholder: "-3.7038"
   companyNamePlaceholder: "E.g: Acme Logistics"
+  plate: Plate
+  capacity: Capacity
+  depot: Depot
 
 notFound:
   message: The page you are looking for does not exist
@@ -357,6 +360,7 @@ myOrders:
 nav:
   profile: My profile
   units: Units
+  vehicles: Vehicles
   orders: Orders
   loyalUsers: Loyal users
   home: Home
@@ -448,6 +452,8 @@ error:
   LOYAL_USER_CANNOT_BE_WORKER: This email belongs to a loyal user and cannot be invited as a worker
   WORKER_NOT_FOUND: Worker not found
   LAST_ADMIN: You cannot change the role of the only company administrator
+  VEHICLE_NOT_FOUND: Vehicle not found
+  VEHICLE_PLATE_CONFLICT: A vehicle with this plate already exists in your company
 
 orgSelect:
   title: Select your organization
@@ -505,6 +511,23 @@ settings:
   noCompaniesFound: No companies found matching that criteria
   searchByName: Search by name
   filterAll: All
+
+vehicles:
+  title: Vehicles
+  new: New vehicle
+  edit: Edit vehicle
+  detail: Vehicle details
+  notFound: Vehicle not found
+  plate: Plate
+  platePlaceholder: "E.g: 1234-ABC"
+  capacity: Capacity
+  depot: Depot / Unit
+  depotPlaceholder: Select depot
+  created: Vehicle created successfully
+  updated: Vehicle updated successfully
+  empty: No vehicles yet. Add the first one to manage your fleet.
+  deleteConfirm: Delete this vehicle?
+  searchPlaceholder: Search by plate
 
 apiKeys:
   intro: Generate and manage keys so external systems can access the Delivera API. The key is shown only once at creation.

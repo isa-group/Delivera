@@ -5,6 +5,7 @@ CREATE TABLE vehicles (
     plate       VARCHAR(20)   NOT NULL,
     capacity    INTEGER       NOT NULL,
     created_at  TIMESTAMP     NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMP,
     UNIQUE (company_id, plate)
 );
 

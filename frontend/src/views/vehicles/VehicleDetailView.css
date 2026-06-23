@@ -1,0 +1,228 @@
+.vehicle-detail-page {
+  padding: 0;
+  overflow: hidden;
+}
+
+.vehicle-detail-split {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  min-height: calc(100vh - 128px);
+}
+
+@media (max-width: 900px) {
+  .vehicle-detail-split { grid-template-columns: 1fr; }
+  .vehicle-detail-visual { display: none; }
+}
+
+.vehicle-detail-panel {
+  padding: 28px 28px 32px;
+  border-right: 1px solid #e2e8f0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.detail-actions button {
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.detail-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25);
+}
+
+.detail-icon .pi {
+  font-size: 24px;
+  color: white;
+}
+
+.detail-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 2px;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.06em;
+}
+
+.detail-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 24px 0;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-item--full {
+  grid-column: 1 / -1;
+}
+
+.info-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #1e293b;
+  margin: 0;
+}
+
+.plate-display {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-size: 16px;
+}
+
+.capacity-pill {
+  background: #ede9fe;
+  color: #5b21b6;
+  padding: 2px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+/* Right visual panel */
+.vehicle-detail-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.visual-hero {
+  text-align: center;
+  padding: 48px 56px;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+  transition: box-shadow 0.3s;
+}
+
+.visual-hero:hover {
+  box-shadow: 0 12px 40px rgba(124, 58, 237, 0.1);
+}
+
+.hero-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.hero-truck {
+  font-size: 36px;
+  color: #7c3aed;
+}
+
+.hero-plate {
+  font-family: 'Courier New', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.1em;
+  margin-bottom: 24px;
+}
+
+.hero-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.hero-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.hero-stat-label {
+  font-size: 11px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.hero-stat-divider {
+  width: 1px;
+  height: 36px;
+  background: #e2e8f0;
+}
+
+/* Accessibility helpers */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:deep(button:focus-visible),
+:deep(a:focus-visible),
+:deep(input:focus-visible) {
+  outline: 2px solid #7c3aed;
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .visual-hero { transition: none; }
+}
