@@ -1,0 +1,26 @@
+# Maven
+target/
+*.jar
+*.war
+*.ear
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+*.iml
+
+# Build
+bin/
+build/
+
+# Logs
+*.log
+logs/
+
+# Env/Secrets
+*.env
