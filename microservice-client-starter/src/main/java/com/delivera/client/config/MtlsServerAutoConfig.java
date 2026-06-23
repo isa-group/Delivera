@@ -19,6 +19,8 @@ import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
+import com.delivera.client.config.properties.MtlsServerProperties;
+
 @Configuration
 @EnableConfigurationProperties(MtlsServerProperties.class)
 @ConditionalOnProperty(

@@ -1,0 +1,3 @@
+# Certificados sensibles
+src/main/resources/certs/**/*.key
+src/main/resources/certs/**/*.p12

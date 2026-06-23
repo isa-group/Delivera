@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.delivera.client.config.properties.MtlsProperties;
 import com.delivera.client.core.MtlsMicroserviceClient;
 
 import io.netty.handler.ssl.SslContext;
