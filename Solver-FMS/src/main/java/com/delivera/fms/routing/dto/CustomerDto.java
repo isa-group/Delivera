@@ -9,7 +9,7 @@ public record CustomerDto(
         String id,
 
         @NotNull
-        @Min(value = 0)
+        @Min(value = 1)
         Integer demand,
 
         @NotNull

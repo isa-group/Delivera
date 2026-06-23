@@ -19,10 +19,8 @@ public record RoutingRequest(
         @Valid
         List<CustomerDto> customers,
 
-        //Uncomment when we have vehicles in the request
-        // @NotEmpty
-        // @Valid
-        // List<VehicleDto> vehicles,
+        @Valid
+        List<VehicleDto> vehicles,
 
         @NotNull
         double[][] distanceMatrix

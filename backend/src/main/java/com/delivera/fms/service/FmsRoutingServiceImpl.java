@@ -4,11 +4,14 @@ import com.delivera.fms.dto.CustomerDto;
 import com.delivera.fms.dto.DepotDto;
 import com.delivera.fms.dto.RoutingRequest;
 import com.delivera.fms.dto.RoutingResponse;
+import com.delivera.fms.dto.VehicleDto;
 import com.delivera.model.OperationalUnit;
 import com.delivera.model.Order;
 import com.delivera.model.OrderStatus;
+import com.delivera.model.Vehicle;
 import com.delivera.repository.OperationalUnitRepository;
 import com.delivera.repository.OrderRepository;
+import com.delivera.repository.VehicleRepository;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -23,13 +26,16 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
     private final RestClient fmsRoutingClient;
     private final OperationalUnitRepository unitRepository;
     private final OrderRepository orderRepository;
+    private final VehicleRepository vehicleRepository;
 
     public FmsRoutingServiceImpl(RestClient fmsRoutingClient,
                                   OperationalUnitRepository unitRepository,
-                                  OrderRepository orderRepository) {
+                                  OrderRepository orderRepository,
+                                  VehicleRepository vehicleRepository) {
         this.fmsRoutingClient = fmsRoutingClient;
         this.unitRepository = unitRepository;
         this.orderRepository = orderRepository;
+        this.vehicleRepository = vehicleRepository;
     }
 
     @Override
@@ -85,13 +91,23 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
                 })
                 .toList();
 
+        List<Vehicle> vehicles = vehicleRepository.findAllByCompanyId(companyId);
+        List<VehicleDto> vehicleDtos = vehicles.stream()
+                .map(v -> new VehicleDto(
+                        v.getId().toString(),
+                        v.getCapacity(),
+                        v.getDepot().getId().toString()
+                ))
+                .toList();
+
         int totalNodes = depotDtos.size() + customerDtos.size();
         double[][] distanceMatrix = buildMockDistanceMatrix(totalNodes);
 
         RoutingRequest request = new RoutingRequest(
-                UUID.randomUUID().toString(), // id del vehículo, aún no está implementado
+                UUID.randomUUID().toString(),
                 depotDtos,
                 customerDtos,
+                vehicleDtos,
                 distanceMatrix
         );
 
