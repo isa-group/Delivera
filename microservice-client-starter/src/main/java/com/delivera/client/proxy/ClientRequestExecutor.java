@@ -57,6 +57,13 @@ public class ClientRequestExecutor {
         return this;
     }
 
+    
+    public ClientRequestExecutor retryDelay(int retryDelayMs) {
+        builder.retryDelay(retryDelayMs);
+        return this;
+    }
+
+
     public ClientRequestExecutor timeout(long millis) {
         builder.timeout(millis);
         return this;
@@ -76,6 +83,18 @@ public class ClientRequestExecutor {
         builder.failOn5xx(value);
         return this;
     }
+
+    
+    public ClientRequestExecutor service(String serviceName) {
+        builder.service(serviceName);
+        return this;
+    }
+
+    public ClientRequestExecutor path(String path) {
+       builder.path(path);
+        return this;
+    }
+
 
     public <R> Mono<R> executeBasicRequest(Class<R> responseType) {
         return client.excuteBasicRequest(builder, responseType);

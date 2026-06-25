@@ -4,17 +4,19 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.springframework.http.HttpMethod;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 
 import com.delivera.client.config.properties.DeliveraProperties;
+import com.delivera.client.config.properties.DeliveraProperties.ServiceConfig;
 import com.delivera.client.exception.NetworkException;
+import com.delivera.client.exception.ServerException;
 import com.delivera.client.proxy.ClientRequestBuilder;
 import com.delivera.client.proxy.ClientRequestExecutor;
 import com.delivera.client.proxy.ClientResponse;
 
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 @Slf4j
 public class SmartMicroserviceClient {
@@ -41,7 +43,7 @@ public class SmartMicroserviceClient {
         if (builder.isLogEnabled()) {
             String protocol = resolveProtocol(builder);
             request = request.doOnSubscribe(sub ->
-                log.info("[{}] {} {}",protocol, builder.getMethod(), builder.getUrl())
+                log.info("[{}] {} {}",protocol, builder.getMethod(), resolveUrl(builder))
             ).doOnSuccess(res ->
                 log.info("[{}] Response received", protocol)
             ).doOnError(err ->
@@ -55,7 +57,16 @@ public class SmartMicroserviceClient {
         }
 
         if (builder.getRetries() > 0) {
-            request = request.retry(builder.getRetries());
+            request = request
+                .retryWhen(
+                    Retry.backoff(builder.getRetries(), Duration.ofMillis(builder.getRetryDelayMs()))
+                        .jitter(0.5)
+                        .filter(ex ->
+                            ex instanceof NetworkException ||
+                            isRetryableServerError(ex)
+                        )
+                );
+
         }
         
         request = request.onErrorMap(ex -> {
@@ -86,10 +97,9 @@ public class SmartMicroserviceClient {
         validateRequest(builder);
 
         Map<String, String> headers = new HashMap<>(builder.getHeaders());
-
         return extraRequestOptions(builder, 
             client.exchange(
-                builder.getUrl(),
+                resolveUrl(builder),
                 builder.getMethod(),
                 builder.getBody(),
                 headers,
@@ -107,7 +117,11 @@ public class SmartMicroserviceClient {
     public <R> Mono<R> excuteBasicRequest(ClientRequestBuilder builder, Class<R> responseType) {
 
         return execute(builder, responseType)
-            .map(ClientResponse::getBody);
+            .flatMap(resp -> resp.getBody() != null
+                ? Mono.just(resp.getBody())
+                : Mono.empty()
+            );
+
     }
 
 
@@ -138,9 +152,13 @@ public class SmartMicroserviceClient {
         }
 
         var clientConfig = config.getClient();
+        var defaultConfig = new ServiceConfig(); 
+        defaultConfig.setApiInternalKey(null);
 
         String serviceName = clientConfig.getServiceName();
-        String apiKey = config.getSecurity().getServices().get(serviceName);
+        String apiKey = config.getSecurity().getServices()
+            .getOrDefault(serviceName,defaultConfig)
+            .getApiInternalKey();
         
         if (apiKey == null) {
             throw new IllegalStateException(
@@ -162,7 +180,7 @@ public class SmartMicroserviceClient {
     
     private void validateRequest(ClientRequestBuilder builder) {
 
-        String url = builder.getUrl();
+        String url = resolveUrl(builder);
 
         if (builder.isMtls() && url.startsWith("http://")) {
             throw new IllegalStateException(
@@ -173,7 +191,7 @@ public class SmartMicroserviceClient {
 
     private String resolveProtocol(ClientRequestBuilder builder) {
 
-        String url = builder.getUrl();
+        String url = resolveUrl(builder);
     
         boolean isHttps = url.startsWith("https://");
         boolean isHttp = url.startsWith("http://");
@@ -192,7 +210,50 @@ public class SmartMicroserviceClient {
     
         return "UNKNOWN";
     }
+
     
+    private String resolveUrl(ClientRequestBuilder builder) {
+
+        if (builder.getUrl() != null) {
+            return builder.getUrl();
+        }
+
+        String serviceName = builder.getServiceName();
+
+        String baseUrl = config.getClient()
+            .getServiceHosts()
+            .get(serviceName);
+        
+        
+        String basePath = config.getClient()
+            .getServiceBasePaths()
+            .getOrDefault(serviceName, "");
+
+
+        if (baseUrl == null) {
+            throw new IllegalStateException(
+                "No host configured for service: " + serviceName
+            );
+        }
+
+        String path = builder.getPath() != null ? builder.getPath() : "";
+
+        return baseUrl +  basePath  + path;
+    }
+
+    
+    
+    private boolean isRetryableServerError(Throwable ex) {
+
+        if (!(ex instanceof ServerException)) {
+            return false;
+        }
+
+        int status = ((ServerException) ex).getStatus();
+
+        return status == 502 || status == 503 || status == 504;
+    }
+
 
 
 

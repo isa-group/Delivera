@@ -13,6 +13,11 @@ import lombok.Getter;
 public class ClientRequestBuilder {
 
     private String url;
+    
+    private String serviceName;
+    private String path;
+
+
     private HttpMethod method = HttpMethod.GET;
     private Map<String, String> headers = new HashMap<>();
     private Object body;
@@ -23,6 +28,7 @@ public class ClientRequestBuilder {
 
     
     private int retries = 0;
+    private int retryDelayMs = 200;
     private long timeoutMs = -1;
     private boolean logEnabled = false;
     private boolean failOn4xx = true;
@@ -85,6 +91,13 @@ public class ClientRequestBuilder {
         return this;
     }
 
+    
+    public ClientRequestBuilder retryDelay(int retryDelayMs) {
+        this.retryDelayMs = retryDelayMs;
+        return this;
+    }
+
+
     public ClientRequestBuilder timeout(long millis) {
         this.timeoutMs = millis;
         return this;
@@ -104,6 +117,18 @@ public class ClientRequestBuilder {
         this.failOn5xx = value;
         return this;
     }
+
+    
+    public ClientRequestBuilder service(String serviceName) {
+        this.serviceName = serviceName;
+        return this;
+    }
+
+    public ClientRequestBuilder path(String path) {
+        this.path = path;
+        return this;
+    }
+
 
 
     

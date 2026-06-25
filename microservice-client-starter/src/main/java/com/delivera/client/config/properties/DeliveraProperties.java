@@ -25,6 +25,10 @@ public class DeliveraProperties {
 
         private List<String> internalHosts;
 
+        private Map<String, String> serviceHosts;
+
+        private Map<String, String> serviceBasePaths;
+
         private InternalAuth internalAuth = new InternalAuth();
     }
 
@@ -43,8 +47,22 @@ public class DeliveraProperties {
     @Setter
     public static class Security {
 
-        private Map<String, String> services;
+        private boolean defaultDeny = false;
+        
+        private Map<String, ServiceConfig> services;
     }
+
+    
+    @Getter
+    @Setter
+    public static class ServiceConfig {
+
+        private String apiInternalKey;
+
+        private boolean enabled = true;
+        private List<String> allowedPaths;
+    }
+
 
 
 }

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.delivera.client.exception.ClientException;
@@ -107,12 +108,24 @@ public abstract class AbstractMicroserviceClient implements MicroserviceClient {
         Boolean isFailOn4xx,
         Boolean isFailOn5xx
     ) {
+        
+        var request = webClient.method(method)
+        .uri(url)
+        .headers(h -> {
+            h.setAll(headers);
+            h.setContentType(MediaType.APPLICATION_JSON);
+        });
 
-        return webClient.method(method)
-            .uri(url)
-            .headers(h -> h.setAll(headers))
-            .bodyValue(body == null ? "" : body)
-            .exchangeToMono(response -> {
+
+        WebClient.RequestHeadersSpec<?> finalRequest;
+
+        
+        if (body != null) {
+            finalRequest = request.bodyValue(body);
+        } else {
+            finalRequest = request;
+        }
+        return finalRequest.exchangeToMono(response -> {
 
                 int status = response.statusCode().value();
 
