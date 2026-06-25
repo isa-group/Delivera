@@ -3,6 +3,7 @@ package com.delivera.client.core;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 
@@ -69,13 +70,17 @@ public class SmartMicroserviceClient {
 
         }
         
+
+
         request = request.onErrorMap(ex -> {
 
             if (ex instanceof WebClientRequestException) {
                 return new NetworkException("Connection error: " + ex.getMessage(), ex);
             }
             return ex;
-        });
+        }).onErrorMap(TimeoutException.class, ex ->
+            new ServerException(503,"Timeout calling service")
+        );
 
 
         return request;
