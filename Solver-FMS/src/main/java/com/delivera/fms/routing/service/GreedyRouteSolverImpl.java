@@ -4,14 +4,11 @@ import com.delivera.fms.routing.dto.CustomerDto;
 import com.delivera.fms.routing.dto.DepotDto;
 import com.delivera.fms.routing.dto.RouteDto;
 import com.delivera.fms.routing.dto.RoutingRequest;
-import com.delivera.fms.routing.dto.RoutingResponse;
 import com.delivera.fms.routing.dto.TypeSolver;
 import com.delivera.fms.routing.dto.VehicleDto;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -20,12 +17,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service("greedyRouteSolver")
-public class GreedyRouteSolverImpl implements RouteSolver {
+public class GreedyRouteSolverImpl extends BaseRouteSolver {
 
     @Override
-    public RoutingResponse solve(RoutingRequest request) {
-        long startTime = System.currentTimeMillis();
+    protected TypeSolver getType() {
+        return TypeSolver.GREEDY;
+    }
 
+    @Override
+    protected List<RouteDto> performRouting(RoutingRequest request) {
         List<DepotDto> depots = request.depots();
         List<CustomerDto> customers = request.customers();
         double[][] dist = request.distanceMatrix();
@@ -72,29 +72,7 @@ public class GreedyRouteSolverImpl implements RouteSolver {
             }
         }
 
-        double totalCost = routes.stream().mapToDouble(RouteDto::totalDistance).sum();
-        return new RoutingResponse(
-                request.problemId(), "COMPLETED", TypeSolver.GREEDY,
-                totalCost, System.currentTimeMillis() - startTime, routes
-        );
-    }
-
-    private void addRoute(List<RouteDto> routes, RouteDto route) {
-        if (route != null && !route.stops().isEmpty()) {
-            routes.add(route);
-        }
-    }
-
-    private Map<DepotDto, List<CustomerDto>> groupByNearestDepot(
-            List<CustomerDto> customers, List<DepotDto> depots, double[][] dist) {
-        Map<DepotDto, List<CustomerDto>> result = new HashMap<>();
-        for (CustomerDto c : customers) {
-            DepotDto nearest = depots.stream()
-                    .min(Comparator.comparingDouble(d -> dist[d.matrixIndex()][c.matrixIndex()]))
-                    .orElse(depots.get(0));
-            result.computeIfAbsent(nearest, k -> new ArrayList<>()).add(c);
-        }
-        return result;
+        return routes;
     }
 
     private RouteDto buildGreedyRoute(String vehicleId, DepotDto depot,
@@ -134,10 +112,5 @@ public class GreedyRouteSolverImpl implements RouteSolver {
 
         totalDistance += dist[currentIndex][depot.matrixIndex()];
         return new RouteDto(vehicleId, depot.id(), stops, totalDistance, totalLoad);
-    }
-
-    @Override
-    public String getSolverId() {
-        return "greedy";
     }
 }
