@@ -31,4 +31,14 @@ public class AuthInternalService {
 
     }
 
+    @Transactional(readOnly = true)
+    public DeliveraOrgContext getContextByUserIdAndByCompanyId(UUID userId, UUID companyId) {
+         
+        return repository
+            .findOrgContextByUserIdAndCompanyId(userId,companyId)
+            .orElseThrow( () -> new WorkerNotFoundException() );
+
+
+    }
+
 }

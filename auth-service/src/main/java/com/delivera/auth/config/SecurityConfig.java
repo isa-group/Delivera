@@ -47,11 +47,12 @@ public class SecurityConfig {
                 auth.requestMatchers(SWAGGER_PATHS).permitAll();
                 auth.requestMatchers(HttpMethod.POST, api + "/internal/auth/register").permitAll();
                 auth.requestMatchers(api + "/internal/auth/register").permitAll();
+                auth.requestMatchers(api + "/auth/switch-company").authenticated();
                 auth.requestMatchers(api + "/auth/**").permitAll();
                 auth.requestMatchers(api + "/.well-known/jwks.json").permitAll();
                 auth.anyRequest().denyAll();
             });
-           
+            
 
         return http.build();
     }

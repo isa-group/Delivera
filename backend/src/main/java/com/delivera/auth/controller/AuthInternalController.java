@@ -39,4 +39,10 @@ public class AuthInternalController {
         DeliveraOrgContext response = authService.getContextByUserId(userId);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/switch-company/{companyId}/user/{userId}")
+    public ResponseEntity<DeliveraOrgContext> getContext(@PathVariable UUID companyId ,@PathVariable UUID userId ) {
+        DeliveraOrgContext response = authService.getContextByUserIdAndByCompanyId(userId,companyId);
+        return ResponseEntity.ok(response);
+    }
 }

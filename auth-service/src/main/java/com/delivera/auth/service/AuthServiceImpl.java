@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.delivera.auth.builder.CredentialBuilder;
 import com.delivera.auth.exception.EmailAlreadyExistsException;
 import com.delivera.auth.exception.InvalidCredentialsException;
+import com.delivera.auth.exception.UserNotFoundException;
 import com.delivera.auth.exception.UsernameAlreadyExistsException;
 import com.delivera.auth.model.Credential;
 import com.delivera.auth.repository.CredentialRepository;
@@ -163,4 +164,13 @@ public class AuthServiceImpl implements AuthService {
         return credential;
     }
 
+
+    @Override
+    public Credential getUserCredentialByEmail(String email) {
+        return credentialRepository.findByEmail(email)
+        .orElseThrow(() -> new UserNotFoundException());
+    }
+
+
+   
 }

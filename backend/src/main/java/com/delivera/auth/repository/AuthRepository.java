@@ -17,7 +17,7 @@ import com.delivera.model.Worker;
 public interface AuthRepository  extends JpaRepository<Worker, UUID> {
 
     
-@Query("""
+    @Query("""
     SELECT new com.delivera.auth.dto.DeliveraOrgContext(
         c.id,
         w.role,
@@ -35,6 +35,24 @@ public interface AuthRepository  extends JpaRepository<Worker, UUID> {
     List<DeliveraOrgContext> findOrgContextByUserId(
         @Param("userId") UUID userId,
         Pageable pageable
+    );
+
+    @Query("""
+    SELECT new com.delivera.auth.dto.DeliveraOrgContext(
+        c.id,
+        w.role,
+        c.name,
+        o.handle,
+        o.name
+    )
+    FROM Worker w
+    JOIN w.company c
+    JOIN c.organization o
+    JOIN w.user u
+    WHERE u.id = :userId AND c.id = :companyId
+    """)
+    Optional<DeliveraOrgContext> findOrgContextByUserIdAndCompanyId(
+        @Param("userId") UUID userId,@Param("companyId") UUID companyId
     );
     
 

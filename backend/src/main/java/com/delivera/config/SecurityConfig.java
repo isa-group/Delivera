@@ -50,7 +50,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers(SWAGGER_PATHS).permitAll();
                 auth.requestMatchers(api + "/auth/**").permitAll();
-                auth.requestMatchers(api + "/internal/auth/context/**").permitAll();
+                auth.requestMatchers(api + "/internal/auth/**").permitAll();
                 auth.requestMatchers(HttpMethod.GET, api + "/organizations/**").permitAll();
                 auth.requestMatchers(HttpMethod.GET, api + "/activity-types", api + "/activity-types/**").permitAll();
                 auth.requestMatchers(HttpMethod.GET, api + "/app-config/**").permitAll();

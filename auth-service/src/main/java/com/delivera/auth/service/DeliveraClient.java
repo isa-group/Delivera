@@ -23,10 +23,25 @@ public class DeliveraClient {
 
     
     
-    public Mono<DeliveraOrgContext> getOrgInfo(UUID userId) {
+    public Mono<DeliveraOrgContext> getOrgInfoByUserId(UUID userId) {
         return client.request()
         .service("delivera-service")
         .path("/internal/auth/context/"+userId)
+        .method(HttpMethod.GET)
+        .mtls()
+        .internal()
+        .failOn4xx(true)
+        .failOn5xx(true)
+        .retry(3)
+        .log()
+        .executeBasicRequest(DeliveraOrgContext.class);
+
+    } 
+
+    public Mono<DeliveraOrgContext> getOrgSwitchInfo(UUID userId, UUID companyId) {
+        return client.request()
+        .service("delivera-service")
+        .path("/internal/auth/switch-company/"+companyId+"/user/"+userId)
         .method(HttpMethod.GET)
         .mtls()
         .internal()

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useApi } from '@/composables/useApi'
+import { useServices } from '@/composables/useServices'
 import { useAppConfig } from '@/composables/useAppConfig'
 import { WORKER_ROLES } from '@/constants/roles'
 
@@ -12,6 +13,7 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const api = useApi()
+const authApi = useServices("auth-service")
 const { load: loadConfig } = useAppConfig()
 
 const collapsed = ref(false)
@@ -102,7 +104,7 @@ async function switchCompany(companyId) {
   companySwitcherOpen.value = false
   switching.value = true
   try {
-    const res = await api.post('/auth/switch-company', { companyId })
+    const res = await authApi.post('/auth/switch-company', { companyId })
     if (res.ok) {
       const data = await res.json()
       auth.applyLoginData(data)

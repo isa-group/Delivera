@@ -9,4 +9,6 @@ public interface AuthService {
     void createCredentials(UUID userId, String email, String username, String password);
 
     Credential login(String identifier, String password, String ip);
+
+    Credential getUserCredentialByEmail(String email);
 }
