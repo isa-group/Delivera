@@ -12,7 +12,72 @@ spring:
   flyway:
     enabled: true
 
+delivera:
+  client: 
+    service-name: auth-service
+    internal-hosts: 
+      - delivera-service
+    
+    service-hosts:
+      delivera-service: https://localhost:8081
+    
+    
+    service-base-paths:
+      delivera-service: /api/v2
+
+
+    internal-auth:
+      enabled: true
+      filter-enabled: true
+      header-name: X-Internal-Key
+      service-header-name: X-Service-Name
+  
+  security:
+    default-deny: false
+    services:
+      auth-service: 
+        api-internal-key: auth-internal-key
+        allowed-paths:
+      delivera-service: 
+        api-internal-key: delivera-internal-key
+        allowed-paths: 
+          - /internal/auth/register
+
+
+  mtls:
+    enabled: true
+    key-store: ${AUTH_KEY_STORE:classpath:certs/auth-keystore.p12}
+    key-store-password: ${AUTH_KEYSTORE_PASSWORD:delivera_auth_password}
+    key-store-type: ${AUTH_KEY_STORE_TYPE:PKCS12}
+    trust-store: ${AUTH_TRUST_STORE:classpath:certs/auth-truststore.p12}
+    trust-store-password: ${AUTH_TRUSTSTORE_PASSWORD:delivera_auth_password}
+    trust-store-type: ${AUTH_TRUST_STORE_TYPE:PKCS12}
+    server:
+      enabled: true
+      port: 9091
+
+      key-store: ${delivera.mtls.key-store}
+      key-store-password: ${delivera.mtls.key-store-password}
+      key-store-type: ${delivera.mtls.key-store-type}
+
+      trust-store: ${delivera.mtls.trust-store}
+      trust-store-password: ${delivera.mtls.trust-store-password}
+      trust-store-type: ${delivera.mtls.trust-store-type}
+
+      use-temp-file: false
+server:
+  ssl:
+    enabled: false
+    key-store: ${delivera.mtls.key-store}
+    key-store-password: ${delivera.mtls.key-store-password}
+    key-store-type: ${delivera.mtls.key-store-type}
+    client-auth: none
+
+
 app:
+  gateway: 
+    enabled: false
+  
   jwt:
     # in miliseconds
     expiration: 900000
@@ -38,7 +103,26 @@ app:
   contact-email: contact@delivera.com
   auth:
     rate-limit:
-      max-attempts: 5
-      window-ms: 60000
+      rules:
+        IP:
+          max-attempts: 100
+          window-ms: 60000
+        USER_IP:
+          max-attempts: 10
+          window-ms: 60000
+        FAIL_USER:
+          max-attempts: 5
+          window-ms: 60000
+        FAIL_IP:
+          max-attempts: 20
+          window-ms: 60000
+        USER:
+          max-attempts: 50
+          window-ms: 60000
   internal:
     api-key: ${AUTH_INTERNAL_API_KEY:dev-internal-key}
+
+
+
+
+

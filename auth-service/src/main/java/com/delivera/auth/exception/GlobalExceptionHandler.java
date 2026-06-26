@@ -2,8 +2,13 @@ package com.delivera.auth.exception;
 
 import com.delivera.auth.dto.ErrorResponse;
 import com.delivera.auth.dto.ValidationErrorResponse;
+import com.delivera.client.exception.ApiException;
+import com.delivera.client.exception.ClientException;
+import com.delivera.client.exception.NetworkException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import lombok.extern.slf4j.Slf4j;
+
+import org.hibernate.service.spi.ServiceException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -147,4 +152,28 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error: {}", ex.getMessage(), ex);
         return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ErrorResponse("INTERNAL_ERROR"));
     }
+
+    
+    @ExceptionHandler(NetworkException.class)
+    public ResponseEntity<?> handleNetwork(NetworkException ex) {
+        return ResponseEntity.status(503).body(new ErrorResponse("SERVICE_UNAVAILABLE"));
+    }
+
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<?> handleApiException(ApiException ex) {
+        return ResponseEntity.status(503).body(new ErrorResponse("SERVICE_UNAVAILABLE"));
+    }
+
+    @ExceptionHandler(ClientException.class)
+    public ResponseEntity<?> handleClientException(ClientException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(new ErrorResponse(HttpStatus.valueOf(ex.getStatus()).name()));
+    }
+
+    
+    @ExceptionHandler(ServiceException.class)
+    public ResponseEntity<?> handleServiceException(ServiceException ex) {
+        return ResponseEntity.status(503).body(new ErrorResponse("SERVICE_UNAVAILABLE"));
+    }
+
+
 }

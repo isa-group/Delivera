@@ -43,10 +43,17 @@ public class KeyLoader {
 
     private String loadFile(String path) throws Exception {
 
-        //  PRODUCTION  --> filesystem
+        
+        // ✅ file: → filesystem
+        if (path.startsWith("file:")) {
+            return new String(Files.readAllBytes(Path.of(path.substring(5))));
+        }
+
+        // ✅ ruta absoluta (/app/...)
         if (path.startsWith("/")) {
             return new String(Files.readAllBytes(Path.of(path)));
         }
+
 
         //  Develop --> classpath
         var resource = new ClassPathResource(path);

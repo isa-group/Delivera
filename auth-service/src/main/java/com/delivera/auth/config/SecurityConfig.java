@@ -3,17 +3,18 @@ package com.delivera.auth.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.delivera.auth.security.InternalApiKeyFilter;
+import com.delivera.auth.security.jwt.JwtService;
+import com.delivera.client.core.SecurityConfigurer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -35,19 +36,21 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, 
-                            InternalApiKeyFilter internalApiKeyFilter ) throws Exception {
+                        SecurityConfigurer configurer, JwtService jwtService ) throws Exception {
+        
+        configurer.applyIssuer(http, jwtService);
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers(SWAGGER_PATHS).permitAll();
-                auth.requestMatchers(api + "/auth/internal/**").permitAll();
+                auth.requestMatchers(HttpMethod.POST, api + "/internal/auth/register").permitAll();
+                auth.requestMatchers(api + "/internal/auth/register").permitAll();
                 auth.requestMatchers(api + "/auth/**").permitAll();
                 auth.requestMatchers(api + "/.well-known/jwks.json").permitAll();
                 auth.anyRequest().denyAll();
             });
-        http.addFilterBefore(internalApiKeyFilter, UsernamePasswordAuthenticationFilter.class);
            
 
         return http.build();
