@@ -2,3 +2,5 @@ com.delivera.client.config.ClientAutoConfig
 com.delivera.client.config.MtlsAutoConfig
 com.delivera.client.config.MtlsServerAutoConfig
 com.delivera.client.config.DeliveraClientAutoConfig
+com.delivera.client.config.SecurityAutoConfig
+com.delivera.client.config.JwtAutoConfig

@@ -16,6 +16,7 @@ public class DeliveraProperties {
 
     private Client client = new Client();
     private Security security = new Security();
+    private JwtProperties jwt = new JwtProperties();;
 
     @Getter
     @Setter
@@ -63,6 +64,15 @@ public class DeliveraProperties {
         private List<String> allowedPaths;
     }
 
+    
+   
+
+    @Getter
+    @Setter
+    public static class JwtProperties {
+        private boolean enabled = true;
+        private String jwksUri;
+    }
 
 
 }
