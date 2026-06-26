@@ -1,7 +1,7 @@
 package com.delivera.controller;
 
 import com.delivera.security.AuthRateLimiter;
-import com.delivera.security.SecurityUtils;
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.auth.CompanyRegisterRequest;
 import com.delivera.dto.auth.CompanyRegisterResponse;
 import com.delivera.dto.auth.LoginRequest;

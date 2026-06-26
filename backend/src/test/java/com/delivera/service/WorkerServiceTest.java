@@ -1,5 +1,6 @@
 package com.delivera.service;
 
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.worker.ChangeRoleRequest;
 import com.delivera.dto.worker.WorkerInviteRequest;
 import com.delivera.dto.worker.WorkerResponse;
@@ -10,7 +11,7 @@ import com.delivera.exception.WorkerAlreadyExistsException;
 import com.delivera.exception.WorkerNotFoundException;
 import com.delivera.model.*;
 import com.delivera.repository.*;
-import com.delivera.security.SecurityUtils;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

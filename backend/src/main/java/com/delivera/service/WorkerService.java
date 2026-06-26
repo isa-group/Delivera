@@ -1,12 +1,13 @@
 package com.delivera.service;
 
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.worker.ChangeRoleRequest;
 import com.delivera.dto.worker.WorkerInviteRequest;
 import com.delivera.dto.worker.WorkerResponse;
 import com.delivera.exception.*;
 import com.delivera.model.*;
 import com.delivera.repository.*;
-import com.delivera.security.SecurityUtils;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -1,5 +1,6 @@
 package com.delivera.service;
 
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.chat.OrderMessageRequest;
 import com.delivera.dto.chat.OrderMessageResponse;
 import com.delivera.exception.ForbiddenException;
@@ -8,7 +9,6 @@ import com.delivera.model.*;
 import com.delivera.repository.OrderMessageRepository;
 import com.delivera.repository.OrderRepository;
 import com.delivera.repository.UserRepository;
-import com.delivera.security.SecurityUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

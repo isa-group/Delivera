@@ -1,9 +1,10 @@
 package com.delivera.controller;
 
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.activity.ActivityMetricsResponse;
 import com.delivera.dto.activity.OrdersByDayEntry;
 import com.delivera.dto.activity.UnitRankingEntry;
-import com.delivera.security.SecurityUtils;
+
 import com.delivera.service.ActivityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

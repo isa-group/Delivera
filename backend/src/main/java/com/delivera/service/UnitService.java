@@ -1,11 +1,12 @@
 package com.delivera.service;
 
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.settings.CompanySummary;
 import com.delivera.dto.unit.B2BUnitResponse;
 import com.delivera.dto.unit.UnitDetailResponse;
 import com.delivera.dto.unit.UnitRequest;
 import com.delivera.dto.unit.UnitResponse;
-import com.delivera.security.SecurityUtils;
+
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.UnitNameConflictException;
 import com.delivera.exception.UnitNotFoundException;

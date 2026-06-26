@@ -1,8 +1,10 @@
 package com.delivera.config;
 
-import com.delivera.security.SecurityUtils;
 
-import com.delivera.exception.CompanyContextException;
+
+import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.client.exception.CompanyContextException;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

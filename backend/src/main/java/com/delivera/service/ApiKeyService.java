@@ -1,5 +1,6 @@
 package com.delivera.service;
 
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.settings.ApiKeyCreateRequest;
 import com.delivera.dto.settings.ApiKeyCreatedResponse;
 import com.delivera.dto.settings.ApiKeyResponse;
@@ -9,7 +10,7 @@ import com.delivera.model.ApiKey;
 import com.delivera.model.Company;
 import com.delivera.repository.ApiKeyRepository;
 import com.delivera.repository.CompanyRepository;
-import com.delivera.security.SecurityUtils;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

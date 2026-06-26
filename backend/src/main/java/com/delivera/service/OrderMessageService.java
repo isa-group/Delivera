@@ -1,5 +1,6 @@
 package com.delivera.service;
 
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.chat.OrderMessageRequest;
 import com.delivera.dto.chat.OrderMessageResponse;
 import com.delivera.exception.ForbiddenException;
@@ -10,7 +11,7 @@ import com.delivera.model.User;
 import com.delivera.repository.OrderMessageRepository;
 import com.delivera.repository.OrderRepository;
 import com.delivera.repository.UserRepository;
-import com.delivera.security.SecurityUtils;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

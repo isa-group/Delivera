@@ -1,9 +1,10 @@
 package com.delivera.controller;
 
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.settings.*;
 import com.delivera.service.SettingsService;
 import com.delivera.service.SubscriptionService;
-import com.delivera.security.SecurityUtils;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
