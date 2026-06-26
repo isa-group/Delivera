@@ -3,14 +3,14 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
-import { useApi } from '@/composables/useApi'
+import { useServices } from '@/composables/useServices'
 import { useValidation } from '@/composables/useValidation'
 import BaseLayout from '@/components/BaseLayout.vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
-const api = useApi()
+const api = useServices("auth-service")
 const { validate, required, errors, invalids } = useValidation()
 
 const identifier = ref('')
