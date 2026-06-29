@@ -14,6 +14,13 @@ management:
     health:
       show-details: always
 
+fms:
+  instances:
+    dir: instances-MD-CVRP
+  service:
+    url: http://localhost:8082
+    solve-endpoint: /api/v1/fms/routing/solve
+
 springdoc:
   api-docs:
     path: /api-docs
