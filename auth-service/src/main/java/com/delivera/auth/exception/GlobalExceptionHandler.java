@@ -6,6 +6,8 @@ import com.delivera.client.exception.ApiException;
 import com.delivera.client.exception.ClientException;
 import com.delivera.client.exception.NetworkException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+
+import jakarta.persistence.OptimisticLockException;
 import lombok.extern.slf4j.Slf4j;
 
 import org.hibernate.service.spi.ServiceException;
@@ -36,6 +38,7 @@ public class GlobalExceptionHandler {
         Map.entry(InvalidCredentialsException.class,      new Mapping(UNAUTHORIZED,         "INVALID_CREDENTIALS")),
         Map.entry(UserNotFoundException.class,            new Mapping(NOT_FOUND,            "USER_NOT_FOUND")),
         Map.entry(EmailAlreadyExistsException.class,      new Mapping(CONFLICT,             "EMAIL_ALREADY_EXISTS")),
+        Map.entry(ForbiddenException.class,               new Mapping(FORBIDDEN,            "FORBIDDEN")),
         Map.entry(UsernameAlreadyExistsException.class,   new Mapping(CONFLICT,             "USERNAME_ALREADY_EXISTS")),
         Map.entry(RateLimitExceededException.class,       new Mapping(TOO_MANY_REQUESTS,    "RATE_LIMIT_EXCEEDED"))
     );
@@ -174,6 +177,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleServiceException(ServiceException ex) {
         return ResponseEntity.status(503).body(new ErrorResponse("SERVICE_UNAVAILABLE"));
     }
+
+    
+    @ExceptionHandler(OptimisticLockException.class)
+    public ResponseEntity<?> handleOptimisticLock() {
+        return ResponseEntity.status(409).body(new ErrorResponse("CONCURRENT_MODIFICATION"));
+    }
+
 
 
 }

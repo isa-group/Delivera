@@ -48,6 +48,7 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.POST, api + "/internal/auth/register").permitAll();
                 auth.requestMatchers(api + "/internal/auth/register").permitAll();
                 auth.requestMatchers(api + "/auth/switch-company").authenticated();
+                auth.requestMatchers(HttpMethod.PUT,api + "/auth/password").authenticated();
                 auth.requestMatchers(api + "/auth/**").permitAll();
                 auth.requestMatchers(api + "/.well-known/jwks.json").permitAll();
                 auth.anyRequest().denyAll();

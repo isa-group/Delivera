@@ -10,5 +10,7 @@ public interface AuthService {
 
     Credential login(String identifier, String password, String ip);
 
-    Credential getUserCredentialByEmail(String email);
+    Credential getUserCredentialByEmail(String email, Integer tokenVersion);
+
+    Credential changePassword(UUID userId,String rawPreviousPassword,String rawNewPassword, Integer tokenVersion);
 }

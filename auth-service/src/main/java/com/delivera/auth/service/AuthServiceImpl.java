@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.delivera.auth.builder.CredentialBuilder;
 import com.delivera.auth.exception.EmailAlreadyExistsException;
+import com.delivera.auth.exception.ForbiddenException;
 import com.delivera.auth.exception.InvalidCredentialsException;
 import com.delivera.auth.exception.UserNotFoundException;
 import com.delivera.auth.exception.UsernameAlreadyExistsException;
@@ -146,6 +147,12 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    private void checkTokenVersion(Integer tokenVersion, Credential credential) {
+        if (!tokenVersion.equals(credential.getTokenVersion())) {
+            throw new  InvalidCredentialsException();
+        }
+    }
+
     private Credential getCredentialByIdentifier(String identifier) {
         return credentialRepository
         .findByEmailIgnoreCaseOrUsernameIgnoreCase(identifier, identifier)
@@ -166,10 +173,31 @@ public class AuthServiceImpl implements AuthService {
 
 
     @Override
-    public Credential getUserCredentialByEmail(String email) {
-        return credentialRepository.findByEmail(email)
+    @Transactional(readOnly = true)
+    public Credential getUserCredentialByEmail(String email, Integer tokenVersion) {
+        Credential credential =  credentialRepository.findByEmail(email)
         .orElseThrow(() -> new UserNotFoundException());
+        checkTokenVersion(tokenVersion, credential);
+        return credential;
     }
+
+
+    @Override
+    @Transactional
+    public Credential changePassword(UUID userId, String rawPreviousPassword, String rawNewPassword, Integer tokenVersion) {
+        Credential credential = credentialRepository.findById(userId)
+        .orElseThrow(() -> new ForbiddenException("YOU CAN'T DO THIS OPERATION"));
+        checkPassword(rawPreviousPassword, credential);
+        checkTokenVersion(tokenVersion, credential);
+        credential.setPasswordHash(passwordEncoder.encode(rawNewPassword));
+        credential.setTokenVersion(credential.getTokenVersion()+1);
+       
+        return credentialRepository.save(credential);
+
+
+    }
+
+
 
 
    

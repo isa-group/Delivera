@@ -1,13 +1,17 @@
 package com.delivera.auth.controller;
 
 
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.delivera.auth.dto.ChangePasswordRequest;
 import com.delivera.auth.dto.DeliveraOrgContext;
 import com.delivera.auth.dto.LoginRequest;
 import com.delivera.auth.dto.LoginResponse;
@@ -90,15 +94,34 @@ public class AuthController {
 
      
 
-    @Operation(summary = "Cambiar empresa activa")
+    @Operation(summary = "Change active company")
     @PostMapping("/switch-company")
     public ResponseEntity<LoginResponse> switchCompany(@Valid @RequestBody SwitchCompanyRequest request) {
         String email = securityUtils.getCurrentEmail();
-        Credential credential = authService.getUserCredentialByEmail(email);
+        Integer tokenVersion = securityUtils.getTokenVersion();
+
+        Credential credential = authService.getUserCredentialByEmail(email, tokenVersion);
         DeliveraOrgContext orgInfo = client.getOrgSwitchInfo(credential.getUserId(),request.companyId() ).block();
         LoginResponse loginResponse = buildLoginResponse(credential, orgInfo);
         return ResponseEntity.ok(loginResponse);
     }
+
+    @Operation(summary = "Change active company")
+    @PutMapping("/password")
+    public ResponseEntity<LoginResponse> changePassword(@Valid @RequestBody ChangePasswordRequest  request) {
+        UUID userId = securityUtils.getCurrentUserId();
+        Integer tokenVersion = securityUtils.getTokenVersion();
+        
+        Credential credential = authService.changePassword(userId, 
+            request.currentPassword(), request.newPassword(), tokenVersion);
+        
+        DeliveraOrgContext orgInfo = client.getOrgInfoByUserId(credential.getUserId()).block();
+        LoginResponse loginResponse = buildLoginResponse(credential, orgInfo);
+        return ResponseEntity.ok(loginResponse);
+    }
+
+    
+
   
 
 }

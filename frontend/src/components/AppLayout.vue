@@ -146,7 +146,8 @@ onMounted(async () => {
     applyUserLocale(auth.user.email)
   }
 
-  if (auth.isWorker && auth.isCompanyAdmin) {
+  //if (auth.isWorker && auth.isCompanyAdmin) {
+  if (auth.isWorker) {
     auth.loadCompanies()
     await loadSubscriptionIfNeeded()
   }
