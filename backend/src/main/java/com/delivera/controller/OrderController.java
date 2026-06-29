@@ -1,9 +1,9 @@
 package com.delivera.controller;
 
+import com.delivera.auth.service.AuthService;
 import com.delivera.dto.auth.ClaimRegisterRequest;
 import com.delivera.dto.auth.LoginResponse;
 import com.delivera.dto.order.*;
-import com.delivera.service.AuthService;
 import com.delivera.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

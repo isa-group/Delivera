@@ -6,11 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
-import com.delivera.auth.dto.DeliveraOrgContext;
 import com.delivera.auth.dto.RegisterRequest;
 import com.delivera.client.core.SmartMicroserviceClient;
 
-import com.delivera.model.User;
+
 
 import reactor.core.publisher.Mono;
 

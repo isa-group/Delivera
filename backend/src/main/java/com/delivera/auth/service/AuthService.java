@@ -1,4 +1,4 @@
-package com.delivera.service;
+package com.delivera.auth.service;
 
 import com.delivera.dto.auth.ClaimRegisterRequest;
 import com.delivera.dto.auth.CompanyRegisterRequest;
@@ -9,6 +9,8 @@ import com.delivera.dto.auth.RegisterResponse;
 import com.delivera.exception.*;
 import com.delivera.model.*;
 import com.delivera.repository.*;
+import com.delivera.service.JwtService;
+
 import org.springframework.util.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,7 @@ public class AuthService {
     private final SubscriptionPlanRepository subscriptionPlanRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AuthClient client;
 
     public AuthService(UserRepository userRepository,
                        OrganizationRepository organizationRepository,
@@ -43,6 +46,7 @@ public class AuthService {
                        ActivityTypeRepository activityTypeRepository,
                        SubscriptionPlanRepository subscriptionPlanRepository,
                        PasswordEncoder passwordEncoder,
+                       AuthClient client,
                        JwtService jwtService) {
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
@@ -53,6 +57,7 @@ public class AuthService {
         this.activityTypeRepository = activityTypeRepository;
         this.subscriptionPlanRepository = subscriptionPlanRepository;
         this.passwordEncoder = passwordEncoder;
+        this.client = client;
         this.jwtService = jwtService;
     }
 

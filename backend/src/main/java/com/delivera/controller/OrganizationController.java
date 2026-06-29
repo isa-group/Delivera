@@ -1,7 +1,8 @@
 package com.delivera.controller;
 
+import com.delivera.auth.service.AuthService;
 import com.delivera.dto.common.AvailabilityCheckResponse;
-import com.delivera.service.AuthService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

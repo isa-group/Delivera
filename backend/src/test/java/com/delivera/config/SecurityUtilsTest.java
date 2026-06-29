@@ -4,6 +4,7 @@ package com.delivera.config;
 
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.client.exception.CompanyContextException;
+import com.delivera.client.model.UserPrincipal;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class SecurityUtilsTest {
 
     private final SecurityUtils securityUtils = new SecurityUtils();
+    private final UUID companyId = UUID.randomUUID();
 
     @AfterEach
     void clearContext() {
@@ -36,7 +38,7 @@ class SecurityUtilsTest {
     @Test
     void getCurrentEmail_withAuth_returnsEmail() {
         UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken("user@test.com", null, List.of());
+                new UsernamePasswordAuthenticationToken(buildPrincipal(), null, List.of());
         SecurityContextHolder.getContext().setAuthentication(auth);
 
         assertThat(securityUtils.getCurrentEmail()).isEqualTo("user@test.com");
@@ -44,9 +46,8 @@ class SecurityUtilsTest {
 
     @Test
     void getCurrentRole_returnsStrippedAuthority_andCompanyId() {
-        UUID companyId = UUID.randomUUID();
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                "u@t.com", null, List.of(new SimpleGrantedAuthority("ROLE_COMPANY_ADMIN")));
+            buildPrincipal(), null, List.of(new SimpleGrantedAuthority("ROLE_COMPANY_ADMIN")));
         auth.setDetails(companyId);
         SecurityContextHolder.getContext().setAuthentication(auth);
 
@@ -58,6 +59,16 @@ class SecurityUtilsTest {
     void getCurrentRole_nullAuth_returnsNull() {
         assertThat(securityUtils.getCurrentRole()).isNull();
         assertThat(securityUtils.getCurrentEmail()).isNull();
+    }
+
+    private UserPrincipal buildPrincipal() {
+        return new UserPrincipal(
+                UUID.randomUUID(),
+                companyId,
+                "user@test.com",
+                "COMPANY_ADMIN",
+                0
+        );
     }
 
 }

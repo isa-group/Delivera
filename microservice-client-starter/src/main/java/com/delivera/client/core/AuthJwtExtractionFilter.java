@@ -10,7 +10,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.delivera.client.model.UserPrincipal;
+
 import java.io.IOException;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -38,6 +41,16 @@ public class AuthJwtExtractionFilter extends OncePerRequestFilter {
                 JwtTokenParser.TokenClaims claims =
                         jwtService.parse(token);
 
+                
+                UserPrincipal principal = new UserPrincipal(
+                    claims.userId(),
+                    claims.companyId(),    
+                    claims.email(),
+                    claims.role(),
+                    claims.version()       
+                );
+
+
                 List<SimpleGrantedAuthority> authorities =
                         claims.role() != null
                                 ? List.of(new SimpleGrantedAuthority("ROLE_" + claims.role()))
@@ -45,14 +58,14 @@ public class AuthJwtExtractionFilter extends OncePerRequestFilter {
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                claims.email(),
+                                principal,
                                 null,
                                 authorities
                         );
 
 
-                UUID companyId = claims.companyId();
-                authentication.setDetails(companyId);
+               // UUID companyId = claims.companyId();
+                //authentication.setDetails(companyId);
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 

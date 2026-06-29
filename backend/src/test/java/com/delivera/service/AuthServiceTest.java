@@ -1,5 +1,6 @@
 package com.delivera.service;
 
+import com.delivera.auth.service.AuthService;
 import com.delivera.dto.auth.*;
 import com.delivera.exception.*;
 import com.delivera.model.*;

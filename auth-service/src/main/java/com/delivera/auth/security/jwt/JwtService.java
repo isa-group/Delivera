@@ -102,7 +102,8 @@ public class JwtService implements JwtTokenParser{
                     claims.get("email", String.class),
                     claims.get("role", String.class),
                     UUID.fromString(claims.get("companyId", String.class)),
-                    UUID.fromString(claims.getSubject())
+                    UUID.fromString(claims.getSubject()),
+                    claims.get("ver", Integer.class)
             );
 
         } catch (Exception e) {

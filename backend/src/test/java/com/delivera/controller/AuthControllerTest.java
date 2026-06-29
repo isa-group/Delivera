@@ -1,10 +1,12 @@
 package com.delivera.controller;
 
+import com.delivera.auth.controller.AuthController;
+import com.delivera.auth.service.AuthService;
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.auth.*;
 import com.delivera.dto.common.AvailabilityCheckResponse;
 import com.delivera.security.AuthRateLimiter;
-import com.delivera.service.AuthService;
+
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

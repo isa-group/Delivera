@@ -1,11 +1,11 @@
 package com.delivera.controller;
 
+import com.delivera.auth.service.AuthService;
 import com.delivera.dto.auth.ClaimRegisterRequest;
 import com.delivera.dto.auth.LoginResponse;
 import com.delivera.dto.order.*;
 import com.delivera.model.OrderStatus;
 import com.delivera.model.OrderType;
-import com.delivera.service.AuthService;
 import com.delivera.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
