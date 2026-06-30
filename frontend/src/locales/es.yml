@@ -346,6 +346,7 @@ workers:
   confirmRemoveDesc: "El trabajador perderá el acceso a la empresa."
   removeWorker: Eliminar
   roles:
+    GLOBAL_ADMIN: Administrador Global 
     COMPANY_ADMIN: Administrador
     ANALYST: Analista
     OPERATOR: Operador
