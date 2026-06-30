@@ -19,7 +19,6 @@ import com.delivera.auth.dto.SwitchCompanyRequest;
 import com.delivera.auth.model.Credential;
 import com.delivera.auth.security.AuthRateLimiter;
 import com.delivera.auth.security.InMemoryAuthRateLimiter;
-import com.delivera.auth.security.jwt.JwtService;
 import com.delivera.auth.service.AuthService;
 import com.delivera.auth.service.AuthServiceImpl;
 import com.delivera.auth.service.DeliveraClient;
@@ -38,7 +37,6 @@ public class AuthController {
     private final DeliveraClient client;
     private final AuthService authService;
     private final AuthRateLimiter authRateLimiter;
-    private final JwtService jwtService;
     private final SecurityUtils securityUtils;
 
 
@@ -47,14 +45,12 @@ public class AuthController {
     @Autowired
     public AuthController(DeliveraClient client, 
         AuthServiceImpl authService,
-        InMemoryAuthRateLimiter authRateLimiter,  
-        JwtService jwtService,
+        InMemoryAuthRateLimiter authRateLimiter, 
         SecurityUtils securityUtils
     ) {
         this.client = client;
         this.authService = authService;
         this.authRateLimiter = authRateLimiter;
-        this.jwtService = jwtService;
         this.securityUtils = securityUtils;
     }
 
@@ -67,30 +63,11 @@ public class AuthController {
         Credential credential = authService.login(request.getIdentifier(), request.getPassword(),httpRequest.getRemoteAddr());
 
         return client.getOrgInfoByUserId(credential.getUserId())
-        .map( orgInfo -> buildLoginResponse(credential, orgInfo))
+        .map( orgInfo -> authService.buildLoginResponse(credential, orgInfo))
         .map(loginResponse -> ResponseEntity.ok(loginResponse));
     }
 
-    private LoginResponse buildLoginResponse(Credential credential, DeliveraOrgContext orgInfo) {
-        String token = jwtService.generateToken(
-            credential.getUserId(),
-            credential.getEmail(), 
-            orgInfo.getCompanyId() , 
-            orgInfo.getRole(), 
-            credential.getTokenVersion()
-        );
-
-        return new LoginResponse(
-            token, 
-            credential.getEmail(),
-            orgInfo.getCompanyId(), 
-            orgInfo.getRole(), 
-            orgInfo.getCompanyName(), 
-            orgInfo.getOrgHandle(), 
-            orgInfo.getOrgName()
-        );
-        
-    }
+   
 
      
 
@@ -102,7 +79,7 @@ public class AuthController {
 
         Credential credential = authService.getUserCredentialByEmail(email, tokenVersion);
         DeliveraOrgContext orgInfo = client.getOrgSwitchInfo(credential.getUserId(),request.companyId() ).block();
-        LoginResponse loginResponse = buildLoginResponse(credential, orgInfo);
+        LoginResponse loginResponse = authService.buildLoginResponse(credential, orgInfo);
         return ResponseEntity.ok(loginResponse);
     }
 
@@ -116,7 +93,7 @@ public class AuthController {
             request.currentPassword(), request.newPassword(), tokenVersion);
         
         DeliveraOrgContext orgInfo = client.getOrgInfoByUserId(credential.getUserId()).block();
-        LoginResponse loginResponse = buildLoginResponse(credential, orgInfo);
+        LoginResponse loginResponse = authService.buildLoginResponse(credential, orgInfo);
         return ResponseEntity.ok(loginResponse);
     }
 

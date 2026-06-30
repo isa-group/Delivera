@@ -35,18 +35,7 @@ public class AuthController {
     private final SecurityUtils securityUtils;
     private final AuthRateLimiter authRateLimiter;
 
-    @Operation(summary = "Iniciar sesión", description = "Autenticación de usuario con email y contraseña")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Login exitoso"),
-            @ApiResponse(responseCode = "401", description = "Credenciales inválidas"),
-            @ApiResponse(responseCode = "429", description = "Demasiados intentos")
-    })
-    @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(HttpServletRequest httpRequest, @Valid @RequestBody LoginRequest request) {
-        authRateLimiter.check(httpRequest.getRemoteAddr(), "login");
-        LoginResponse response = authService.login(request.identifier(), request.password());
-        return ResponseEntity.ok(response);
-    }
+  
 
     @Operation(summary = "Registrar usuario", description = "Crear una nueva cuenta de usuario")
     @ApiResponses(value = {
@@ -80,10 +69,12 @@ public class AuthController {
         return ResponseEntity.ok(new AvailabilityCheckResponse(authService.isUsernameAvailable(username)));
     }
 
+    /* 
     @Operation(summary = "Cambiar empresa activa")
     @PostMapping("/switch-company")
     public ResponseEntity<LoginResponse> switchCompany(@Valid @RequestBody SwitchCompanyRequest request) {
         String email = securityUtils.getCurrentEmail();
         return ResponseEntity.ok(authService.switchCompany(email, request.companyId()));
     }
+ */
 }

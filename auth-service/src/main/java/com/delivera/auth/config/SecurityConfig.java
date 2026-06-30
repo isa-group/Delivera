@@ -46,7 +46,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers(SWAGGER_PATHS).permitAll();
                 auth.requestMatchers(HttpMethod.POST, api + "/internal/auth/register").permitAll();
+                auth.requestMatchers(api + "/internal/auth/seed/register").permitAll(); // Only in dev
                 auth.requestMatchers(api + "/internal/auth/register").permitAll();
+                auth.requestMatchers(HttpMethod.PUT,api + "/internal/auth/username").permitAll();
+                auth.requestMatchers(HttpMethod.DELETE,api + "/internal/auth/user/**").permitAll();
                 auth.requestMatchers(api + "/auth/switch-company").authenticated();
                 auth.requestMatchers(HttpMethod.PUT,api + "/auth/password").authenticated();
                 auth.requestMatchers(api + "/auth/**").permitAll();

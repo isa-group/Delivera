@@ -1,5 +1,6 @@
 package com.delivera.auth.service;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.delivera.auth.builder.CredentialBuilder;
+import com.delivera.auth.dto.DeliveraOrgContext;
+import com.delivera.auth.dto.LoginResponse;
 import com.delivera.auth.exception.EmailAlreadyExistsException;
 import com.delivera.auth.exception.ForbiddenException;
 import com.delivera.auth.exception.InvalidCredentialsException;
@@ -18,7 +21,7 @@ import com.delivera.auth.model.Credential;
 import com.delivera.auth.repository.CredentialRepository;
 import com.delivera.auth.security.AuthRateLimiter;
 import com.delivera.auth.security.InMemoryAuthRateLimiter;
-
+import com.delivera.auth.security.jwt.JwtService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,15 +32,18 @@ public class AuthServiceImpl implements AuthService {
     private final CredentialRepository credentialRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthRateLimiter rateLimiter;
+    private final JwtService jwtService;
 
     @Autowired
     public AuthServiceImpl(CredentialRepository credentialRepository,
                            PasswordEncoder passwordEncoder, 
-                           InMemoryAuthRateLimiter inMemoryAuthRateLimiter
+                           InMemoryAuthRateLimiter inMemoryAuthRateLimiter,
+                           JwtService jwtService
                            ) {
         this.credentialRepository = credentialRepository;
         this.passwordEncoder = passwordEncoder;
         this.rateLimiter = inMemoryAuthRateLimiter;
+        this.jwtService = jwtService;
 
     }
 
@@ -52,10 +58,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void checkIUsernameExists(String username) throws UsernameAlreadyExistsException{
-        if (username == null) {
-            throw new InvalidCredentialsException();
-        }
-        if (credentialRepository.findByUsername(username).isPresent()) {
+        if (username != null && credentialRepository.findByUsername(username).isPresent()) {
             throw new UsernameAlreadyExistsException();
         }
     }
@@ -90,7 +93,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void createCredentials(UUID userId, String email, String username, String password) {
+    public Credential createCredentials(UUID userId, String email, String username, String password) {
         
         // CHECK IN CREATE AND HERE TO GET A BETTER UX
         checkIfUUIDExists(userId);
@@ -105,7 +108,7 @@ public class AuthServiceImpl implements AuthService {
                                 .tokenVersion(0)
                                 .build();
 
-        create(credential);
+        return create(credential);
     }
 
     private void avoidGlobalAttacks(String identifier, String ip) {
@@ -196,6 +199,50 @@ public class AuthServiceImpl implements AuthService {
 
 
     }
+
+     public LoginResponse buildLoginResponse(Credential credential, DeliveraOrgContext orgInfo) {
+        orgInfo = orgInfo == null? new DeliveraOrgContext() : orgInfo;
+        String token = jwtService.generateToken(
+            credential.getUserId(),
+            credential.getEmail(), 
+            orgInfo.getCompanyId() , 
+            orgInfo.getRole(), 
+            credential.getTokenVersion()
+        );
+
+        return new LoginResponse(
+            token, 
+            credential.getEmail(),
+            orgInfo.getCompanyId(), 
+            orgInfo.getRole(), 
+            orgInfo.getCompanyName(), 
+            orgInfo.getOrgHandle(), 
+            orgInfo.getOrgName()
+        );
+        
+    }
+
+
+     @Override
+     @Transactional
+     public Credential changeUsername(UUID userId, String username) {
+        Credential credential = credentialRepository.findById(userId)
+        .orElseThrow(() -> new ForbiddenException("YOU CAN'T DO THIS OPERATION"));
+        checkIUsernameExists(username);
+        credential.setUsername(username);
+        return credentialRepository.save(credential);
+     }
+
+
+     @Override
+     @Transactional
+     public void delete(UUID userId) {
+        Optional<Credential> credential = credentialRepository.findByUserId(userId);
+        System.out.println(credential.isPresent());
+        if (credential.isPresent()) {
+            credentialRepository.delete(credential.get());
+        }
+     }
 
 
 

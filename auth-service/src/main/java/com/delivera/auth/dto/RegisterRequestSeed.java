@@ -2,7 +2,6 @@ package com.delivera.auth.dto;
 
 import java.util.UUID;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -13,7 +12,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class RegisterRequest {
+public class RegisterRequestSeed {
 
         @NotNull
         UUID userId;
@@ -33,7 +32,4 @@ public class RegisterRequest {
         @Size(min = 8)
         @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$")
         String password;
-
-        @Valid
-        DeliveraOrgContext context;
 }
