@@ -102,4 +102,4 @@ app:
       auth:
         prefix: /api/v2 
         host: http://localhost:9090
-        path: /internal/auth/register
+        path: /internal/auth/seed/register

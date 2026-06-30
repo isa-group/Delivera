@@ -364,7 +364,6 @@ public class DemoDataSeeder implements CommandLineRunner {
         if (address != null) u.setAddress(address);
         if (lat != null) u.setLatitude(BigDecimal.valueOf(lat));
         if (lon != null) u.setLongitude(BigDecimal.valueOf(lon));
-        u.setPasswordHash(passwordEncoder.encode(seedPassword));
         var savedUser = users.save(u);
         authClient.registerSeed( 
                 u.getId() , 

@@ -6,10 +6,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
-import com.delivera.auth.dto.RegisterRequest;
+import com.delivera.auth.dto.ChangeUsernameRequest;
+import com.delivera.auth.dto.DeliveraOrgContext;
+import com.delivera.auth.dto.RegisterRequestAuth;
 import com.delivera.client.core.SmartMicroserviceClient;
-
-
+import com.delivera.dto.auth.LoginResponse;
 
 import reactor.core.publisher.Mono;
 
@@ -24,33 +25,7 @@ public class AuthClient {
         this.client = client;
     }
 
-    public Mono<Object> registerSeed(UUID userId, String email, String username,String password, String url) {
-        RegisterRequest registerRequest = buildRegisterRequest(
-            userId, email, username, password
-        );
-        System.out.println(registerRequest.getUserId()+","+
-        registerRequest.getEmail()+","+
-         registerRequest.getUsername()+","+
-         registerRequest.getPassword());
-        return client.request()
-        .url(url)
-        .method(HttpMethod.POST)
-        .http()
-        .body(registerRequest)
-        .internal()
-        .failOn4xx(true)
-        .failOn5xx(true)
-        .retry(3)
-        .timeout(1000)
-        .log()
-        .executeBasicRequest(Object.class);
-    } 
-    
-    
-    public Mono<Object> register(UUID userId, String email, String username,String password) {
-        RegisterRequest registerRequest = buildRegisterRequest(
-            userId, email, username, password
-        );
+    public  Mono<LoginResponse> registerBase(RegisterRequestAuth registerRequest) {
         return client.request()
         .service("auth-service")
         .path("/internal/auth/register")
@@ -61,18 +36,91 @@ public class AuthClient {
         .failOn4xx(true)
         .failOn5xx(true)
         .retry(3)
-        .timeout(1000)
+        .timeout(5000)
         .log()
-        .executeBasicRequest(Object.class);
+        .executeBasicRequest(LoginResponse.class);
+
+    }
+
+
+    public Mono<Void> registerSeed(UUID userId, String email, String username,String password, String url) {
+        RegisterRequestAuth registerRequest = buildRegisterRequest(
+            userId, email, username, password
+        );
+        return client.request()
+        .url(url)
+        .method(HttpMethod.POST)
+        .http()
+        .body(registerRequest)
+        .internal()
+        .failOn4xx(true)
+        .failOn5xx(true)
+        .retry(3)
+        .timeout(5000)
+        .log()
+        .executeBasicRequest(Void.class);
+    } 
+    
+    
+    public Mono<LoginResponse> register(UUID userId, String email, String username,String password) {
+        RegisterRequestAuth registerRequest = buildRegisterRequest(
+            userId, email, username, password
+        );
+        return registerBase(registerRequest);
+        
     } 
 
-    private RegisterRequest buildRegisterRequest(UUID userId, String email, String username,String password) {
-        RegisterRequest registerRequest = new RegisterRequest();
+    public Mono<LoginResponse> register(UUID userId, String email, String username,String password, DeliveraOrgContext context) {
+        RegisterRequestAuth registerRequest = buildRegisterRequest(
+            userId, email, username, password
+        );
+        registerRequest.setContext(context);
+        
+        return registerBase(registerRequest);
+    }
+
+    private RegisterRequestAuth buildRegisterRequest(UUID userId, String email, String username,String password) {
+        RegisterRequestAuth registerRequest = new RegisterRequestAuth();
         registerRequest.setUserId(userId);
         registerRequest.setEmail(email);
         registerRequest.setUsername(username);
         registerRequest.setPassword(password);
         return registerRequest;
+    }
+
+
+    public Mono<Void> changeUsername(UUID userId, String username) {
+        ChangeUsernameRequest body = new ChangeUsernameRequest(username, userId);
+        return client.request()
+        .service("auth-service")
+        .path("/internal/auth/username")
+        .method(HttpMethod.PUT)
+        .mtls()
+        .body(body)
+        .internal()
+        .failOn4xx(true)
+        .failOn5xx(true)
+        .retry(3)
+        .timeout(5000)
+        .log()
+        .executeBasicRequest(Void.class);
+        
+    }
+
+    public Mono<Void> deleteUser(UUID userId) {
+        return client.request()
+        .service("auth-service")
+        .path("/internal/auth/user/"+userId)
+        .method(HttpMethod.DELETE)
+        .mtls()
+        .internal()
+        .failOn4xx(true)
+        .failOn5xx(true)
+        .retry(3)
+        .timeout(5000)
+        .log()
+        .executeBasicRequest(Void.class);
+        
     }
 
 }

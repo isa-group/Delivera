@@ -1,11 +1,14 @@
 package com.delivera.service;
 
+import com.delivera.auth.service.AuthClient;
 import com.delivera.auth.service.AuthService;
 import com.delivera.dto.auth.*;
 import com.delivera.exception.*;
 import com.delivera.model.*;
 import com.delivera.repository.*;
-import com.delivera.repository.ActivityTypeRepository;
+
+import reactor.core.publisher.Mono;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,7 +46,7 @@ class AuthServiceTest {
     @Mock
     private SubscriptionPlanRepository subscriptionPlanRepository;
     @Mock
-    private PasswordEncoder passwordEncoder;
+    private AuthClient client;
     @Mock
     private JwtService jwtService;
     @InjectMocks
@@ -60,7 +63,6 @@ class AuthServiceTest {
     void setUp() {
         user = new User();
         user.setEmail("admin@test.com");
-        user.setPasswordHash("hashed");
 
         organization = new Organization();
         organization.setId(UUID.randomUUID());
@@ -85,35 +87,7 @@ class AuthServiceTest {
         claimRequest = new ClaimRegisterRequest("Juan", "García", "juan@gmail.com", "Password1");
     }
 
-    // --- login ---
-
-    @Test
-    void login_workerUser_returnsTokenWithCompany() {
-        when(userRepository.findByEmailOrUsername("admin@test.com")).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("pass", "hashed")).thenReturn(true);
-        when(workerRepository.findByUserEmailOrderByCreatedAtAsc("admin@test.com")).thenReturn(List.of(worker));
-        when(jwtService.generateToken(any(), any(), any())).thenReturn("worker-token");
-
-        LoginResponse result = authService.login("admin@test.com", "pass");
-
-        assertThat(result.token()).isEqualTo("worker-token");
-        assertThat(result.companyId()).isEqualTo(company.getId());
-        assertThat(result.role()).isEqualTo("COMPANY_ADMIN");
-    }
-
-    @Test
-    void login_individualUser_returnsTokenWithoutCompany() {
-        when(userRepository.findByEmailOrUsername("personal@test.com")).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("pass", "hashed")).thenReturn(true);
-        when(workerRepository.findByUserEmailOrderByCreatedAtAsc("admin@test.com")).thenReturn(List.of());
-        when(jwtService.generateToken("admin@test.com", (String) null)).thenReturn("individual-token");
-
-        LoginResponse result = authService.login("personal@test.com", "pass");
-
-        assertThat(result.token()).isEqualTo("individual-token");
-        assertThat(result.companyId()).isNull();
-    }
-
+  
     // --- register ---
 
     @Test
@@ -121,10 +95,13 @@ class AuthServiceTest {
         RegisterRequest req = new RegisterRequest("new@test.com", "newuser", "John", null, null, "Password1");
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
-        when(passwordEncoder.encode("Password1")).thenReturn("hashed");
         when(userRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(loyalUserRepository.findByEmail("new@test.com")).thenReturn(List.of());
-        when(jwtService.generateToken("new@test.com", (String) null)).thenReturn("token");
+        when(client.register(any(), any(), any(), any(),any()))
+        .thenReturn(Mono.just(new LoginResponse(
+            "token", 
+            "new@test.com", null, null, null, null, null) ));
+     
 
         RegisterResponse result = authService.register(req);
         assertThat(result.getToken()).isEqualTo("token");
@@ -142,14 +119,19 @@ class AuthServiceTest {
         when(userRepository.findByEmail("ceo@test.com")).thenReturn(Optional.empty());
         when(organizationRepository.existsByHandle("test-org")).thenReturn(false);
         when(userRepository.existsByUsername("ceouser")).thenReturn(false);
-        when(passwordEncoder.encode("Password1")).thenReturn("hashed");
         when(userRepository.save(any())).thenReturn(user);
+        
+        when(client.register(any(), any(), any(), any(),any()))
+            .thenReturn(Mono.just(new LoginResponse(
+                "company-token", 
+                null, null, null, null, null, null) ));
+
         when(organizationRepository.saveAndFlush(any())).thenReturn(organization);
         ActivityType transport = new ActivityType(); transport.setCode("TRANSPORT");
         when(activityTypeRepository.getReferenceById("TRANSPORT")).thenReturn(transport);
         when(companyRepository.save(any())).thenReturn(company);
         when(workerRepository.save(any())).thenReturn(worker);
-        when(jwtService.generateToken(any(), any(), any())).thenReturn("company-token");
+       
 
         CompanyRegisterResponse result = authService.registerCompany(req);
         assertThat(result.token()).isEqualTo("company-token");
@@ -162,11 +144,15 @@ class AuthServiceTest {
         when(orderRepository.findByTrackingToken("testtoken")).thenReturn(Optional.of(claimOrder));
         when(userRepository.findByEmail("juan@gmail.com")).thenReturn(Optional.empty());
         when(loyalUserRepository.findByCompaniesIdAndEmail(company.getId(), "juan@gmail.com")).thenReturn(Optional.empty());
-        when(passwordEncoder.encode("Password1")).thenReturn("hashed");
         when(userRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(loyalUserRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        when(jwtService.generateToken("juan@gmail.com", "LOYAL_USER")).thenReturn("jwt-token");
+        when(client.register(any(), any(), any(), any(),any()))
+        .thenReturn(Mono.just(new LoginResponse(
+            "jwt-token", 
+            "juan@gmail.com", null, null, null, null, null) 
+        ));
+     
 
         LoginResponse result = authService.claimRegister("testtoken", claimRequest);
 
@@ -182,25 +168,6 @@ class AuthServiceTest {
         when(orderRepository.findByTrackingToken("badtoken")).thenReturn(Optional.empty());
         assertThatThrownBy(() -> authService.claimRegister("badtoken", claimRequest))
                 .isInstanceOf(OrderNotFoundException.class);
-    }
-
-    @Test
-    void login_invalidCredentials_throws() {
-        when(userRepository.findByEmailOrUsername("x@t.com")).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> authService.login("x@t.com", "pass"))
-                .isInstanceOf(InvalidCredentialsException.class);
-    }
-
-    @Test
-    void switchCompany_success_andNotFound() {
-        when(workerRepository.findByUserEmailAndCompanyId("admin@test.com", company.getId())).thenReturn(Optional.of(worker));
-        when(jwtService.generateToken(any(), any(), any())).thenReturn("switch-token");
-        assertThat(authService.switchCompany("admin@test.com", company.getId()).token()).isEqualTo("switch-token");
-
-        UUID other = UUID.randomUUID();
-        when(workerRepository.findByUserEmailAndCompanyId("admin@test.com", other)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> authService.switchCompany("admin@test.com", other))
-                .isInstanceOf(InvalidCredentialsException.class);
     }
 
     @Test
