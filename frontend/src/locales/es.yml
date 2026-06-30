@@ -92,6 +92,9 @@ fields:
   orgCodeHint: "Lo usarán tus trabajadores para identificar la organización al iniciar sesión"
   companyName: Nombre de la empresa
   companyNamePlaceholder: "Ej: Acme Logística"
+  plate: Matrícula
+  capacity: Capacidad
+  depot: Depósito
   organization: Organización
   type: Tipo
   company: Empresa de destino
@@ -358,6 +361,7 @@ myOrders:
 nav:
   profile: Mi perfil
   units: Unidades
+  vehicles: Vehículos
   orders: Pedidos
   loyalUsers: Fidelizados
   home: Inicio
@@ -449,6 +453,8 @@ error:
   LOYAL_USER_CANNOT_BE_WORKER: Este email pertenece a un usuario fidelizado y no puede ser invitado como trabajador
   WORKER_NOT_FOUND: Trabajador no encontrado
   LAST_ADMIN: No puedes cambiar el rol del único administrador de la empresa
+  VEHICLE_NOT_FOUND: Vehículo no encontrado
+  VEHICLE_PLATE_CONFLICT: Ya existe un vehículo con esa matrícula en tu empresa
 
 orgSelect:
   title: Selecciona tu organización
@@ -506,6 +512,23 @@ settings:
   noCompaniesFound: No se encontraron empresas con ese criterio
   searchByName: Buscar por nombre
   filterAll: Todos
+
+vehicles:
+  title: Vehículos
+  new: Nuevo vehículo
+  edit: Editar vehículo
+  detail: Detalles del vehículo
+  notFound: Vehículo no encontrado
+  plate: Matrícula
+  platePlaceholder: "Ej: 1234-ABC"
+  capacity: Capacidad
+  depot: Depósito / Unidad
+  depotPlaceholder: Seleccionar depósito
+  created: Vehículo creado correctamente
+  updated: Vehículo actualizado correctamente
+  empty: No hay vehículos todavía. Añade el primero para gestionar tu flota.
+  deleteConfirm: "¿Eliminar este vehículo?"
+  searchPlaceholder: Buscar por matrícula
 
 apiKeys:
   intro: Genera y gestiona claves para que sistemas externos accedan a la API de Delivera. La clave solo se muestra una vez al crearla.

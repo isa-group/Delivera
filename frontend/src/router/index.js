@@ -14,6 +14,9 @@ const ProfileView = () => import('@/views/profile/ProfileView.vue')
 const UnitsView = () => import('@/views/units/UnitsView.vue')
 const UnitFormView = () => import('@/views/units/UnitFormView.vue')
 const UnitDetailView = () => import('@/views/units/UnitDetailView.vue')
+const VehiclesView = () => import('@/views/vehicles/VehiclesView.vue')
+const VehicleFormView = () => import('@/views/vehicles/VehicleFormView.vue')
+const VehicleDetailView = () => import('@/views/vehicles/VehicleDetailView.vue')
 const OrderFormView = () => import('@/views/orders/OrderFormView.vue')
 const OrdersView = () => import('@/views/orders/OrdersView.vue')
 const OrderDetailView = () => import('@/views/orders/OrderDetailView.vue')
@@ -56,6 +59,10 @@ const router = createRouter({
         { path: 'units/:id', component: UnitDetailView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN', 'ANALYST', 'OPERATOR'] } },
         { path: 'units/:id/edit', component: UnitFormView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN'] } },
         { path: 'units/:id/assign-workers', component: UnitAssignWorkersView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN'] } },
+        { path: 'vehicles', component: VehiclesView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN', 'ANALYST', 'OPERATOR'] } },
+        { path: 'vehicles/new', component: VehicleFormView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN'] } },
+        { path: 'vehicles/:id', component: VehicleDetailView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN', 'ANALYST', 'OPERATOR'] } },
+        { path: 'vehicles/:id/edit', component: VehicleFormView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN'] } },
         { path: 'orders', component: OrdersView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN', 'ANALYST', 'OPERATOR'] } },
         { path: 'orders/new', component: OrderFormView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN', 'ANALYST'] } },
         { path: 'orders/:id', component: OrderDetailView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN', 'ANALYST', 'OPERATOR'] } },

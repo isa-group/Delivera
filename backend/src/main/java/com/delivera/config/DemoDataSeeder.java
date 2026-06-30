@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,7 +61,7 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final OrderEventRepository orderEvents;
     private final ActivityTypeRepository activityTypes;
     private final SubscriptionPlanRepository plans;
-    private final PasswordEncoder passwordEncoder;
+    private final VehicleRepository vehicles;
     private final AuthClient authClient;
 
     @PersistenceContext
@@ -75,11 +74,11 @@ public class DemoDataSeeder implements CommandLineRunner {
                           OperationalUnitRepository units,
                           LoyalUserRepository loyalUsers,
                           OrderRepository orders,
-                          OrderEventRepository orderEvents,
-                          ActivityTypeRepository activityTypes,
-                          SubscriptionPlanRepository plans,
-                          PasswordEncoder passwordEncoder, 
-                          AuthClient authClient) {
+                           OrderEventRepository orderEvents,
+                           ActivityTypeRepository activityTypes,
+                           SubscriptionPlanRepository plans,
+                           VehicleRepository vehicles,
+                           AuthClient authClient) {
         this.users = users;
         this.organizations = organizations;
         this.companies = companies;
@@ -90,7 +89,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         this.orderEvents = orderEvents;
         this.activityTypes = activityTypes;
         this.plans = plans;
-        this.passwordEncoder = passwordEncoder;
+        this.vehicles = vehicles;
         this.authClient = authClient;
     }
 
@@ -256,7 +255,27 @@ public class DemoDataSeeder implements CommandLineRunner {
         assignWorker(dsFactory,  elenaWInd);
         assignWorker(dsCadizWh,  javierWInd);
 
-        // --- 8. Fidelizados ---
+        // --- 8. Vehículos ---
+        // RapidLog Central
+        createVehicle(rlCentral, rlMadridCd, "RC-001", 1200);
+        createVehicle(rlCentral, rlMadridWh, "RC-002", 800);
+        createVehicle(rlCentral, rlValencia, "RC-003", 1500);
+        // RapidLog Retail
+        createVehicle(rlRetail,  rlTiendaMad, "RR-001", 500);
+        createVehicle(rlRetail,  rlTiendaBcn, "RR-002", 350);
+        // TransNorte Logística
+        createVehicle(tnLog,     tnBilbao,    "TN-001", 2000);
+        createVehicle(tnLog,     tnZgz,       "TN-002", 1000);
+        // TransNorte Almacenamiento
+        createVehicle(tnStore,   tnSantander, "TA-001", 600);
+        // DistriSur Alimentación
+        createVehicle(dsFood,    dsMalaga,    "DS-001", 1500);
+        createVehicle(dsFood,    dsGranada,   "DS-002", 900);
+        // DistriSur Industrial
+        createVehicle(dsInd,     dsFactory,   "DI-001", 2500);
+        createVehicle(dsInd,     dsCadizWh,   "DI-002", 1200);
+
+        // --- 9. Fidelizados ---
         LoyalUser luClara   = createLoyalUser(clara.getEmail(), clara, List.of(rlRetail, dsFood),
                 null, null, null);
         LoyalUser luRaul    = createLoyalUser(raul.getEmail(),  raul,  List.of(dsFood),
@@ -274,7 +293,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         LoyalUser luPablo   = createLoyalUser("pablo.castro@correo.com",    null, List.of(rlRetail, tnStore),
                 "Calle Pelayo 5, Barcelona",      41.3900,  2.1680);
 
-        // --- 9. Pedidos ---
+        // --- 10. Pedidos ---
         // Internos RapidLog Central
         createInternalOrder(rlCentral, rlMadridCd, rlValencia, OrderStatus.DELIVERED,  OrderPriority.NORMAL, 11, carlos);
         createInternalOrder(rlCentral, rlMadridCd, rlSevilla,  OrderStatus.IN_TRANSIT, OrderPriority.HIGH,    3, marcos);
@@ -414,6 +433,15 @@ public class DemoDataSeeder implements CommandLineRunner {
     private void assignWorker(OperationalUnit unit, Worker worker) {
         unit.getWorkers().add(worker);
         units.save(unit);
+    }
+
+    private void createVehicle(Company company, OperationalUnit depot, String plate, int capacity) {
+        Vehicle v = new Vehicle();
+        v.setCompany(company);
+        v.setDepot(depot);
+        v.setPlate(plate);
+        v.setCapacity(capacity);
+        vehicles.save(v);
     }
 
     private LoyalUser createLoyalUser(String email, User user, List<Company> cs,
