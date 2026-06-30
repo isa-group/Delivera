@@ -10,6 +10,7 @@ RUN mvn -DskipTests package -q
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/fms-routing-service-1.0.0-SNAPSHOT.jar app.jar
+COPY instances-MD-CVRP/ instances-MD-CVRP/
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 ENV SPRING_PROFILES_ACTIVE=prod
