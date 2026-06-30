@@ -6,10 +6,12 @@ import com.delivera.fms.routing.dto.RouteDto;
 import com.delivera.fms.routing.dto.RoutingRequest;
 import com.delivera.fms.routing.dto.RoutingResponse;
 import com.delivera.fms.routing.dto.TypeSolver;
+import com.delivera.fms.routing.dto.VehicleDto;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,92 +27,80 @@ public class RandomRouteSolverImpl implements RouteSolver {
         Collections.shuffle(customers);
 
         List<DepotDto> depots = request.depots();
-        double[][] distanceMatrix = request.distanceMatrix();
+        double[][] dist = request.distanceMatrix();
 
-        Map<DepotDto, List<CustomerDto>> customersByDepot = assignCustomersToNearestDepots(
-                customers, depots, distanceMatrix
-        );
+        Map<DepotDto, List<CustomerDto>> grouped = groupByNearestDepot(customers, depots, dist);
 
-        List<RouteDto> routes = new ArrayList<>();
-        for (Map.Entry<DepotDto, List<CustomerDto>> entry : customersByDepot.entrySet()) {
-            DepotDto depot = entry.getKey();
-            List<CustomerDto> assignedCustomers = entry.getValue();
-            RouteDto route = buildRouteForDepot(depot, assignedCustomers, distanceMatrix);
-            routes.add(route);
-        }
+        List<VehicleDto> vehicles = request.vehicles();
+        boolean hasVehicles = vehicles != null && !vehicles.isEmpty();
+        List<RouteDto> routes = hasVehicles
+                ? routesFromVehicles(vehicles, grouped, dist)
+                : routesFromDepots(depots, grouped, dist);
 
+        double totalCost = routes.stream().mapToDouble(RouteDto::totalDistance).sum();
         long computationTime = System.currentTimeMillis() - startTime;
 
         return new RoutingResponse(
-                request.problemId(),
-                "COMPLETED",
-                TypeSolver.RANDOM,
-                computationTime,
-                routes
+                request.problemId(), "COMPLETED", TypeSolver.RANDOM,
+                totalCost, computationTime, routes
         );
     }
 
-    private Map<DepotDto, List<CustomerDto>> assignCustomersToNearestDepots(
-            List<CustomerDto> customers,
-            List<DepotDto> depots,
-            double[][] distanceMatrix
-    ) {
-        Map<DepotDto, List<CustomerDto>> customersByDepot = new HashMap<>();
-
-        for (DepotDto depot : depots) {
-            customersByDepot.put(depot, new ArrayList<>());
+    private Map<DepotDto, List<CustomerDto>> groupByNearestDepot(
+            List<CustomerDto> customers, List<DepotDto> depots, double[][] dist) {
+        Map<DepotDto, List<CustomerDto>> result = new HashMap<>();
+        for (DepotDto d : depots) result.put(d, new ArrayList<>());
+        for (CustomerDto c : customers) {
+            DepotDto nearest = depots.stream()
+                    .min(Comparator.comparingDouble(d -> dist[d.matrixIndex()][c.matrixIndex()]))
+                    .orElse(depots.get(0));
+            result.get(nearest).add(c);
         }
-
-        for (CustomerDto customer : customers) {
-            DepotDto nearestDepot = findNearestDepot(customer, depots, distanceMatrix);
-            customersByDepot.get(nearestDepot).add(customer);
-        }
-
-        return customersByDepot;
+        return result;
     }
 
-    private DepotDto findNearestDepot(
-            CustomerDto customer,
-            List<DepotDto> depots,
-            double[][] distanceMatrix
-    ) {
-        DepotDto nearestDepot = depots.get(0);
-        double minDistance = distanceMatrix[nearestDepot.matrixIndex()][customer.matrixIndex()];
+    private List<RouteDto> routesFromVehicles(List<VehicleDto> vehicles,
+                                               Map<DepotDto, List<CustomerDto>> grouped,
+                                               double[][] dist) {
+        Map<String, DepotDto> depotById = new HashMap<>();
+        for (DepotDto d : grouped.keySet()) depotById.put(d.id(), d);
 
-        for (DepotDto depot : depots) {
-            double distance = distanceMatrix[depot.matrixIndex()][customer.matrixIndex()];
-            if (distance < minDistance) {
-                minDistance = distance;
-                nearestDepot = depot;
-            }
+        List<RouteDto> routes = new ArrayList<>();
+        for (VehicleDto v : vehicles) {
+            DepotDto depot = depotById.get(v.startDepotId());
+            if (depot == null) continue;
+            routes.add(buildRoute(v.id(), depot, grouped.get(depot), dist, v.capacity()));
         }
-
-        return nearestDepot;
+        return routes;
     }
 
-    private RouteDto buildRouteForDepot(DepotDto depot, List<CustomerDto> customers, double[][] distanceMatrix) {
+    private List<RouteDto> routesFromDepots(List<DepotDto> depots,
+                                             Map<DepotDto, List<CustomerDto>> grouped,
+                                             double[][] dist) {
+        List<RouteDto> routes = new ArrayList<>();
+        for (DepotDto d : depots) {
+            routes.add(buildRoute("V-" + d.id(), d, grouped.get(d), dist, Integer.MAX_VALUE));
+        }
+        return routes;
+    }
+
+    private RouteDto buildRoute(String vehicleId, DepotDto depot,
+                                 List<CustomerDto> customers, double[][] dist,
+                                 int maxCapacity) {
         List<String> stops = new ArrayList<>();
         double totalDistance = 0.0;
         int totalLoad = 0;
-
-        if (customers.isEmpty()) {
-            String vehicleId = "V-" + depot.id();
-            return new RouteDto(vehicleId, depot.id(), stops, 0.0, 0);
-        }
-
         int currentIndex = depot.matrixIndex();
 
-        for (CustomerDto customer : customers) {
-            int customerIndex = customer.matrixIndex();
-            totalDistance += distanceMatrix[currentIndex][customerIndex];
-            stops.add(customer.id());
-            totalLoad += customer.demand();
-            currentIndex = customerIndex;
+        for (CustomerDto c : customers) {
+            if (totalLoad + c.demand() > maxCapacity) break;
+            totalDistance += dist[currentIndex][c.matrixIndex()];
+            stops.add(c.id());
+            totalLoad += c.demand();
+            currentIndex = c.matrixIndex();
         }
+        totalDistance += dist[currentIndex][depot.matrixIndex()];
 
-        totalDistance += distanceMatrix[currentIndex][depot.matrixIndex()];
-
-        String vehicleId = "V-" + depot.id();
         return new RouteDto(vehicleId, depot.id(), stops, totalDistance, totalLoad);
     }
 

@@ -1,0 +1,170 @@
+.vehicle-form-page {
+  padding: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  min-height: calc(100vh - 128px);
+}
+
+@media (max-width: 900px) {
+  .vehicle-form-page { grid-template-columns: 1fr; }
+  .vehicle-form-visual { display: none; }
+}
+
+.vehicle-form-panel {
+  padding: 32px 28px;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-y: auto;
+}
+
+.back-btn-inline {
+  align-self: flex-start;
+  margin-bottom: 20px;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.form-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.form-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+}
+
+.form-icon .pi {
+  font-size: 22px;
+  color: white;
+}
+
+.form-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 2px;
+  color: #1e293b;
+}
+
+.form-subtitle {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.form-field {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.plate-input :deep(input) {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.plate-input :deep(input:focus-visible),
+.form-field :deep(input:focus-visible),
+.form-field :deep(.p-select:focus-visible) {
+  outline: 2px solid #7c3aed;
+  outline-offset: 1px;
+}
+
+.field-error {
+  color: #ef4444;
+  font-size: 11px;
+}
+
+.form-message {
+  margin-bottom: 14px;
+}
+
+.submit-btn {
+  margin-top: 6px;
+  min-height: 40px;
+}
+
+/* Right visual panel */
+.vehicle-form-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, #f8fafc 0%, #f1f5f9 100%);
+  min-height: 600px;
+}
+
+.visual-card {
+  text-align: center;
+  padding: 48px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+  min-width: 220px;
+  transition: box-shadow 0.3s;
+}
+
+.visual-card:hover {
+  box-shadow: 0 12px 40px rgba(124, 58, 237, 0.12);
+}
+
+.truck-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.truck-icon {
+  font-size: 32px;
+  color: #7c3aed;
+}
+
+.visual-plate {
+  font-family: 'Courier New', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+}
+
+.visual-plate--muted {
+  color: #cbd5e1;
+  font-size: 18px;
+}
+
+.visual-capacity {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .visual-card { transition: none; }
+}

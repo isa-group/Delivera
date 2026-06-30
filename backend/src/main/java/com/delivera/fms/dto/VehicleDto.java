@@ -1,4 +1,4 @@
-package com.delivera.fms.routing.dto;
+package com.delivera.fms.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -9,7 +9,7 @@ public record VehicleDto(
         String id,
 
         @NotNull
-        @Min(value = 1)
+        @Min(1)
         Integer capacity,
 
         @NotBlank

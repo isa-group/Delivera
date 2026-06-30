@@ -18,6 +18,9 @@ public record RoutingResponse(
         TypeSolver solverUsed,
 
         @NotNull
+        Double totalCost,
+
+        @NotNull
         Long computationTimeMs,
 
         @NotEmpty

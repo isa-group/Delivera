@@ -1,4 +1,4 @@
-package com.delivera.fms.routing.dto;
+package com.delivera.fms.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
