@@ -2,7 +2,7 @@
 FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 COPY pom.xml .
-RUN mvn dependency:resolve -q
+RUN mvn dependency:go-offline -q
 COPY src/ src/
 RUN mvn -DskipTests package -q
 
@@ -10,6 +10,7 @@ RUN mvn -DskipTests package -q
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/fms-routing-service-1.0.0-SNAPSHOT.jar app.jar
+COPY instances-MD-CVRP/ instances-MD-CVRP/
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 ENV SPRING_PROFILES_ACTIVE=prod
