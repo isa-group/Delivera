@@ -23,9 +23,10 @@ public class StandardInstanceMapper {
             NodeEntry depotNode = instance.depots().get(i);
             DepotConfig config = instance.depotConfigs().get(i);
             int matrixIndex = i;
+            String depotId = String.valueOf(i + 1);
 
             DepotDto depot = new DepotDto(
-                    String.valueOf(depotNode.id()),
+                    depotId,
                     depotNode.y(),
                     depotNode.x(),
                     matrixIndex
@@ -34,9 +35,9 @@ public class StandardInstanceMapper {
 
             for (int v = 0; v < instance.vehiclesPerDepot(); v++) {
                 VehicleDto vehicle = new VehicleDto(
-                        "V" + depotNode.id() + "-" + (v + 1),
+                        "V" + depotId + "-" + (v + 1),
                         config.vehicleCapacity(),
-                        depot.id()
+                        depotId
                 );
                 vehicles.add(vehicle);
             }
