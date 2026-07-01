@@ -1,30 +1,29 @@
 package com.delivera.fms.routing.dto;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 
+@Schema(description = "Respuesta con la solucion del problema de ruteo")
 public record RoutingResponse(
-        @NotBlank
+        @Schema(description = "Identificador del problema resuelto", example = "PROBLEM-001")
         String problemId,
 
-        @NotBlank
+        @Schema(description = "Estado de la resolucion (SUCCESS / FAILURE)", example = "SUCCESS")
         String status,
 
-        @NotBlank
+        @Schema(description = "Tipo de solver utilizado en la resolucion")
         TypeSolver solverUsed,
 
-        @NotNull
+        @Schema(description = "Costo total de la solucion (suma de distancias de todas las rutas)",
+                example = "450.75")
         Double totalCost,
 
-        @NotNull
+        @Schema(description = "Tiempo de computo en milisegundos", example = "1250")
         Long computationTimeMs,
 
-        @NotEmpty
-        @Valid
+        @ArraySchema(schema = @Schema(description = "Lista de rutas que componen la solucion"))
         List<RouteDto> routes
 ) {
 }
