@@ -6,18 +6,20 @@ import com.delivera.fms.routing.dto.RouteDto;
 import com.delivera.fms.routing.dto.RoutingRequest;
 import com.delivera.fms.routing.dto.TypeSolver;
 import com.delivera.fms.routing.dto.VehicleDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service("greedyRouteSolver")
 public class GreedyRouteSolverImpl extends BaseRouteSolver {
+
+    private static final Logger log = LoggerFactory.getLogger(GreedyRouteSolverImpl.class);
 
     @Override
     protected TypeSolver getType() {
@@ -26,6 +28,7 @@ public class GreedyRouteSolverImpl extends BaseRouteSolver {
 
     @Override
     protected List<RouteDto> performRouting(RoutingRequest request) {
+        log.debug("Starting GREEDY solver for problem: {}", request.problemId());
         List<DepotDto> depots = request.depots();
         List<CustomerDto> customers = request.customers();
         double[][] dist = request.distanceMatrix();
@@ -37,7 +40,7 @@ public class GreedyRouteSolverImpl extends BaseRouteSolver {
         List<VehicleDto> vehicles = request.vehicles();
         boolean hasVehicles = vehicles != null && !vehicles.isEmpty();
 
-        Set<String> visited = new HashSet<>();
+        boolean[] visited = new boolean[dist.length];
         List<RouteDto> routes = new ArrayList<>();
 
         if (hasVehicles) {
@@ -78,12 +81,12 @@ public class GreedyRouteSolverImpl extends BaseRouteSolver {
     private List<RouteDto> buildGreedyMultiTripRoutes(String vehicleId, DepotDto depot,
                                                        List<CustomerDto> customers, double[][] dist,
                                                        int maxStops, int maxCapacity,
-                                                       Set<String> visited) {
+                                                       boolean[] visited) {
         List<RouteDto> routes = new ArrayList<>();
         if (depot == null || customers == null) return routes;
 
         List<CustomerDto> unvisited = new ArrayList<>(customers);
-        unvisited.removeIf(c -> visited.contains(c.id()));
+        unvisited.removeIf(c -> visited[c.matrixIndex()]);
 
         int totalStopsAssigned = 0;
 
@@ -129,9 +132,9 @@ public class GreedyRouteSolverImpl extends BaseRouteSolver {
             routes.add(new RouteDto(vehicleId, depot.id(), stops, totalDistance, totalLoad));
 
             for (CustomerDto c : tripCustomers) {
-                visited.add(c.id());
-                unvisited.remove(c);
+                visited[c.matrixIndex()] = true;
             }
+            unvisited = currentUnvisited;
             totalStopsAssigned += stops.size();
         }
 
