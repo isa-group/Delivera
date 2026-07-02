@@ -82,6 +82,12 @@ app:
   gateway: 
     enabled: false
   
+  refresh-token:
+    daysToRefresh: 1
+    secure: false
+    domain: localhost
+    path: "/api/v2/"
+
   jwt:
     # in miliseconds
     expiration: 86400000

@@ -3,9 +3,9 @@ package com.delivera.auth.controller;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,15 +13,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.delivera.auth.dto.ChangeUsernameRequest;
 import com.delivera.auth.dto.LoginResponse;
+import com.delivera.auth.dto.RefreshCookieData;
 import com.delivera.auth.dto.RegisterRequest;
 import com.delivera.auth.dto.RegisterRequestSeed;
+import com.delivera.auth.dto.RequestClientData;
 import com.delivera.auth.model.Credential;
 import com.delivera.auth.service.AuthService;
 import com.delivera.auth.service.AuthServiceImpl;
+import com.delivera.auth.service.RefreshTokenService;
 
 
 
@@ -30,10 +34,31 @@ import com.delivera.auth.service.AuthServiceImpl;
 public class AuthInternalController {
 
     private final AuthService authService;
+    private final RefreshTokenService refreshTokenService;
+
+    @Value("${app.refresh-token.secure}")
+    private boolean secureRefreshCookie = false;
+
+    @Value("${app.refresh-token.domain}")
+    private String domainRefreshCookie = null;
+
+    @Value("${app.refresh-token.path}")
+    private String pathRefreshCookie = null;
 
     @Autowired
-    public AuthInternalController(AuthServiceImpl authService) {
+    public AuthInternalController(AuthServiceImpl authService,RefreshTokenService refreshTokenService) {
         this.authService = authService;
+        this.refreshTokenService = refreshTokenService;
+    }
+
+    private RefreshCookieData buildRefreshCookieData(String token) {
+        return new RefreshCookieData(
+            token,
+            secureRefreshCookie, 
+            domainRefreshCookie, 
+            pathRefreshCookie,
+            refreshTokenService.getDaysToRefresh()
+        );
     }
 
 
@@ -58,9 +83,26 @@ public class AuthInternalController {
              registerRequest.getUsername(), 
              registerRequest.getPassword()
         );
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-            authService.buildLoginResponse(credential, registerRequest.getContext())
+        if (registerRequest.getRequestClientData() == null) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(
+                authService.buildLoginResponse(credential, registerRequest.getContext())
+            );
+        }
+        RequestClientData requestClientData = registerRequest.getRequestClientData();
+        String token = refreshTokenService.create(
+            credential,requestClientData.deviceId() , 
+            requestClientData.userAgent(), 
+            requestClientData.ip()
         );
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            authService.buildLoginResponse(
+                credential, 
+                registerRequest.getContext(),
+                buildRefreshCookieData(token)
+            )
+        );
+
+        
     }
 
     

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.delivera.auth.builder.CredentialBuilder;
 import com.delivera.auth.dto.DeliveraOrgContext;
 import com.delivera.auth.dto.LoginResponse;
+import com.delivera.auth.dto.RefreshCookieData;
 import com.delivera.auth.exception.EmailAlreadyExistsException;
 import com.delivera.auth.exception.ForbiddenException;
 import com.delivera.auth.exception.InvalidCredentialsException;
@@ -200,7 +201,9 @@ public class AuthServiceImpl implements AuthService {
 
     }
 
-     public LoginResponse buildLoginResponse(Credential credential, DeliveraOrgContext orgInfo) {
+    
+
+    public LoginResponse buildLoginResponse(Credential credential, DeliveraOrgContext orgInfo, RefreshCookieData refreshCookie) {
         orgInfo = orgInfo == null? new DeliveraOrgContext() : orgInfo;
         String token = jwtService.generateToken(
             credential.getUserId(),
@@ -217,9 +220,14 @@ public class AuthServiceImpl implements AuthService {
             orgInfo.getRole(), 
             orgInfo.getCompanyName(), 
             orgInfo.getOrgHandle(), 
-            orgInfo.getOrgName()
+            orgInfo.getOrgName(),
+            refreshCookie
         );
         
+    }
+
+    public LoginResponse buildLoginResponse(Credential credential, DeliveraOrgContext orgInfo) {
+        return buildLoginResponse(credential, orgInfo, null);
     }
 
 

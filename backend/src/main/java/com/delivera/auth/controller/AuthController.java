@@ -1,6 +1,8 @@
 package com.delivera.auth.controller;
 
 import com.delivera.security.AuthRateLimiter;
+import com.delivera.auth.dto.RefreshCookieData;
+import com.delivera.auth.dto.RequestClientData;
 import com.delivera.auth.service.AuthService;
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.auth.CompanyRegisterRequest;
@@ -21,7 +23,9 @@ import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
-import org.springframework.http.HttpStatus;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,6 +39,9 @@ public class AuthController {
     private final SecurityUtils securityUtils;
     private final AuthRateLimiter authRateLimiter;
 
+    
+
+    
   
 
     @Operation(summary = "Registrar usuario", description = "Crear una nueva cuenta de usuario")
@@ -45,9 +52,20 @@ public class AuthController {
     })
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(HttpServletRequest httpRequest, @Valid @RequestBody RegisterRequest request) {
-        authRateLimiter.check(httpRequest.getRemoteAddr(), "register");
-        RegisterResponse response = authService.register(request);
-        return ResponseEntity.ok(response);
+        String ip = authService.getIp(httpRequest);
+        String deviceId = authService.getDeviceId(httpRequest);
+        String userAgent = authService.getUserAgent(httpRequest);
+        RequestClientData requestClientData = new RequestClientData(ip, deviceId, userAgent);
+        authRateLimiter.check(ip, "register");
+     
+        RegisterResponse response = authService.register(request, requestClientData);
+        RefreshCookieData refreshCookieData = response.getRefreshCookieData();
+        response.setRefreshCookieData(null);
+        ResponseCookie refreshCookie = authService.refreshCookie(refreshCookieData);
+
+        return ResponseEntity.ok()
+        .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+        .body(response);
     }
 
     @Operation(summary = "Registrar empresa", description = "Crear empresa con su organización y cuenta de administrador")
@@ -59,8 +77,20 @@ public class AuthController {
     })
     @PostMapping("/register/company")
     public ResponseEntity<CompanyRegisterResponse> registerCompany(HttpServletRequest httpRequest, @Valid @RequestBody CompanyRegisterRequest request) {
+        String ip = authService.getIp(httpRequest);
+        String deviceId = authService.getDeviceId(httpRequest);
+        String userAgent = authService.getUserAgent(httpRequest);
+        RequestClientData requestClientData = new RequestClientData(ip, deviceId, userAgent);
         authRateLimiter.check(httpRequest.getRemoteAddr(), "register-company");
-        return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerCompany(request));
+       
+        CompanyRegisterResponse response = authService.registerCompany(request,requestClientData);
+        RefreshCookieData refreshCookieData = response.refreshCookieData();
+        response = response.deleteRefreshCookie();
+        ResponseCookie refreshCookie = authService.refreshCookie(refreshCookieData);
+
+        return ResponseEntity.status(201)
+        .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+        .body(response);
     }
 
     @Operation(summary = "Comprobar disponibilidad de nombre de usuario")

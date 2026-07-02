@@ -31,7 +31,7 @@ export function useServices(service) {
 
 
   async function request( endpoint, options = {}) {
-    const headers = { 'Content-Type': 'application/json', ...options.headers }
+    const headers = { 'Content-Type': 'application/json' , ...options.headers }
 
     if (auth.token) {
       headers.Authorization = `Bearer ${auth.token}`
@@ -40,6 +40,7 @@ export function useServices(service) {
     const response = await fetch(`${baseUrl}/api/v2${endpoint}`, {
       ...options,
       headers,
+      credentials: "include"
     })
 
     // Sólo forzamos logout si el usuario estaba autenticado y la llamada no es de auth.

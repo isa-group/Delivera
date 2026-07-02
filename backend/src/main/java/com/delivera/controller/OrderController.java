@@ -1,5 +1,7 @@
 package com.delivera.controller;
 
+import com.delivera.auth.dto.RefreshCookieData;
+import com.delivera.auth.dto.RequestClientData;
 import com.delivera.auth.service.AuthService;
 import com.delivera.dto.auth.ClaimRegisterRequest;
 import com.delivera.dto.auth.LoginResponse;
@@ -7,9 +9,13 @@ import com.delivera.dto.order.*;
 import com.delivera.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -71,8 +77,25 @@ public class OrderController {
 
     @Operation(summary = "Registro de destinatario a través del token de seguimiento")
     @PostMapping("/public/track/{token}/register")
-    public ResponseEntity<LoginResponse> claimRegister(@PathVariable String token,
-                                                       @Valid @RequestBody ClaimRegisterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(authService.claimRegister(token, request));
+    public ResponseEntity<LoginResponse> claimRegister(
+        HttpServletRequest httpRequest,
+        @PathVariable String token,
+        @Valid @RequestBody ClaimRegisterRequest request
+    ) {
+        String ip = authService.getIp(httpRequest);
+        String deviceId = authService.getDeviceId(httpRequest);
+        String userAgent = authService.getUserAgent(httpRequest);
+        RequestClientData requestClientData = new RequestClientData(ip, deviceId, userAgent);
+
+        LoginResponse response =  authService.claimRegister(token, request,requestClientData);
+        RefreshCookieData refreshCookieData = response.getRefreshCookie();
+        response.setRefreshCookie(null);
+        ResponseCookie refreshCookie = authService.refreshCookie(refreshCookieData);
+
+        return ResponseEntity
+        .status(HttpStatus.CREATED)
+        .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+        .body(response);
+
     }
 }

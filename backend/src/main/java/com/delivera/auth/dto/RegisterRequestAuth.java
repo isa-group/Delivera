@@ -38,4 +38,7 @@ public class RegisterRequestAuth {
 
         @JsonInclude(JsonInclude.Include.NON_NULL)
         DeliveraOrgContext context;
+        
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        RequestClientData requestClientData;
 }

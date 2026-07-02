@@ -29,9 +29,11 @@ async function submitClaim() {
   claimError.value = ''
   claimLoading.value = true
   try {
+    // useApi uses TOKEN automatically
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v2/orders/public/track/${route.params.token}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({
         firstName: claimFirstName.value.trim(),
         lastName: claimLastName.value.trim(),
@@ -39,6 +41,7 @@ async function submitClaim() {
         password: claimPassword.value,
       }),
     })
+
     const data = await res.json()
     if (res.ok) {
       auth.applyLoginData(data)

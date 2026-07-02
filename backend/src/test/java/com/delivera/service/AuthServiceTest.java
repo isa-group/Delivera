@@ -1,5 +1,6 @@
 package com.delivera.service;
 
+import com.delivera.auth.dto.RequestClientData;
 import com.delivera.auth.service.AuthClient;
 import com.delivera.auth.service.AuthService;
 import com.delivera.dto.auth.*;
@@ -97,13 +98,13 @@ class AuthServiceTest {
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
         when(userRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(loyalUserRepository.findByEmail("new@test.com")).thenReturn(List.of());
-        when(client.register(any(), any(), any(), any(),any()))
+        when(client.register(any(), any(), any(), any(),any(),any()))
         .thenReturn(Mono.just(new LoginResponse(
             "token", 
-            "new@test.com", null, null, null, null, null) ));
+            "new@test.com", null, null, null, null, null,null) ));
      
 
-        RegisterResponse result = authService.register(req);
+        RegisterResponse result = authService.register(req, new RequestClientData("device", "userAgent", "ip"));
         assertThat(result.getToken()).isEqualTo("token");
         assertThat(result.getEmail()).isEqualTo("new@test.com");
         assertThat(result.getRole()).isNull();
@@ -121,10 +122,10 @@ class AuthServiceTest {
         when(userRepository.existsByUsername("ceouser")).thenReturn(false);
         when(userRepository.save(any())).thenReturn(user);
         
-        when(client.register(any(), any(), any(), any(),any()))
+        when(client.register(any(), any(), any(), any(),any(),any()))
             .thenReturn(Mono.just(new LoginResponse(
                 "company-token", 
-                null, null, null, null, null, null) ));
+                null, null, null, null, null, null,null) ));
 
         when(organizationRepository.saveAndFlush(any())).thenReturn(organization);
         ActivityType transport = new ActivityType(); transport.setCode("TRANSPORT");
@@ -133,7 +134,7 @@ class AuthServiceTest {
         when(workerRepository.save(any())).thenReturn(worker);
        
 
-        CompanyRegisterResponse result = authService.registerCompany(req);
+        CompanyRegisterResponse result = authService.registerCompany(req, new RequestClientData("device", "userAgent", "ip"));
         assertThat(result.token()).isEqualTo("company-token");
     }
 
@@ -147,18 +148,18 @@ class AuthServiceTest {
         when(userRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(loyalUserRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        when(client.register(any(), any(), any(), any(),any()))
+        when(client.register(any(), any(), any(), any(),any(),any()))
         .thenReturn(Mono.just(new LoginResponse(
             "jwt-token", 
-            "juan@gmail.com", null, null, null, null, null) 
+            "juan@gmail.com", null, null, null, null, null,null) 
         ));
      
 
-        LoginResponse result = authService.claimRegister("testtoken", claimRequest);
+        LoginResponse result = authService.claimRegister("testtoken", claimRequest, new RequestClientData("device", "userAgent", "ip"));
 
-        assertThat(result.token()).isEqualTo("jwt-token");
-        assertThat(result.email()).isEqualTo("juan@gmail.com");
-        assertThat(result.companyId()).isNull();
+        assertThat(result.getToken()).isEqualTo("jwt-token");
+        assertThat(result.getEmail()).isEqualTo("juan@gmail.com");
+        assertThat(result.getCompanyId()).isNull();
         verify(loyalUserRepository).save(any(LoyalUser.class));
         verify(orderRepository).save(claimOrder);
     }
@@ -166,7 +167,7 @@ class AuthServiceTest {
     @Test
     void claimRegister_tokenNotFound_throws() {
         when(orderRepository.findByTrackingToken("badtoken")).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> authService.claimRegister("badtoken", claimRequest))
+        assertThatThrownBy(() -> authService.claimRegister("badtoken", claimRequest, new RequestClientData("device", "userAgent", "ip")))
                 .isInstanceOf(OrderNotFoundException.class);
     }
 
@@ -182,7 +183,8 @@ class AuthServiceTest {
     void register_emailExists_throws() {
         RegisterRequest req = new RegisterRequest("dup@test.com", "u", "A", null, null, "Password1");
         when(userRepository.findByEmail("dup@test.com")).thenReturn(Optional.of(user));
-        assertThatThrownBy(() -> authService.register(req)).isInstanceOf(EmailAlreadyExistsException.class);
+        assertThatThrownBy(() -> authService.register(req, new RequestClientData("device", "userAgent", "ip")))
+        .isInstanceOf(EmailAlreadyExistsException.class);
     }
 
     @Test
@@ -190,7 +192,7 @@ class AuthServiceTest {
         RegisterRequest req = new RegisterRequest("new@test.com", "taken", "A", null, null, "Password1");
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
         when(userRepository.existsByUsername("taken")).thenReturn(true);
-        assertThatThrownBy(() -> authService.register(req)).isInstanceOf(UsernameAlreadyExistsException.class);
+        assertThatThrownBy(() -> authService.register(req, new RequestClientData("device", "userAgent", "ip"))).isInstanceOf(UsernameAlreadyExistsException.class);
     }
 
     @Test
@@ -198,7 +200,7 @@ class AuthServiceTest {
         CompanyRegisterRequest req = new CompanyRegisterRequest("c@t.com", "Password1", "Org", "taken", "C", "TR", null, "A", null, null);
         when(userRepository.findByEmail("c@t.com")).thenReturn(Optional.empty());
         when(organizationRepository.existsByHandle("taken")).thenReturn(true);
-        assertThatThrownBy(() -> authService.registerCompany(req)).isInstanceOf(HandleConflictException.class);
+        assertThatThrownBy(() -> authService.registerCompany(req, new RequestClientData("device", "userAgent", "ip"))).isInstanceOf(HandleConflictException.class);
     }
 
     @Test
@@ -207,7 +209,7 @@ class AuthServiceTest {
         lu.setUser(user);
         claimOrder.setLoyalUser(lu);
         when(orderRepository.findByTrackingToken("testtoken")).thenReturn(Optional.of(claimOrder));
-        assertThatThrownBy(() -> authService.claimRegister("testtoken", claimRequest))
+        assertThatThrownBy(() -> authService.claimRegister("testtoken", claimRequest, new RequestClientData("device", "userAgent", "ip")))
                 .isInstanceOf(OrderAlreadyClaimedException.class);
     }
 
@@ -215,7 +217,7 @@ class AuthServiceTest {
     void claimRegister_emailMismatch_throws() {
         when(orderRepository.findByTrackingToken("testtoken")).thenReturn(Optional.of(claimOrder));
         ClaimRegisterRequest req = new ClaimRegisterRequest("A", "B", "other@gmail.com", "Password1");
-        assertThatThrownBy(() -> authService.claimRegister("testtoken", req))
+        assertThatThrownBy(() -> authService.claimRegister("testtoken", req, new RequestClientData("device", "userAgent", "ip")))
                 .isInstanceOf(OrderClaimEmailMismatchException.class);
     }
 }

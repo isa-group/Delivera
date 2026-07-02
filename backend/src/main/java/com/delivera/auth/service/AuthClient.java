@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.delivera.auth.dto.ChangeUsernameRequest;
 import com.delivera.auth.dto.DeliveraOrgContext;
 import com.delivera.auth.dto.RegisterRequestAuth;
+import com.delivera.auth.dto.RequestClientData;
 import com.delivera.client.core.SmartMicroserviceClient;
 import com.delivera.dto.auth.LoginResponse;
 
@@ -70,11 +71,15 @@ public class AuthClient {
         
     } 
 
-    public Mono<LoginResponse> register(UUID userId, String email, String username,String password, DeliveraOrgContext context) {
+    public Mono<LoginResponse> register(
+        UUID userId, String email, String username,String password,
+        DeliveraOrgContext context, RequestClientData requestClientData
+    ) {
         RegisterRequestAuth registerRequest = buildRegisterRequest(
             userId, email, username, password
         );
         registerRequest.setContext(context);
+        registerRequest.setRequestClientData(requestClientData);
         
         return registerBase(registerRequest);
     }

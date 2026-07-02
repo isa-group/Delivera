@@ -28,6 +28,7 @@ export function useApi() {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v2${endpoint}`, {
       ...options,
       headers,
+      credentials: "include"
     })
 
     // Sólo forzamos logout si el usuario estaba autenticado y la llamada no es de auth.

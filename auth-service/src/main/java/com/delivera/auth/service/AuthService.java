@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import com.delivera.auth.dto.DeliveraOrgContext;
 import com.delivera.auth.dto.LoginResponse;
+import com.delivera.auth.dto.RefreshCookieData;
 import com.delivera.auth.model.Credential;
 
 public interface AuthService {
@@ -17,6 +18,7 @@ public interface AuthService {
     Credential changePassword(UUID userId,String rawPreviousPassword,String rawNewPassword, Integer tokenVersion);
 
     LoginResponse buildLoginResponse(Credential credential, DeliveraOrgContext orgInfo);
+    LoginResponse buildLoginResponse(Credential credential, DeliveraOrgContext orgInfo, RefreshCookieData refreshCookie);
 
     Credential changeUsername(UUID userId, String username);
 
