@@ -7,6 +7,7 @@ import { useApi } from '@/composables/useApi'
 import { useServices } from '@/composables/useServices'
 import { useAppConfig } from '@/composables/useAppConfig'
 import { WORKER_ROLES } from '@/constants/roles'
+import { stopAuthRefresh } from '@/composables/useRefreshToken'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -79,6 +80,7 @@ function handleLogout() {
     } catch(e) {console.log(e)}
   profileOpen.value = false
   locale.value = navigator.language?.startsWith('en') ? 'en' : 'es'
+  stopAuthRefresh()
   auth.logout()
   router.push('/')
 }

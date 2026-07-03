@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { getDeviceId } from './useRefreshToken'
 
 export function useServices(service) {
   const SERVICE_MAP = {
@@ -31,7 +32,7 @@ export function useServices(service) {
 
 
   async function request( endpoint, options = {}) {
-    const headers = { 'Content-Type': 'application/json' , ...options.headers }
+    const headers = { 'Content-Type': 'application/json' ,'X-Device-Id': getDeviceId(), ...options.headers }
 
     if (auth.token) {
       headers.Authorization = `Bearer ${auth.token}`
