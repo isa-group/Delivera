@@ -85,6 +85,7 @@ app:
   refresh-token:
     daysToRefresh: 1
     maxDaysToRefresh: 2
+    periodicDeletionMs: 3600000
     secure: false
     domain: localhost
     path: "/api/v2/"

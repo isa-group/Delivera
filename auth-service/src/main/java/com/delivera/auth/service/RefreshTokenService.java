@@ -3,12 +3,14 @@ package com.delivera.auth.service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +19,10 @@ import com.delivera.auth.model.Credential;
 import com.delivera.auth.model.RefreshToken;
 import com.delivera.auth.repository.RefreshTokenRepository;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class RefreshTokenService {
 
     private final RefreshTokenRepository repository;
@@ -28,10 +33,21 @@ public class RefreshTokenService {
     @Value("${app.refresh-token.maxDaysToRefresh}")
     private Integer maxDaysToRefresh = 30;
 
+    @Value("${app.refresh-token.periodicDeletionMs}")
+    private final long  periodicDeletionMs = 1000 * 60;
+
     @Autowired
     public RefreshTokenService(RefreshTokenRepository repository) {
         this.repository = repository;
     }
+
+    @Transactional
+    @Scheduled(fixedRate = periodicDeletionMs)
+    public void removeExpiredTokens() {
+        log.info("PERIODIC TOKEN REFRESH DELETION AT {}",Instant.now().atZone(ZoneId.systemDefault()));
+        repository.deleteByExpiredTokens(Instant.now());
+    }
+
 
     public Integer getDaysToRefresh() {
         return daysToRefresh;
