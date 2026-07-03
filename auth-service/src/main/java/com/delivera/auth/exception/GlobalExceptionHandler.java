@@ -1,5 +1,6 @@
 package com.delivera.auth.exception;
 
+import com.delivera.auth.controller.AuthController;
 import com.delivera.auth.dto.ErrorResponse;
 import com.delivera.auth.dto.ValidationErrorResponse;
 import com.delivera.client.exception.ApiException;
@@ -11,7 +12,9 @@ import jakarta.persistence.OptimisticLockException;
 import lombok.extern.slf4j.Slf4j;
 
 import org.hibernate.service.spi.ServiceException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -31,6 +34,13 @@ import static org.springframework.http.HttpStatus.*;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private final AuthController authController;
+
+    @Autowired
+    public GlobalExceptionHandler(AuthController authController) {
+        this.authController = authController;
+    }
 
     private record Mapping(HttpStatus status, String code) {}
 
@@ -184,6 +194,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(409).body(new ErrorResponse("CONCURRENT_MODIFICATION"));
     }
 
+ 
 
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<?> handleInvalidRefreshTokenException() {
+        return ResponseEntity.status(401)
+        .header(HttpHeaders.SET_COOKIE,authController.deleteRefreshToken().toString())
+        .body(new ErrorResponse("INVALID_REFRESH_TOKEN"));
+    }
 
 }

@@ -1,5 +1,6 @@
 package com.delivera.auth.model;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -9,6 +10,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import lombok.Getter;
@@ -38,15 +41,25 @@ public class Credential {
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     
     @Version
     @Column(name = "version")
     private Long version;
+
+    @PrePersist
+    void onPrePersist() {
+        if (createdAt == null) createdAt = Instant.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
 
 }

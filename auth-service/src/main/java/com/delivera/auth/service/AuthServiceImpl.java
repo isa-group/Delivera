@@ -151,7 +151,7 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private void checkTokenVersion(Integer tokenVersion, Credential credential) {
+    public void checkTokenVersion(Integer tokenVersion, Credential credential) {
         if (!tokenVersion.equals(credential.getTokenVersion())) {
             throw new  InvalidCredentialsException();
         }
@@ -246,7 +246,6 @@ public class AuthServiceImpl implements AuthService {
      @Transactional
      public void delete(UUID userId) {
         Optional<Credential> credential = credentialRepository.findByUserId(userId);
-        System.out.println(credential.isPresent());
         if (credential.isPresent()) {
             credentialRepository.delete(credential.get());
         }

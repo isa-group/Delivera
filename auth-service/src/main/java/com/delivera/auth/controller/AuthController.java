@@ -76,7 +76,9 @@ public class AuthController {
         if (ip == null) {
             ip = httpRequest.getRemoteAddr();
         }
-        return ip;
+        return ip.length() > 40
+        ? ip.substring(0, 40)
+        : ip;
     }
 
     private String getUserAgent(HttpServletRequest httpRequest) {
@@ -86,10 +88,40 @@ public class AuthController {
             userAgent = "unknown-agent";
         }
 
-        return userAgent.length() > 1000
+        return getDeviceName(
+            userAgent.length() > 1000
             ? userAgent.substring(0, 1000)
-            : userAgent;
+            : userAgent
+        );
 
+    }
+
+    private String getDeviceName(String userAgent) {
+
+        String os = "Unknown OS";
+        String browser = "Unknown Browser";
+    
+        if (userAgent.contains("Windows NT")) {
+            os = "Windows";
+        } else if (userAgent.contains("Android")) {
+            os = "Android";
+        } else if (userAgent.contains("iPhone")) {
+            os = "iPhone";
+        } else if (userAgent.contains("Mac OS X")) {
+            os = "macOS";
+        }
+    
+        if (userAgent.contains("Edg/")) {
+            browser = "Edge";
+        } else if (userAgent.contains("Chrome/")) {
+            browser = "Chrome";
+        } else if (userAgent.contains("Firefox/")) {
+            browser = "Firefox";
+        } else if (userAgent.contains("Safari/")) {
+            browser = "Safari";
+        }
+    
+        return os + " · " + browser;
     }
 
     private String getDeviceId(HttpServletRequest httpRequest) {
@@ -97,7 +129,11 @@ public class AuthController {
         if (device == null) {
             device = "unknown";
         }
-        return device;
+        return device.length() > 100
+        ? device.substring(0, 100)
+        : device;
+
+        
     }
 
     private String getRefreshTokenFromCookies(HttpServletRequest request) {
@@ -121,7 +157,7 @@ public class AuthController {
         .build();
     }
 
-    private ResponseCookie deleteRefreshToken() {
+    public ResponseCookie deleteRefreshToken() {
             return  ResponseCookie.from("refresh_token", "")
             .httpOnly(true)
             .secure(secureRefreshCookie)
@@ -173,12 +209,23 @@ public class AuthController {
 
     @Operation(summary = "Change active company")
     @PostMapping("/switch-company")
-    public ResponseEntity<LoginResponse> switchCompany(@Valid @RequestBody SwitchCompanyRequest request) {
-        String email = securityUtils.getCurrentEmail();
+    public ResponseEntity<LoginResponse> switchCompany(
+        HttpServletRequest httpRequest,
+        @Valid @RequestBody SwitchCompanyRequest request
+    ) {
         Integer tokenVersion = securityUtils.getTokenVersion();
 
-        Credential credential = authService.getUserCredentialByEmail(email, tokenVersion);
-        DeliveraOrgContext orgInfo = client.getOrgSwitchInfo(credential.getUserId(),request.companyId() ).block();
+        String token = getRefreshTokenFromCookies(httpRequest);
+        String ip = getIp(httpRequest);
+        String deviceId = getDeviceId(httpRequest);
+        String userAgent = getUserAgent(httpRequest);
+        RefreshToken refreshToken = refreshTokenService.use(token,deviceId,userAgent,ip);
+        
+
+        Credential credential = refreshToken.getCredential();
+        authService.checkTokenVersion(tokenVersion,credential);
+
+        DeliveraOrgContext orgInfo = client.getOrgSwitchInfo(credential.getUserId(),request.companyId()).block();
         LoginResponse loginResponse = authService.buildLoginResponse(credential, orgInfo);
         return ResponseEntity.ok(loginResponse);
     }
@@ -206,8 +253,8 @@ public class AuthController {
         String ip = getIp(httpRequest);
         String deviceId = getDeviceId(httpRequest);
         String userAgent = getUserAgent(httpRequest);
-
-        RefreshToken refreshToken = refreshTokenService.getFromToken(token);
+        
+        RefreshToken refreshToken = refreshTokenService.validateAndGet(token);
         Credential credential = refreshToken.getCredential();
 
         DeliveraOrgContext orgInfo = client.getOrgInfoByUserId(credential.getUserId()).block();
@@ -230,8 +277,10 @@ public class AuthController {
         HttpServletRequest httpRequest
     ) {
         String token = getRefreshTokenFromCookies(httpRequest);
- 
-        refreshTokenService.removeToken(token);
+        if (token != null) {
+            refreshTokenService.removeToken(token);
+        }
+        
         
         return ResponseEntity.ok()
         .header(HttpHeaders.SET_COOKIE,deleteRefreshToken().toString())

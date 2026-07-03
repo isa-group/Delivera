@@ -2,7 +2,8 @@ package com.delivera.auth.service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -11,7 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.delivera.auth.exception.InvalidCredentialsException;
+import com.delivera.auth.exception.InvalidRefreshTokenException;
 import com.delivera.auth.model.Credential;
 import com.delivera.auth.model.RefreshToken;
 import com.delivera.auth.repository.RefreshTokenRepository;
@@ -22,7 +23,10 @@ public class RefreshTokenService {
     private final RefreshTokenRepository repository;
 
     @Value("${app.refresh-token.daysToRefresh}")
-    private  Integer daysToRefresh = 1;
+    private  Integer daysToRefresh = 4;
+
+    @Value("${app.refresh-token.maxDaysToRefresh}")
+    private Integer maxDaysToRefresh = 30;
 
     @Autowired
     public RefreshTokenService(RefreshTokenRepository repository) {
@@ -50,7 +54,8 @@ public class RefreshTokenService {
         String ip,
         UUID tokenId,
         String secret,
-        Boolean suspicious
+        Boolean suspicious,
+        Instant maxExpiredAt
     ) {
         RefreshToken refreshToken = new RefreshToken();
         String secretHash = hash(secret);
@@ -61,8 +66,9 @@ public class RefreshTokenService {
         refreshToken.setIp(ip);
         refreshToken.setDevice(device);
         refreshToken.setUserAgent(userAgent);
-        refreshToken.setExpiredAt(LocalDateTime.now().plusDays(daysToRefresh));
-        refreshToken.setLastUsed(LocalDateTime.now());
+        refreshToken.setExpiredAt(Instant.now().plus(daysToRefresh,ChronoUnit.DAYS));
+        refreshToken.setLastUsed(Instant.now());
+        refreshToken.setMaxExpiredAt(maxExpiredAt);
         refreshToken.setSuspicious(suspicious);
 
         return refreshToken;
@@ -75,7 +81,8 @@ public class RefreshTokenService {
         String device,
         String userAgent, 
         String ip,
-        boolean suspicious
+        Boolean suspicious,
+        Instant maxExpiredAt
     ) {
        
         UUID tokenId = UUID.randomUUID();
@@ -85,7 +92,7 @@ public class RefreshTokenService {
 
         RefreshToken refreshToken = build(
             credential, device, userAgent, ip, 
-            tokenId, secret, suspicious
+            tokenId, secret, suspicious, maxExpiredAt
         );
        
         repository.save(refreshToken);
@@ -100,38 +107,48 @@ public class RefreshTokenService {
         String userAgent, 
         String ip
     ){
-        return createToken(credential, device, userAgent, ip, false);
+        return createToken(
+            credential, 
+            device, 
+            userAgent, 
+            ip, 
+            false, 
+            Instant.now().plus(maxDaysToRefresh, ChronoUnit.DAYS)
+        );
     }
 
     private String[] validateFormat(String token) {
         if (token == null || !token.contains(".")) {
-            throw new InvalidCredentialsException();
+            throw new InvalidRefreshTokenException();
         }
 
         String[] parts = token.split("\\.");
 
         
         if (parts.length != 2) {
-            throw new InvalidCredentialsException();
+            throw new InvalidRefreshTokenException();
         }
         return parts;
     }
 
     private void validateExpired(RefreshToken refreshToken) {
         
-        if (refreshToken.getExpiredAt().isBefore(LocalDateTime.now())) {
+        if (
+            refreshToken.getExpiredAt().isBefore(Instant.now())
+            || refreshToken.getMaxExpiredAt().isBefore(Instant.now())
+        ) {
             repository.delete(refreshToken); 
-            throw new InvalidCredentialsException();
+            throw new InvalidRefreshTokenException();
         }
 
     }
 
     private void validateSecret(String secret, RefreshToken refreshToken) {
         if (!MessageDigest.isEqual(
-            hash(secret).getBytes(),
-            refreshToken.getSecretHash().getBytes())
+            hash(secret).getBytes(StandardCharsets.UTF_8),
+            refreshToken.getSecretHash().getBytes(StandardCharsets.UTF_8))
         ){
-            throw new InvalidCredentialsException();
+            throw new InvalidRefreshTokenException();
         }
     }
 
@@ -139,7 +156,7 @@ public class RefreshTokenService {
         try {
             return UUID.fromString(rawUUID);
         }catch(IllegalArgumentException e) {
-            throw new InvalidCredentialsException();
+            throw new InvalidRefreshTokenException();
         } 
     }
 
@@ -153,7 +170,7 @@ public class RefreshTokenService {
         String secret = parts[1];
 
         RefreshToken refreshToken = repository.findValidById(tokenId)
-        .orElseThrow(() -> new InvalidCredentialsException());
+        .orElseThrow(() -> new InvalidRefreshTokenException());
 
         validateSecret(secret,refreshToken);
         validateExpired(refreshToken);
@@ -163,8 +180,24 @@ public class RefreshTokenService {
     }
 
     @Transactional(readOnly = true)
-    public RefreshToken getFromToken(String token) {
+    public RefreshToken validateAndGet(String token) {
         return validate(token);
+    }
+
+    @Transactional
+    public RefreshToken use(
+        String token,
+        String device,
+        String userAgent, 
+        String ip
+    ) {
+        RefreshToken refreshToken = validateAndGet(token);
+        refreshToken.setLastUsed(Instant.now());
+        refreshToken.setIp(ip);
+        refreshToken.setDevice(device);
+        refreshToken.setUserAgent(userAgent);
+        refreshToken.setSuspicious(isSuspicious(refreshToken, device, userAgent));
+        return repository.save(refreshToken);
     }
 
     private boolean isSuspicious(RefreshToken refreshToken, String device, String userAgent) {
@@ -189,7 +222,8 @@ public class RefreshTokenService {
            device,
            userAgent,
            ip, 
-           suspicious
+           suspicious,
+           refreshToken.getMaxExpiredAt()
         );
         repository.delete(refreshToken);
         return newToken;
@@ -209,11 +243,11 @@ public class RefreshTokenService {
     public void notSuspicious(
         RefreshToken refreshToken
     ) {
-        refreshToken.setSuspicious(true);
+        refreshToken.setSuspicious(false);
         repository.save(refreshToken);
     }
 
 
-
+    
 
 }

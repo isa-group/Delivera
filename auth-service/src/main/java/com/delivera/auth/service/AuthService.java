@@ -15,6 +15,8 @@ public interface AuthService {
 
     Credential getUserCredentialByEmail(String email, Integer tokenVersion);
 
+    void checkTokenVersion(Integer tokenVersion, Credential credential);
+
     Credential changePassword(UUID userId,String rawPreviousPassword,String rawNewPassword, Integer tokenVersion);
 
     LoginResponse buildLoginResponse(Credential credential, DeliveraOrgContext orgInfo);
