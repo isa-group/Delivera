@@ -50,9 +50,15 @@ public class SecurityConfig {
                 auth.requestMatchers(api + "/internal/auth/register").permitAll();
                 auth.requestMatchers(HttpMethod.PUT,api + "/internal/auth/username").permitAll();
                 auth.requestMatchers(HttpMethod.DELETE,api + "/internal/auth/user/**").permitAll();
-                auth.requestMatchers(api + "/auth/switch-company").authenticated();
+                auth.requestMatchers(HttpMethod.POST,api + "/auth/switch-company").authenticated();
                 auth.requestMatchers(HttpMethod.PUT,api + "/auth/password").authenticated();
-                auth.requestMatchers(api + "/auth/**").permitAll();
+                auth.requestMatchers(HttpMethod.DELETE,api + "/auth/device/others").permitAll();
+                auth.requestMatchers(HttpMethod.POST,api + "/auth/refresh").permitAll();
+                auth.requestMatchers(HttpMethod.GET,api + "/auth/device").permitAll();
+                auth.requestMatchers(HttpMethod.GET,api + "/auth/logout").permitAll();
+                auth.requestMatchers(HttpMethod.POST,api + "/auth/login").permitAll();
+                auth.requestMatchers(HttpMethod.PUT,api + "/auth/device/others/revoke").permitAll();
+                //auth.requestMatchers(api + "/auth/**").permitAll();
                 auth.requestMatchers(api + "/.well-known/jwks.json").permitAll();
                 auth.anyRequest().denyAll();
             });

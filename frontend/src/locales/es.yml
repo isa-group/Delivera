@@ -517,7 +517,11 @@ settings:
     message: Gestiona tus dispositivos activos
     empty: No hay dispositivos activos
     currentSession:  Actual
-    lastUsed: Última vez usado 
+    lastUsed: Última vez usado
+    revokeOthers: Revocar los otros
+    logoutOthers: Borrar los otros
+    revoked: REVOCADA
+    passwordRequired: Contraseña requerida para revocar o borrar 
 
 vehicles:
   title: Vehículos

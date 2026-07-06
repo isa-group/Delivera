@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 
 import com.delivera.auth.dto.Device;
+import com.delivera.auth.model.Credential;
 import com.delivera.auth.model.RefreshToken;
 
 public interface RefreshTokenRepository extends CrudRepository<RefreshToken,UUID> {
@@ -33,6 +34,24 @@ public interface RefreshTokenRepository extends CrudRepository<RefreshToken,UUID
         or rt.maxExpiredAt < :now
     """)
     void deleteByExpiredTokens(Instant now);
+
+
+    @Modifying
+    @Query("""
+        delete from RefreshToken rt
+        where rt.id <> :id and rt.credential = :credential
+    """)
+    void deleteOthersTokens(UUID id,Credential credential);
+
+    
+    @Modifying
+    @Query("""
+        UPDATE RefreshToken rt
+        SET rt.revoked = true
+        WHERE rt.id <> :id and rt.credential = :credential
+    """)
+    void revokeOthersTokens(UUID id,Credential credential);
+
 
 
     

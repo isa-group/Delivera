@@ -71,7 +71,10 @@ export function useServices(service) {
     return request(endpoint, { method: 'PATCH', body: JSON.stringify(body) })
   }
 
-  async function del(endpoint) {
+  async function del(endpoint,body) {
+    if (body) {
+      return request(endpoint, { method: 'DELETE', body: JSON.stringify(body) })
+    }
     return request(endpoint, { method: 'DELETE' })
   }
 

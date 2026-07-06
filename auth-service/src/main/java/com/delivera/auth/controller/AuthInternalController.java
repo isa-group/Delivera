@@ -118,7 +118,6 @@ public class AuthInternalController {
 
     @DeleteMapping("/user/{userId}")
     public ResponseEntity<Void> deleteUser(@PathVariable UUID userId) {
-        System.out.println(userId);
         authService.delete(userId);
         return ResponseEntity.status(HttpStatus.resolve(204)).build();
     }

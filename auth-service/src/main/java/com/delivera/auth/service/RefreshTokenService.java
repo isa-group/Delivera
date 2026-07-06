@@ -263,6 +263,23 @@ public class RefreshTokenService {
 
 
     @Transactional
+    public void removeOthersTokens(
+        RefreshToken refreshToken
+    ) {
+        repository.deleteOthersTokens(refreshToken.getId(), refreshToken.getCredential());
+    }
+
+    @Transactional
+    public void revokeOthersTokens(
+        RefreshToken refreshToken
+    ) {
+        repository.revokeOthersTokens(refreshToken.getId(), refreshToken.getCredential());
+    }
+
+
+
+
+    @Transactional
     public void notSuspicious(
         RefreshToken refreshToken
     ) {

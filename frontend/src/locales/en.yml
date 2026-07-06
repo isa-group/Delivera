@@ -518,6 +518,10 @@ settings:
     empty: There aren't active devices
     currentSession: Current
     lastUsed: Last time used  
+    revokeOthers: Revoke others
+    logoutOthers: Delete others
+    revoked: REVOKED
+    passwordRequired: Password required to execute revoke or delete
   
 
 vehicles:

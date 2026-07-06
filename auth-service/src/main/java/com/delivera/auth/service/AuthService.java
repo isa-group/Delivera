@@ -17,7 +17,10 @@ public interface AuthService {
 
     void checkTokenVersion(Integer tokenVersion, Credential credential);
 
-    Credential changePassword(UUID userId,String rawPreviousPassword,String rawNewPassword, Integer tokenVersion);
+    Credential changePassword(Credential credential,String rawPreviousPassword,
+        String rawNewPassword, Integer tokenVersion, String ip);
+    void checkPassword(String password, Credential credential);
+    void avoidAttacksWithCorrectIdentifier(String password, Credential credential, String ip);
 
     LoginResponse buildLoginResponse(Credential credential, DeliveraOrgContext orgInfo);
     LoginResponse buildLoginResponse(Credential credential, DeliveraOrgContext orgInfo, RefreshCookieData refreshCookie);

@@ -3,13 +3,13 @@ package com.delivera.auth.controller;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -23,6 +23,7 @@ import com.delivera.auth.dto.Device;
 import com.delivera.auth.dto.LoginRequest;
 import com.delivera.auth.dto.LoginResponse;
 import com.delivera.auth.dto.SwitchCompanyRequest;
+import com.delivera.auth.dto.ValidatePassword;
 import com.delivera.auth.exception.InvalidRefreshTokenException;
 import com.delivera.auth.model.Credential;
 import com.delivera.auth.model.RefreshToken;
@@ -240,14 +241,29 @@ public class AuthController {
 
     @Operation(summary = "Change active company")
     @PutMapping("/password")
-    public ResponseEntity<LoginResponse> changePassword(@Valid @RequestBody ChangePasswordRequest  request) {
-        UUID userId = securityUtils.getCurrentUserId();
+    public ResponseEntity<LoginResponse> changePassword(
+        HttpServletRequest httpRequest,
+        @Valid @RequestBody ChangePasswordRequest  request
+    ) {
+        String token = getRefreshTokenFromCookies(httpRequest);
+        String ip = getIp(httpRequest);
+        String deviceId = getDeviceId(httpRequest);
+        String userAgent = getUserAgent(httpRequest);
         Integer tokenVersion = securityUtils.getTokenVersion();
+
+        RefreshToken refreshToken = refreshTokenService.validateAndGet(token);
+        Credential previousCredential = refreshToken.getCredential();
         
-        Credential credential = authService.changePassword(userId, 
-            request.currentPassword(), request.newPassword(), tokenVersion);
-        
-        DeliveraOrgContext orgInfo = client.getOrgInfoByUserId(credential.getUserId()).block();
+        Credential credential = authService.changePassword(
+            previousCredential, request.currentPassword(), 
+            request.newPassword(), tokenVersion, ip
+        );
+        refreshTokenService.use(refreshToken, deviceId, userAgent, ip, refreshToken.getCompanyId());
+
+        DeliveraOrgContext orgInfo = client.getOrgSwitchInfo(
+            credential.getUserId(),refreshToken.getCompanyId()
+        ).block();
+
         LoginResponse loginResponse = authService.buildLoginResponse(credential, orgInfo);
         return ResponseEntity.ok(loginResponse);
     }
@@ -325,6 +341,60 @@ public class AuthController {
         );
 
     }
+
+    @Operation(summary = "delete all refresh tokens except the current")
+    @DeleteMapping("/device/others")
+    public ResponseEntity<Void> deleteOthersRefresh(
+        HttpServletRequest httpRequest,
+        @RequestBody @Valid ValidatePassword validatePassword
+    ) {
+        String token = getRefreshTokenFromCookies(httpRequest);
+        String ip = getIp(httpRequest);
+        String deviceId = getDeviceId(httpRequest);
+        String userAgent = getUserAgent(httpRequest);
+
+        RefreshToken refreshToken = refreshTokenService.validateAndGet(token);
+        
+        authService.avoidAttacksWithCorrectIdentifier(
+            validatePassword.password(),
+            refreshToken.getCredential(),
+            ip
+        );
+       
+        refreshTokenService.use(refreshToken, deviceId, userAgent, ip, refreshToken.getCompanyId());
+        refreshTokenService.removeOthersTokens(refreshToken);
+       
+        return ResponseEntity.status(204).build();
+
+    }
+
+    @Operation(summary = "revoke all refresh tokens except the current")
+    @PutMapping("/device/others/revoke")
+    public ResponseEntity<Void> revokeOthersRefresh(
+        HttpServletRequest httpRequest,
+        @RequestBody @Valid ValidatePassword validatePassword
+    ) {
+        String token = getRefreshTokenFromCookies(httpRequest);
+        String ip = getIp(httpRequest);
+        String deviceId = getDeviceId(httpRequest);
+        String userAgent = getUserAgent(httpRequest);
+
+        RefreshToken refreshToken = refreshTokenService.validateAndGet(token);
+        
+        authService.avoidAttacksWithCorrectIdentifier(
+            validatePassword.password(),
+            refreshToken.getCredential(),
+            ip
+        );
+       
+        refreshTokenService.use(refreshToken, deviceId, userAgent, ip, refreshToken.getCompanyId());
+        refreshTokenService.revokeOthersTokens(refreshToken);
+       
+        return ResponseEntity.status(204).build();
+
+    }
+
+
 
 
    

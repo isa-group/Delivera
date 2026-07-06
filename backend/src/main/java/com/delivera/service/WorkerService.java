@@ -127,8 +127,6 @@ public class WorkerService {
 
         User user = worker.getUser();
         workerRepository.delete(worker);
-        System.out.println(workerRepository.countByUser_Id(user.getId()));
-        System.out.println(user.isInvited());
         if (user.isInvited() && workerRepository.countByUser_Id(user.getId()) == 0) {
             userRepository.delete(user);
             client.deleteUser(user.getId()).block();

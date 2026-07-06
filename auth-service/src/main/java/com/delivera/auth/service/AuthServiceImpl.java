@@ -133,7 +133,7 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private void avoidAttacksWithCorrectIdentifier(String password, Credential credential, String ip) {
+    public void avoidAttacksWithCorrectIdentifier(String password, Credential credential, String ip) {
         // TO AVOID Brute force and Credential Snuffing 
         try {
             checkPassword(password,credential);
@@ -145,7 +145,7 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private void checkPassword(String password, Credential credential) {
+    public void checkPassword(String password, Credential credential) {
         if (!passwordEncoder.matches(password, credential.getPasswordHash())) {
             throw new  InvalidCredentialsException();
         }
@@ -188,10 +188,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public Credential changePassword(UUID userId, String rawPreviousPassword, String rawNewPassword, Integer tokenVersion) {
-        Credential credential = credentialRepository.findById(userId)
-        .orElseThrow(() -> new ForbiddenException("YOU CAN'T DO THIS OPERATION"));
-        checkPassword(rawPreviousPassword, credential);
+    public Credential changePassword(Credential credential, String rawPreviousPassword, String rawNewPassword, Integer tokenVersion, String ip) {
+        avoidAttacksWithCorrectIdentifier(rawPreviousPassword,credential,ip);
         checkTokenVersion(tokenVersion, credential);
         credential.setPasswordHash(passwordEncoder.encode(rawNewPassword));
         credential.setTokenVersion(credential.getTokenVersion()+1);

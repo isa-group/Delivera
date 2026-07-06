@@ -1,5 +1,6 @@
 <script setup>
 import { useServices } from '@/composables/useServices'
+import { useValidation } from '@/composables/useValidation'
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -8,6 +9,8 @@ const devices = ref([])
 const api = useServices("auth-service")
 const error = ref('')
 const loading = ref(false)
+const password = ref('')
+const { validate, required, errors, invalids } = useValidation()
 
 async function getDevices() {
   error.value = ''
@@ -27,16 +30,100 @@ async function getDevices() {
   }
 }
 
+async function handleDelete() {
+  error.value = ''
+  if (!validate({
+    password: [required(password.value, 'password')],
+  })) return
+
+
+  loading.value = true
+  try {
+    const res = await api.del('/auth/device/others', { password: password.value })
+    if (res.status === 204) {
+      password.value = ''
+      await getDevices()
+    } else {
+      const data = await res.json()
+      error.value = api.translateError(data, 'error.invalidCredentials')
+    }
+  } catch {
+    error.value = t('error.connection')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleRevoke() {
+  error.value = ''
+  if (!validate({
+    password: [required(password.value, 'password')],
+  })) return
+
+
+  loading.value = true
+  try {
+    const res = await api.put('/auth/device/others/revoke', { password: password.value })
+    if (res.status === 204) {
+      password.value = ''
+      await getDevices()
+    } else {
+      const data = await res.json()
+      error.value = api.translateError(data, 'error.invalidCredentials')
+    }
+  } catch {
+    error.value = t('error.connection')
+  } finally {
+    loading.value = false
+  }
+}
+
+
+
 onMounted(getDevices)
 </script>
 
 
+
+
 <template>
     <div class="devices-section">
-      <h3 class="section-title">{{t('settings.devices.name')}}</h3>
-      <p class="section-subtitle">
+        <h3 class="section-title">{{t('settings.devices.name')}}</h3>
+        <p class="section-subtitle">
         {{t('settings.devices.message')}}
-      </p>
+        </p>
+        
+        <div class="form-field">
+            <label for="login-password">{{t('settings.devices.passwordRequired')}}</label>
+            <PPassword
+            id="login-password"
+            v-model="password"
+            :feedback="false"
+            toggle-mask
+            :placeholder="t('fields.password')"
+            :invalid="!!invalids.password"
+            :pt="{ pcinput: { root: { autocomplete: 'current-password' } } }"
+            fluid
+            />
+            <small v-if="errors.password" class="field-error">{{ errors.password }}</small>
+        </div>
+      
+        <div class="devices-actions">
+            <PButton
+                severity="warn"
+                icon="pi pi-lock"
+                :label="t('settings.devices.revokeOthers')"
+                @click="handleRevoke"
+            />
+
+            <PButton
+                severity="danger"
+                icon="pi pi-shield"
+                :label="t('settings.devices.logoutOthers')"
+                @click="handleDelete"
+            />
+        </div>
+
       
         <div v-if="loading">
             {{t('common.loading')}}
@@ -81,6 +168,14 @@ onMounted(getDevices)
                 >
                 ⚠ {{ t('settings.devices.suspicious') }}
                 </div>
+                
+                <div
+                v-if="device.revoked"
+                class="revoked"
+                >
+                🚫 {{ t('settings.devices.revoked') }}
+                </div>
+
             </div>
         </div>
         <div v-if="devices.length === 0" class="empty-state">
@@ -92,6 +187,12 @@ onMounted(getDevices)
 
 
 <style scoped>
+    .devices-actions {
+        display: flex;
+        justify-content: space-evenly;
+        margin: 5px;
+    }
+
     .devices-section {
         padding: 1rem;
     }
@@ -130,6 +231,13 @@ onMounted(getDevices)
         flex-direction: column;
         gap: 0.4rem;
     }
+
+    
+    .revoked {
+        color: #dc2626;
+        font-weight: 600;
+    }
+
 
     .current-session {
         background: #dcfce7;
