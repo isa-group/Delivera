@@ -9,7 +9,6 @@ import com.delivera.exception.*;
 import com.delivera.model.*;
 import com.delivera.repository.*;
 
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -128,6 +127,8 @@ public class WorkerService {
 
         User user = worker.getUser();
         workerRepository.delete(worker);
+        System.out.println(workerRepository.countByUser_Id(user.getId()));
+        System.out.println(user.isInvited());
         if (user.isInvited() && workerRepository.countByUser_Id(user.getId()) == 0) {
             userRepository.delete(user);
             client.deleteUser(user.getId()).block();

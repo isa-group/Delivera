@@ -2,6 +2,7 @@ package com.delivera.auth.controller;
 
 
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,9 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.delivera.auth.dto.ChangePasswordRequest;
 import com.delivera.auth.dto.DeliveraOrgContext;
+import com.delivera.auth.dto.Device;
 import com.delivera.auth.dto.LoginRequest;
 import com.delivera.auth.dto.LoginResponse;
 import com.delivera.auth.dto.SwitchCompanyRequest;
+import com.delivera.auth.exception.InvalidRefreshTokenException;
 import com.delivera.auth.model.Credential;
 import com.delivera.auth.model.RefreshToken;
 import com.delivera.auth.security.AuthRateLimiter;
@@ -30,6 +33,7 @@ import com.delivera.auth.service.AuthServiceImpl;
 import com.delivera.auth.service.DeliveraClient;
 import com.delivera.auth.service.RefreshTokenService;
 import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.client.exception.ClientException;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.Cookie;
@@ -46,6 +50,9 @@ public class AuthController {
     private final AuthRateLimiter authRateLimiter;
     private final SecurityUtils securityUtils;
     private final RefreshTokenService refreshTokenService;
+
+    @Value("${app.gateway.enabled}")
+    private Boolean activeGateway;
 
     @Value("${app.refresh-token.secure}")
     private boolean secureRefreshCookie = false;
@@ -73,7 +80,7 @@ public class AuthController {
 
     private String getIp(HttpServletRequest httpRequest) {
         String ip = httpRequest.getHeader("X-Forwarded-For");
-        if (ip == null) {
+        if (ip == null || activeGateway) {
             ip = httpRequest.getRemoteAddr();
         }
         return ip.length() > 40
@@ -188,7 +195,7 @@ public class AuthController {
         DeliveraOrgContext orgInfo = client.getOrgInfoByUserId(credential.getUserId()).block();
         LoginResponse loginResponse = authService.buildLoginResponse(credential, orgInfo);
 
-        String newToken = refreshTokenService.create(credential, deviceId, userAgent, ip);
+        String newToken = refreshTokenService.create(credential, deviceId, userAgent, ip,orgInfo.getCompanyId());
         
         ResponseCookie refreshCookie = refreshCookie(newToken, refreshTokenService.getDaysToRefresh());
 
@@ -219,13 +226,14 @@ public class AuthController {
         String ip = getIp(httpRequest);
         String deviceId = getDeviceId(httpRequest);
         String userAgent = getUserAgent(httpRequest);
-        RefreshToken refreshToken = refreshTokenService.use(token,deviceId,userAgent,ip);
-        
 
+        RefreshToken refreshToken = refreshTokenService.validateAndGet(token);
         Credential credential = refreshToken.getCredential();
         authService.checkTokenVersion(tokenVersion,credential);
 
         DeliveraOrgContext orgInfo = client.getOrgSwitchInfo(credential.getUserId(),request.companyId()).block();
+        refreshTokenService.use(refreshToken,deviceId,userAgent,ip,request.companyId());
+        
         LoginResponse loginResponse = authService.buildLoginResponse(credential, orgInfo);
         return ResponseEntity.ok(loginResponse);
     }
@@ -256,8 +264,20 @@ public class AuthController {
         
         RefreshToken refreshToken = refreshTokenService.validateAndGet(token);
         Credential credential = refreshToken.getCredential();
-
-        DeliveraOrgContext orgInfo = client.getOrgInfoByUserId(credential.getUserId()).block();
+        DeliveraOrgContext orgInfo;
+        if (refreshToken.getCompanyId() != null) {
+            try {
+                orgInfo = client.getOrgSwitchInfo(
+                    credential.getUserId(),refreshToken.getCompanyId()
+                ).block();
+            } catch( ClientException e) {
+                throw new InvalidRefreshTokenException();
+            }
+            
+        } else {
+            orgInfo = new DeliveraOrgContext();
+        }
+        
         LoginResponse loginResponse = authService.buildLoginResponse(credential, orgInfo);
 
         String newToken = refreshTokenService.refresh(token, deviceId, userAgent, ip);
@@ -285,6 +305,24 @@ public class AuthController {
         return ResponseEntity.ok()
         .header(HttpHeaders.SET_COOKIE,deleteRefreshToken().toString())
         .build();
+
+    }
+
+    @Operation(summary = "get account active devices ")
+    @GetMapping("/device")
+    public ResponseEntity<List<Device>> devices(
+        HttpServletRequest httpRequest
+    ){
+
+        String token = getRefreshTokenFromCookies(httpRequest);
+        RefreshToken refreshToken = refreshTokenService.validateAndGet(token);
+
+        return ResponseEntity.ok().body(
+            refreshTokenService.getDevices(
+                refreshToken.getCredential().getUserId(), 
+                refreshToken.getId()
+            )
+        );
 
     }
 

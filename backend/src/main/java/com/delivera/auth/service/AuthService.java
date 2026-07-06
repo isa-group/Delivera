@@ -17,6 +17,7 @@ import com.delivera.repository.*;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.util.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,10 @@ public class AuthService {
     private final SubscriptionPlanRepository subscriptionPlanRepository;
     private final AuthClient client;
 
+    
+    @Value("${app.gateway.enabled}")
+    private Boolean activeGateway;
+
     public AuthService(UserRepository userRepository,
                        OrganizationRepository organizationRepository,
                        CompanyRepository companyRepository,
@@ -65,7 +70,7 @@ public class AuthService {
 
     public String getIp(HttpServletRequest httpRequest) {
         String ip = httpRequest.getHeader("X-Forwarded-For");
-        if (ip == null) {
+        if (ip == null || activeGateway) {
             ip = httpRequest.getRemoteAddr();
         }
         return ip;

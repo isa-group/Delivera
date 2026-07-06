@@ -1,4 +1,4 @@
-package com.delivera.delivera_auth_service;
+package com.delivera.auth;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

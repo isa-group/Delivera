@@ -89,10 +89,14 @@ public class AuthInternalController {
             );
         }
         RequestClientData requestClientData = registerRequest.getRequestClientData();
+        UUID companyId =  registerRequest.getContext()!= null? 
+            registerRequest.getContext().getCompanyId() 
+            : null;
         String token = refreshTokenService.create(
             credential,requestClientData.deviceId() , 
             requestClientData.userAgent(), 
-            requestClientData.ip()
+            requestClientData.ip(),
+            companyId    
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(
             authService.buildLoginResponse(

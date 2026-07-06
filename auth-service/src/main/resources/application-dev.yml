@@ -85,14 +85,15 @@ app:
   refresh-token:
     daysToRefresh: 1
     maxDaysToRefresh: 2
-    periodicDeletionMs: 3600000
+    periodicDeletionMs: 60000
+    # 3600000
     secure: false
     domain: localhost
     path: "/api/v2/"
 
   jwt:
     # in miliseconds
-    expiration: 600000
+    expiration: 90000
     issuer: ${JWT_ISSUER:delivera-auth-service}
     audience: ${JWT_AUDIENCE:delivera-api}
     rotation:

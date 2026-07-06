@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.delivera.auth.dto.Device;
 import com.delivera.auth.exception.InvalidRefreshTokenException;
 import com.delivera.auth.model.Credential;
 import com.delivera.auth.model.RefreshToken;
@@ -32,9 +34,10 @@ public class RefreshTokenService {
 
     @Value("${app.refresh-token.maxDaysToRefresh}")
     private Integer maxDaysToRefresh = 30;
-
+/* 
     @Value("${app.refresh-token.periodicDeletionMs}")
     private final long  periodicDeletionMs = 1000 * 60;
+*/
 
     @Autowired
     public RefreshTokenService(RefreshTokenRepository repository) {
@@ -42,7 +45,7 @@ public class RefreshTokenService {
     }
 
     @Transactional
-    @Scheduled(fixedRate = periodicDeletionMs)
+    @Scheduled(fixedRateString = "${app.refresh-token.periodicDeletionMs}")
     public void removeExpiredTokens() {
         log.info("PERIODIC TOKEN REFRESH DELETION AT {}",Instant.now().atZone(ZoneId.systemDefault()));
         repository.deleteByExpiredTokens(Instant.now());
@@ -71,6 +74,7 @@ public class RefreshTokenService {
         UUID tokenId,
         String secret,
         Boolean suspicious,
+        UUID companyId,
         Instant maxExpiredAt
     ) {
         RefreshToken refreshToken = new RefreshToken();
@@ -84,6 +88,7 @@ public class RefreshTokenService {
         refreshToken.setUserAgent(userAgent);
         refreshToken.setExpiredAt(Instant.now().plus(daysToRefresh,ChronoUnit.DAYS));
         refreshToken.setLastUsed(Instant.now());
+        refreshToken.setCompanyId(companyId);
         refreshToken.setMaxExpiredAt(maxExpiredAt);
         refreshToken.setSuspicious(suspicious);
 
@@ -98,6 +103,7 @@ public class RefreshTokenService {
         String userAgent, 
         String ip,
         Boolean suspicious,
+        UUID companyId,
         Instant maxExpiredAt
     ) {
        
@@ -108,7 +114,7 @@ public class RefreshTokenService {
 
         RefreshToken refreshToken = build(
             credential, device, userAgent, ip, 
-            tokenId, secret, suspicious, maxExpiredAt
+            tokenId, secret, suspicious,companyId,maxExpiredAt
         );
        
         repository.save(refreshToken);
@@ -121,7 +127,8 @@ public class RefreshTokenService {
         Credential credential, 
         String device,
         String userAgent, 
-        String ip
+        String ip,
+        UUID companyId
     ){
         return createToken(
             credential, 
@@ -129,6 +136,7 @@ public class RefreshTokenService {
             userAgent, 
             ip, 
             false, 
+            companyId,
             Instant.now().plus(maxDaysToRefresh, ChronoUnit.DAYS)
         );
     }
@@ -202,16 +210,17 @@ public class RefreshTokenService {
 
     @Transactional
     public RefreshToken use(
-        String token,
+        RefreshToken refreshToken,
         String device,
         String userAgent, 
-        String ip
+        String ip,
+        UUID companyId
     ) {
-        RefreshToken refreshToken = validateAndGet(token);
         refreshToken.setLastUsed(Instant.now());
         refreshToken.setIp(ip);
         refreshToken.setDevice(device);
         refreshToken.setUserAgent(userAgent);
+        refreshToken.setCompanyId(companyId);
         refreshToken.setSuspicious(isSuspicious(refreshToken, device, userAgent));
         return repository.save(refreshToken);
     }
@@ -239,6 +248,7 @@ public class RefreshTokenService {
            userAgent,
            ip, 
            suspicious,
+           refreshToken.getCompanyId(),
            refreshToken.getMaxExpiredAt()
         );
         repository.delete(refreshToken);
@@ -261,6 +271,11 @@ public class RefreshTokenService {
     ) {
         refreshToken.setSuspicious(false);
         repository.save(refreshToken);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Device> getDevices(UUID userId, UUID id) {
+        return repository.getDevices(userId,id);
     }
 
 

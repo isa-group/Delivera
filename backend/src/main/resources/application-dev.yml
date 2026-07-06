@@ -80,9 +80,8 @@ server:
     client-auth: none
 
 app:
-  jwt:
-    secret: ${JWT_SECRET:delivera-jwt-secret-key-para-desarrollo}
-    expiration: 86400
+  gateway: 
+    enabled: false
   cors:
     allowed-origins: http://localhost:3000
   mail:
@@ -93,10 +92,6 @@ app:
   contact-email: contact@delivera.com
   file:
     max-upload-bytes: 2097152
-  auth:
-    rate-limit:
-      max-attempts: 5
-      window-ms: 60000
   demo:
     seed:
       auth:

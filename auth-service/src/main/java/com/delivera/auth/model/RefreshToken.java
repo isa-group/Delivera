@@ -29,6 +29,10 @@ public class RefreshToken {
     @JoinColumn(name = "credential_id")
     private Credential credential;
 
+    @Column(name = "company_id")
+    private UUID companyId;
+
+
     @Column(name = "secret_hash", nullable = false)
     private String secretHash;
 
@@ -39,7 +43,7 @@ public class RefreshToken {
     private Instant maxExpiredAt;
 
     private Boolean revoked = false;
-
+    
     private Boolean suspicious = false;
 
     @Size(max = 1000)
