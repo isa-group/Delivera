@@ -1,3 +1,4 @@
+import router from '@/router'
 import { useAuthStore } from '@/stores/auth'
 
 
@@ -28,17 +29,18 @@ const headers = {
 
 export function startAuthRefresh() {
   const auth = useAuthStore()
+  if (!auth.token) {
+    return
+  }
+    
+  const payload = parseJwt(auth.token)
 
- 
-    const payload = parseJwt(auth.token)
+  const expiresAt = payload.exp * 1000
+  const now = Date.now()
 
-    const expiresAt = payload.exp * 1000
-    const now = Date.now()
+  const delay = expiresAt - now - 60000 // 1 min before it expires 
 
-    const delay = expiresAt - now - 60000 // 1 min before it expires 
-
-
-  clearInterval(interval)
+  clearTimeout(interval)
 
   const refreshTime = Number(import.meta.env.VITE_REFRESH_TIME)
 
@@ -52,39 +54,33 @@ export function startAuthRefresh() {
           headers
         }
       )
-    
-      if (response.status === 401) {
+      
+      console.log(response.status)
+      if (response.status === 401 || response.status === 403) {
+        stopAuthRefresh()
         auth.logout()
-        await fetch(
-            `${import.meta.env.VITE_AUTH_API_URL}/api/v2/auth/logout`,
-            {
-              method: 'GET',
-              credentials: 'include'
-            }
-          )
+        router.push('/')
         return
       }
-
+      if (!response.ok) {
+        throw new Error(`Refresh failed: ${response.status}`)
+      }
       const data = await response.json()
-
-      auth.setToken(data.token)
+      auth.applyLoginData(data)
       startAuthRefresh()
-    } catch {
-      auth.logout()
-      await fetch(
-        `${import.meta.env.VITE_AUTH_API_URL}/api/v2/auth/logout`,
-        {
-          method: 'GET',
-          credentials: 'include'
-        }
-      )
-      return
+    } catch(error) {
+      console.error('Refresh failed', error)
+      
+      setTimeout(()=> {
+        startAuthRefresh()
+      }, 30 * 1000) 
     }
   }, Math.max(delay, 0) )
 }
 
 
 export function stopAuthRefresh() {
-  clearInterval(interval)
+  clearTimeout(interval)
+  interval = null
 }
 

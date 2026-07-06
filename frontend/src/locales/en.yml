@@ -512,6 +512,13 @@ settings:
   noCompaniesFound: No companies found matching that criteria
   searchByName: Search by name
   filterAll: All
+  devices: 
+    name: Devices
+    message: Manage your active devices
+    empty: There aren't active devices
+    currentSession: Current
+    lastUsed: Last time used  
+  
 
 vehicles:
   title: Vehicles

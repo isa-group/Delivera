@@ -10,10 +10,13 @@ import { buildPriorityOptions } from '@/composables/useOrderPriority'
 import { useAppConfig } from '@/composables/useAppConfig'
 import DeleteConfirmPanel from '@/components/DeleteConfirmPanel.vue'
 import ApiKeysSection from './ApiKeysSection.vue'
+import DeviceSecction from './components/DeviceSecction.vue'
+import { useServices } from '@/composables/useServices.js'
 
 const { t } = useI18n()
 const router = useRouter()
 const api = useApi()
+const authApi = useServices("auth-service")
 const auth = useAuthStore()
 const { validate, required, errors: vErrors, invalids } = useValidation()
 const { activityTypes, load: loadActivityTypes } = useActivityTypes()
@@ -388,13 +391,15 @@ async function confirmDeleteCompany(id) {
     if (isCurrent) {
       const next = allCompanies.value.find(c => c.id !== id)
       if (!next) return
-      const switchRes = await api.post('/auth/switch-company', { companyId: next.id })
+      const switchRes = await authApi.post('/auth/switch-company', { companyId: next.id })
       if (!switchRes.ok) { deleteError.value = t('error.connection'); return }
       auth.applyLoginData(await switchRes.json())
     }
     const url = force ? `/settings/companies/${id}?force=true` : `/settings/companies/${id}`
     const res = await api.del(url)
-    if (res.ok) {
+    console.log(res.status
+    )
+    if (res.status === 204) {
       if (isCurrent) {
         router.push('/settings')
       } else {
@@ -481,6 +486,7 @@ async function copyHandle() {
           <PTab :value="1">{{ t('settings.companySection') }}</PTab>
           <PTab :value="2">{{ t('settings.subscriptionSection') }}</PTab>
           <PTab :value="3">{{ t('settings.apiKeysSection') }}</PTab>
+          <PTab :value="4">{{ t('settings.devices.name') }}</PTab>
         </PTabList>
 
         <PTabPanels>
@@ -731,6 +737,9 @@ async function copyHandle() {
           <!-- === API Keys === -->
           <PTabPanel :value="3">
             <ApiKeysSection />
+          </PTabPanel>
+          <PTabPanel :value="4">
+            <DeviceSecction/>
           </PTabPanel>
         </PTabPanels>
       </PTabs>

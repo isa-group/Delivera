@@ -34,10 +34,7 @@ public class RefreshTokenService {
 
     @Value("${app.refresh-token.maxDaysToRefresh}")
     private Integer maxDaysToRefresh = 30;
-/* 
-    @Value("${app.refresh-token.periodicDeletionMs}")
-    private final long  periodicDeletionMs = 1000 * 60;
-*/
+
 
     @Autowired
     public RefreshTokenService(RefreshTokenRepository repository) {
