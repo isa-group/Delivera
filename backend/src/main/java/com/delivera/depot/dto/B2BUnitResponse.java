@@ -1,8 +1,8 @@
-package com.delivera.dto.unit;
-
-import com.delivera.model.OperationalUnit;
+package com.delivera.depot.dto;
 
 import java.util.UUID;
+
+import com.delivera.depot.model.OperationalUnit;
 
 public record B2BUnitResponse(UUID id, String name, String type, UUID companyId, String companyName) {
 

@@ -1,4 +1,4 @@
-package com.delivera.dto.vehicle;
+package com.delivera.vehicle.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

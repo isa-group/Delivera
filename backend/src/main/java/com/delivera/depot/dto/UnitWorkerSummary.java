@@ -1,4 +1,4 @@
-package com.delivera.dto.unit;
+package com.delivera.depot.dto;
 
 import com.delivera.model.Worker;
 

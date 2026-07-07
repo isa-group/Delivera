@@ -1,9 +1,9 @@
-package com.delivera.dto.vehicle;
-
-import com.delivera.model.Vehicle;
+package com.delivera.vehicle.dto;
 
 import java.time.Instant;
 import java.util.UUID;
+
+import com.delivera.vehicle.model.Vehicle;
 
 public record VehicleResponse(
         UUID id,

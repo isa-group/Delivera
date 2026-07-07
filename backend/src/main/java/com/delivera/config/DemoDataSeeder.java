@@ -1,8 +1,14 @@
 package com.delivera.config;
 
 import com.delivera.auth.service.AuthClient;
+import com.delivera.depot.model.OperationalUnit;
+import com.delivera.depot.model.UnitType;
+import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.model.*;
 import com.delivera.repository.*;
+import com.delivera.vehicle.model.Vehicle;
+import com.delivera.vehicle.repository.VehicleRepository;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;

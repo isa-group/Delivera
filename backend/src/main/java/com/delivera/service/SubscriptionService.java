@@ -1,12 +1,13 @@
 package com.delivera.service;
 
+import com.delivera.depot.model.OperationalUnit;
+import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.dto.settings.SubscriptionUsageResponse;
 import com.delivera.dto.settings.SubscriptionUsageResponse.ResourceUsage;
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.SubscriptionLimitException;
 import com.delivera.model.Company;
 import com.delivera.model.LoyalUser;
-import com.delivera.model.OperationalUnit;
 import com.delivera.model.SubscriptionPlan;
 import com.delivera.model.Worker;
 import com.delivera.model.WorkerRole;

@@ -1,4 +1,4 @@
-package com.delivera.model;
+package com.delivera.vehicle.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -7,6 +7,9 @@ import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
+
+import com.delivera.depot.model.OperationalUnit;
+import com.delivera.model.Company;
 
 @Getter
 @Setter

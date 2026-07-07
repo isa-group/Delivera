@@ -1,5 +1,6 @@
 package com.delivera.service;
 
+import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.exception.SubscriptionLimitException;
 import com.delivera.model.Company;
 import com.delivera.model.Organization;
@@ -239,7 +240,7 @@ class SubscriptionServiceTest {
         analyst.setRole(com.delivera.model.WorkerRole.ANALYST);
         com.delivera.model.LoyalUser lu = new com.delivera.model.LoyalUser();
         lu.getCompanies().add(company);
-        com.delivera.model.OperationalUnit unit = new com.delivera.model.OperationalUnit();
+        com.delivera.depot.model.OperationalUnit unit = new com.delivera.depot.model.OperationalUnit();
         unit.setId(UUID.randomUUID());
 
         when(subscriptionPlanRepository.findById("FREE")).thenReturn(Optional.of(free));

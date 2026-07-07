@@ -2,17 +2,17 @@ package com.delivera.service;
 
 
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.dto.unit.UnitRequest;
+import com.delivera.depot.dto.UnitRequest;
+import com.delivera.depot.model.OperationalUnit;
+import com.delivera.depot.model.UnitType;
+import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.UnitNameConflictException;
 import com.delivera.exception.UnitNotFoundException;
 import com.delivera.model.Company;
-import com.delivera.model.OperationalUnit;
 import com.delivera.model.Organization;
-import com.delivera.model.UnitType;
 import com.delivera.model.Worker;
 import com.delivera.repository.CompanyRepository;
-import com.delivera.repository.OperationalUnitRepository;
 import com.delivera.repository.WorkerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

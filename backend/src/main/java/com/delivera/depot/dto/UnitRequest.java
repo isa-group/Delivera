@@ -1,7 +1,8 @@
-package com.delivera.dto.unit;
+package com.delivera.depot.dto;
 
+import com.delivera.depot.model.UnitType;
 import com.delivera.model.OrderPriority;
-import com.delivera.model.UnitType;
+
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;

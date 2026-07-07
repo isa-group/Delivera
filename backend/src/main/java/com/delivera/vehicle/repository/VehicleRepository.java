@@ -1,8 +1,9 @@
-package com.delivera.repository;
+package com.delivera.vehicle.repository;
 
-import com.delivera.model.Vehicle;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
+import com.delivera.vehicle.model.Vehicle;
 
 import java.util.List;
 import java.util.Optional;

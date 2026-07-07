@@ -1,22 +1,21 @@
 package com.delivera.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.depot.dto.B2BUnitResponse;
+import com.delivera.depot.dto.UnitDetailResponse;
+import com.delivera.depot.dto.UnitRequest;
+import com.delivera.depot.dto.UnitResponse;
+import com.delivera.depot.model.OperationalUnit;
+import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.dto.settings.CompanySummary;
-import com.delivera.dto.unit.B2BUnitResponse;
-import com.delivera.dto.unit.UnitDetailResponse;
-import com.delivera.dto.unit.UnitRequest;
-import com.delivera.dto.unit.UnitResponse;
-
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.UnitNameConflictException;
 import com.delivera.exception.UnitNotFoundException;
 import com.delivera.exception.WorkerNotFoundException;
 import com.delivera.model.Company;
-import com.delivera.model.OperationalUnit;
 import com.delivera.model.Worker;
 import com.delivera.model.WorkerRole;
 import com.delivera.repository.CompanyRepository;
-import com.delivera.repository.OperationalUnitRepository;
 import com.delivera.repository.WorkerRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;

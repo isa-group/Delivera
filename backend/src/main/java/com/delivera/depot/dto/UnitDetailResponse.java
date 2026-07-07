@@ -1,11 +1,11 @@
-package com.delivera.dto.unit;
-
-import com.delivera.model.OperationalUnit;
+package com.delivera.depot.dto;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+
+import com.delivera.depot.model.OperationalUnit;
 
 public record UnitDetailResponse(
         UUID id,

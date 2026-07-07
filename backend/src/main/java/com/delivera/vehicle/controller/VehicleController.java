@@ -1,8 +1,9 @@
-package com.delivera.controller;
+package com.delivera.vehicle.controller;
 
-import com.delivera.dto.vehicle.VehicleRequest;
-import com.delivera.dto.vehicle.VehicleResponse;
-import com.delivera.service.VehicleService;
+import com.delivera.vehicle.dto.VehicleRequest;
+import com.delivera.vehicle.dto.VehicleResponse;
+import com.delivera.vehicle.service.VehicleService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

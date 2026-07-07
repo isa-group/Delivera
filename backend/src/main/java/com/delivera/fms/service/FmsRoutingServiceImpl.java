@@ -1,17 +1,18 @@
 package com.delivera.fms.service;
 
+import com.delivera.depot.model.OperationalUnit;
+import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.fms.dto.CustomerDto;
 import com.delivera.fms.dto.DepotDto;
 import com.delivera.fms.dto.RoutingRequest;
 import com.delivera.fms.dto.RoutingResponse;
 import com.delivera.fms.dto.VehicleDto;
-import com.delivera.model.OperationalUnit;
 import com.delivera.model.Order;
 import com.delivera.model.OrderStatus;
-import com.delivera.model.Vehicle;
-import com.delivera.repository.OperationalUnitRepository;
 import com.delivera.repository.OrderRepository;
-import com.delivera.repository.VehicleRepository;
+import com.delivera.vehicle.model.Vehicle;
+import com.delivera.vehicle.repository.VehicleRepository;
+
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;

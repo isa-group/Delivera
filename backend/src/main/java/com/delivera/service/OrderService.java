@@ -1,6 +1,8 @@
 package com.delivera.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.depot.model.OperationalUnit;
+import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.dto.order.*;
 import com.delivera.exception.*;
 import com.delivera.model.*;

@@ -1,7 +1,7 @@
 package com.delivera.service;
 
+import com.delivera.depot.model.UnitType;
 import com.delivera.model.OrderStatus;
-import com.delivera.model.UnitType;
 import com.delivera.repository.LoyalUserRepository;
 import com.delivera.repository.OrderRepository;
 import org.junit.jupiter.api.Test;

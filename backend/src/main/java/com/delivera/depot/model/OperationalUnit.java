@@ -1,4 +1,4 @@
-package com.delivera.model;
+package com.delivera.depot.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -10,6 +10,10 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+
+import com.delivera.model.Company;
+import com.delivera.model.OrderPriority;
+import com.delivera.model.Worker;
 
 @Getter
 @Setter

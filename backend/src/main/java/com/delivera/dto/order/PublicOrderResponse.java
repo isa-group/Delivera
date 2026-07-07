@@ -1,6 +1,6 @@
 package com.delivera.dto.order;
 
-import com.delivera.model.OperationalUnit;
+import com.delivera.depot.model.OperationalUnit;
 import com.delivera.model.Order;
 
 import java.math.BigDecimal;

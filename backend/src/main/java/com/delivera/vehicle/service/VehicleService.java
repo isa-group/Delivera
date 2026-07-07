@@ -1,18 +1,18 @@
-package com.delivera.service;
+package com.delivera.vehicle.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.dto.vehicle.VehicleRequest;
-import com.delivera.dto.vehicle.VehicleResponse;
+import com.delivera.depot.model.OperationalUnit;
+import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.UnitNotFoundException;
 import com.delivera.exception.VehicleNotFoundException;
 import com.delivera.exception.VehiclePlateConflictException;
 import com.delivera.model.Company;
-import com.delivera.model.OperationalUnit;
-import com.delivera.model.Vehicle;
 import com.delivera.repository.CompanyRepository;
-import com.delivera.repository.OperationalUnitRepository;
-import com.delivera.repository.VehicleRepository;
+import com.delivera.vehicle.dto.VehicleRequest;
+import com.delivera.vehicle.dto.VehicleResponse;
+import com.delivera.vehicle.model.Vehicle;
+import com.delivera.vehicle.repository.VehicleRepository;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;

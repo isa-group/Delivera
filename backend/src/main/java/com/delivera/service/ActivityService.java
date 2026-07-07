@@ -1,9 +1,9 @@
 package com.delivera.service;
 
+import com.delivera.depot.model.UnitType;
 import com.delivera.dto.activity.ActivityMetricsResponse;
 import com.delivera.dto.activity.OrdersByDayEntry;
 import com.delivera.dto.activity.UnitRankingEntry;
-import com.delivera.model.UnitType;
 import com.delivera.model.OrderStatus;
 import com.delivera.repository.LoyalUserRepository;
 import com.delivera.repository.OrderRepository;
