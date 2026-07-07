@@ -5,11 +5,11 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record ChangePasswordRequest(
-        @NotBlank
+        @NotBlank @Size(max = 128)
         String currentPassword,
 
         @NotBlank
-        @Size(min = 8)
+        @Size(min = 8, max = 128)
         @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$")
         String newPassword
 ) {}

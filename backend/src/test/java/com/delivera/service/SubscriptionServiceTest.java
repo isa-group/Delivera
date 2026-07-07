@@ -84,13 +84,13 @@ class SubscriptionServiceTest {
 
     @Test
     void checkLoyalUserLimit_belowLimit_passes() {
-        when(loyalUserRepository.countByCompaniesId(companyId)).thenReturn(0L);
+        when(loyalUserRepository.countByCompanyId(companyId)).thenReturn(0L);
         assertThatCode(() -> subscriptionService.checkLoyalUserLimit(companyId)).doesNotThrowAnyException();
     }
 
     @Test
     void checkLoyalUserLimit_atLimit_throws() {
-        when(loyalUserRepository.countByCompaniesId(companyId)).thenReturn(20L);
+        when(loyalUserRepository.countByCompanyId(companyId)).thenReturn(20L);
         assertThatThrownBy(() -> subscriptionService.checkLoyalUserLimit(companyId))
                 .isInstanceOf(SubscriptionLimitException.class)
                 .hasMessageContaining("loyal_users");
@@ -129,7 +129,7 @@ class SubscriptionServiceTest {
         when(unitRepository.countByCompanyId(companyId)).thenReturn(2L);
         when(workerRepository.countByCompanyId(companyId)).thenReturn(3L);
         when(orderRepository.countByCompanyIdAndCreatedAtAfter(eq(companyId), any(Instant.class))).thenReturn(10L);
-        when(loyalUserRepository.countByCompaniesId(companyId)).thenReturn(5L);
+        when(loyalUserRepository.countByCompanyId(companyId)).thenReturn(5L);
         when(companyRepository.countByOrganizationId(company.getOrganization().getId())).thenReturn(1L);
 
         var usage = subscriptionService.getUsage(companyId);
@@ -158,7 +158,7 @@ class SubscriptionServiceTest {
         when(unitRepository.countByCompanyId(companyId)).thenReturn(2L);
         when(workerRepository.countByCompanyId(companyId)).thenReturn(3L);
         when(orderRepository.countByCompanyIdAndCreatedAtAfter(eq(companyId), any(Instant.class))).thenReturn(10L);
-        when(loyalUserRepository.countByCompaniesId(companyId)).thenReturn(5L);
+        when(loyalUserRepository.countByCompanyId(companyId)).thenReturn(5L);
         when(companyRepository.countByOrganizationId(company.getOrganization().getId())).thenReturn(1L);
 
         var usage = subscriptionService.changePlan(companyId, "BASIC", false);
@@ -208,7 +208,7 @@ class SubscriptionServiceTest {
         when(unitRepository.countByCompanyId(companyId)).thenReturn(2L);
         when(workerRepository.countByCompanyId(companyId)).thenReturn(3L);
         when(orderRepository.countByCompanyIdAndCreatedAtAfter(eq(companyId), any(Instant.class))).thenReturn(10L);
-        when(loyalUserRepository.countByCompaniesId(companyId)).thenReturn(21L);
+        when(loyalUserRepository.countByCompanyId(companyId)).thenReturn(21L);
 
         assertThatThrownBy(() -> subscriptionService.changePlan(companyId, "FREE", false))
                 .isInstanceOf(SubscriptionLimitException.class)
@@ -222,7 +222,7 @@ class SubscriptionServiceTest {
         when(unitRepository.countByCompanyId(companyId)).thenReturn(2L);
         when(workerRepository.countByCompanyId(companyId)).thenReturn(3L);
         when(orderRepository.countByCompanyIdAndCreatedAtAfter(eq(companyId), any(Instant.class))).thenReturn(10L);
-        when(loyalUserRepository.countByCompaniesId(companyId)).thenReturn(5L);
+        when(loyalUserRepository.countByCompanyId(companyId)).thenReturn(5L);
         when(companyRepository.countByOrganizationId(company.getOrganization().getId())).thenReturn(2L);
 
         assertThatThrownBy(() -> subscriptionService.changePlan(companyId, "FREE", false))
@@ -240,19 +240,20 @@ class SubscriptionServiceTest {
         analyst.setId(UUID.randomUUID());
         analyst.setRole(com.delivera.model.WorkerRole.ANALYST);
         com.delivera.model.LoyalUser lu = new com.delivera.model.LoyalUser();
-        lu.getCompanies().add(company);
         com.delivera.depot.model.OperationalUnit unit = new com.delivera.depot.model.OperationalUnit();
+        lu.setId(UUID.randomUUID());
+        lu.linkFor(company);
         unit.setId(UUID.randomUUID());
 
         when(subscriptionPlanRepository.findById("FREE")).thenReturn(Optional.of(free));
         when(workerRepository.findByCompanyIdOrderByCreatedAtAsc(companyId)).thenReturn(java.util.List.of(admin, analyst));
-        when(loyalUserRepository.findByCompaniesIdOrderByCreatedAtDesc(companyId)).thenReturn(java.util.List.of(lu));
+        when(loyalUserRepository.findByCompanyIdOrderByLinkCreatedAtDesc(companyId)).thenReturn(java.util.List.of(lu));
         when(unitRepository.countByCompanyId(companyId)).thenReturn(1L);
         when(unitRepository.findByCompanyIdWithNoOrdersOrderByCreatedAtDesc(companyId)).thenReturn(java.util.List.of(unit));
         when(companyRepository.findByOrganizationIdOrderByCreatedAtDesc(company.getOrganization().getId())).thenReturn(java.util.List.of(company));
         when(workerRepository.countByCompanyId(companyId)).thenReturn(0L);
         when(orderRepository.countByCompanyIdAndCreatedAtAfter(eq(companyId), any(Instant.class))).thenReturn(0L);
-        when(loyalUserRepository.countByCompaniesId(companyId)).thenReturn(0L);
+        when(loyalUserRepository.countByCompanyId(companyId)).thenReturn(0L);
         when(companyRepository.countByOrganizationId(company.getOrganization().getId())).thenReturn(1L);
 
         subscriptionService.changePlan(companyId, "FREE", true);

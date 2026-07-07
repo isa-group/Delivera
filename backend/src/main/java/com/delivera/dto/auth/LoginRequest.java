@@ -1,11 +1,12 @@
 package com.delivera.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public record LoginRequest(
-        @NotBlank
+        @NotBlank @Size(max = 255)
         String identifier,
 
-        @NotBlank
+        @NotBlank @Size(max = 128)
         String password
 ) {}

@@ -119,9 +119,9 @@ public class SettingsService {
 
         orderRepository.deleteEventsByCompanyId(companyId);
         orderRepository.deleteByCompanyId(companyId);
-        for (LoyalUser lu : loyalUserRepository.findByCompaniesIdOrderByCreatedAtDesc(companyId)) {
-            lu.getCompanies().removeIf(c -> c.getId().equals(companyId));
-            if (lu.getCompanies().isEmpty()) loyalUserRepository.delete(lu);
+        for (LoyalUser lu : loyalUserRepository.findByCompanyIdOrderByLinkCreatedAtDesc(companyId)) {
+            lu.unlinkFrom(companyId);
+            if (lu.getCompanyLinks().isEmpty()) loyalUserRepository.delete(lu);
             else loyalUserRepository.save(lu);
         }
         // TODO: WORKER REPOSITORY DOESN'T DELETE USER ACCOUNT IF IT'S THE WORKER ASSOCIATE TO THAT ACCOUNT.

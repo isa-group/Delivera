@@ -181,7 +181,7 @@ class WorkerServiceTest {
 
     @Test
     void getByCompany_returnsMappedList() {
-        when(workerRepository.findByCompanyIdOrderByCreatedAtAsc(companyId)).thenReturn(List.of(worker));
+        when(workerRepository.findByCompanyIdAndRoleNotOrderByCreatedAtAsc(companyId, WorkerRole.GLOBAL_ADMIN)).thenReturn(List.of(worker));
         assertThat(workerService.getByCompany()).hasSize(1);
     }
 

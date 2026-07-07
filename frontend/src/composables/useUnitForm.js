@@ -52,6 +52,10 @@ export function useUnitForm() {
     if (coordErr) { error.value = t(coordErr); return }
     if (!fieldValid) return
 
+    const hasAddress = address.value?.trim().length > 0
+    const hasCoords = Number.isFinite(lat) && Number.isFinite(lon)
+    if (!hasAddress && !hasCoords) { error.value = t('validation.unitLocationRequired'); return }
+
     if (isEdit && !unitId) {
       error.value = t('error.saveFailed')
       return

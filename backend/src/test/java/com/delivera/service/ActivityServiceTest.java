@@ -39,7 +39,7 @@ class ActivityServiceTest {
         when(orderRepository.countByCompanyIdAndStatusAndCreatedAtAfter(eq(companyId), eq(OrderStatus.DELIVERED), any(Instant.class))).thenReturn(6L);
         when(orderRepository.countByCompanyIdAndStatusAndCreatedAtAfter(eq(companyId), eq(OrderStatus.CANCELLED), any(Instant.class))).thenReturn(1L);
         when(orderRepository.countByCompanyIdAndStatusNotIn(eq(companyId), any(Collection.class))).thenReturn(3L);
-        when(loyalUserRepository.countByCompaniesIdAndCreatedAtAfter(eq(companyId), any(Instant.class))).thenReturn(2L);
+        when(loyalUserRepository.countByCompanyIdAndLinkCreatedAfter(eq(companyId), any(Instant.class))).thenReturn(2L);
 
         var result = activityService.getMetrics(companyId, period);
 

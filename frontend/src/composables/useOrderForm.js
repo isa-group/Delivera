@@ -18,7 +18,7 @@ export function useOrderForm() {
   const orderType = ref('INTERNAL') // 'INTERNAL' | 'B2C' | 'B2B'
   const originId = ref('')
   const destinationId = ref('')
-  const b2bCompanyId = ref('')
+  const b2bOrgId = ref('')
   const b2bDestinationId = ref('')
   const recipientEmail = ref('')
   const recipientName = ref('')
@@ -36,15 +36,17 @@ export function useOrderForm() {
     units.value.filter(u => u.id !== originId.value)
   )
 
-  const b2bCompanies = computed(() => {
+  const b2bOrganizations = computed(() => {
     const seen = new Set()
     return externalUnits.value
-      .filter(u => !seen.has(u.companyId) && seen.add(u.companyId))
-      .map(u => ({ id: u.companyId, name: u.companyName }))
+      .filter(u => !seen.has(u.orgId) && seen.add(u.orgId))
+      .map(u => ({ id: u.orgId, name: u.orgName }))
   })
 
   const b2bUnitOptions = computed(() =>
-    externalUnits.value.filter(u => u.companyId === b2bCompanyId.value)
+    externalUnits.value
+      .filter(u => u.orgId === b2bOrgId.value)
+      .map(u => ({ ...u, displayName: `${u.companyName} · ${u.name}` }))
   )
 
   const loyalUserMatch = computed(() => {
@@ -52,7 +54,7 @@ export function useOrderForm() {
     return loyalUsers.value.find(lu => lu.email.toLowerCase() === recipientEmail.value.toLowerCase().trim()) || null
   })
 
-  watch(b2bCompanyId, () => { b2bDestinationId.value = '' })
+  watch(b2bOrgId, () => { b2bDestinationId.value = '' })
 
   watch(recipientEmail, () => {
     if (orderType.value !== 'B2C') return
@@ -105,14 +107,18 @@ export function useOrderForm() {
     } else if (orderType.value === 'B2C') {
       rules.recipientEmail = [required(recipientEmail.value, 'email'), emailRule(recipientEmail.value)]
     } else if (orderType.value === 'B2B') {
-      rules.b2bCompanyId = [required(b2bCompanyId.value, 'company')]
+      rules.b2bOrgId = [required(b2bOrgId.value, 'organization')]
       rules.b2bDestinationId = [required(b2bDestinationId.value, 'unitName')]
     }
     if (!validate(rules)) return
 
-    if (orderType.value === 'B2C' && recipientAddress.value && !recipientLatitude.value) {
-      error.value = t('validation.addressNeedsCoords')
-      return
+    if (orderType.value === 'B2C') {
+      const hasAddr = recipientAddress.value?.trim().length > 0
+      const hasCoords = recipientLatitude.value != null && recipientLongitude.value != null
+      if (!hasAddr && !hasCoords) {
+        error.value = t('validation.recipientLocationRequired')
+        return
+      }
     }
 
     if (orderType.value === 'INTERNAL' && originId.value === destinationId.value) {
@@ -157,10 +163,10 @@ export function useOrderForm() {
 
   return {
     units, loyalUsers, loyalUserMatch, loadError,
-    orderType, originId, destinationId, b2bCompanyId, b2bDestinationId,
+    orderType, originId, destinationId, b2bOrgId, b2bDestinationId,
     recipientEmail, recipientName,
     recipientAddress, recipientLatitude, recipientLongitude, locating, captureLocation,
     priority, notes, loading, error, errors, invalids,
-    destinationOptions, b2bCompanies, b2bUnitOptions, handleSubmit,
+    destinationOptions, b2bOrganizations, b2bUnitOptions, handleSubmit,
   }
 }

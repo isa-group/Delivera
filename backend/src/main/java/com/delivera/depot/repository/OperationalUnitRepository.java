@@ -31,6 +31,9 @@ public interface OperationalUnitRepository extends JpaRepository<OperationalUnit
            "AND u.company.id <> :companyId")
     List<OperationalUnit> findExternalByOrganization(@Param("companyId") UUID companyId);
 
+    @Query("SELECT u FROM OperationalUnit u JOIN FETCH u.company c JOIN FETCH c.organization WHERE u.company.id <> :companyId")
+    List<OperationalUnit> findAllExternalUnits(@Param("companyId") UUID companyId);
+
     @Query("SELECT u FROM OperationalUnit u WHERE u.id = :id AND u.company.organization.id = :orgId")
     Optional<OperationalUnit> findByIdAndOrganizationId(@Param("id") UUID id, @Param("orgId") UUID orgId);
 
@@ -42,4 +45,8 @@ public interface OperationalUnitRepository extends JpaRepository<OperationalUnit
     @Modifying
     @Query("DELETE FROM OperationalUnit u WHERE u.company.id = :companyId")
     void deleteByCompanyId(@Param("companyId") UUID companyId);
+
+    @Modifying
+    @Query("DELETE FROM OperationalUnit u")
+    void deleteAllUnits();
 }

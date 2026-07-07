@@ -132,7 +132,7 @@ class SettingsServiceTest {
 
         when(companyRepository.findById(target.getId())).thenReturn(Optional.of(target));
         when(orderRepository.existsByCompanyIdAndStatusIn(any(), any())).thenReturn(false);
-        when(loyalUserRepository.findByCompaniesIdOrderByCreatedAtDesc(any())).thenReturn(List.of());
+        when(loyalUserRepository.findByCompanyIdOrderByLinkCreatedAtDesc(any())).thenReturn(List.of());
         when(operationalUnitRepository.findAllByCompanyId(any())).thenReturn(List.of());
         when(workerRepository.findByCompanyId(any())).thenReturn(List.of());
 

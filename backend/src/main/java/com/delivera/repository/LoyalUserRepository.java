@@ -12,21 +12,38 @@ import java.util.UUID;
 
 public interface LoyalUserRepository extends JpaRepository<LoyalUser, UUID> {
 
-    List<LoyalUser> findByCompaniesIdOrderByCreatedAtDesc(UUID companyId);
+    @Query("SELECT lu FROM LoyalUser lu JOIN lu.companyLinks l " +
+           "WHERE l.company.id = :companyId ORDER BY l.createdAt DESC")
+    List<LoyalUser> findByCompanyIdOrderByLinkCreatedAtDesc(@Param("companyId") UUID companyId);
 
-    @Query("SELECT lu, (SELECT COUNT(o) FROM Order o WHERE o.loyalUser = lu) " +
-           "FROM LoyalUser lu LEFT JOIN FETCH lu.user JOIN lu.companies c " +
-           "WHERE c.id = :companyId ORDER BY lu.createdAt DESC")
+    @Query("SELECT lu, (SELECT COUNT(o) FROM Order o WHERE o.loyalUser = lu AND o.company.id = :companyId) " +
+           "FROM LoyalUser lu LEFT JOIN FETCH lu.user JOIN lu.companyLinks l " +
+           "WHERE l.company.id = :companyId ORDER BY l.createdAt DESC")
     List<Object[]> findWithOrderCountByCompanyId(@Param("companyId") UUID companyId);
 
-    Optional<LoyalUser> findByCompaniesIdAndEmail(UUID companyId, String email);
+    @Query("SELECT lu FROM LoyalUser lu JOIN lu.companyLinks l " +
+           "WHERE l.company.id = :companyId AND lu.email = :email")
+    Optional<LoyalUser> findByCompanyIdAndEmail(@Param("companyId") UUID companyId, @Param("email") String email);
 
-    Optional<LoyalUser> findByIdAndCompaniesId(UUID id, UUID companyId);
+    @Query("SELECT lu FROM LoyalUser lu JOIN lu.companyLinks l " +
+           "WHERE lu.id = :id AND l.company.id = :companyId")
+    Optional<LoyalUser> findByIdAndCompanyId(@Param("id") UUID id, @Param("companyId") UUID companyId);
 
     @Query("SELECT lu FROM LoyalUser lu WHERE lu.email = :email")
-    List<LoyalUser> findByEmail(String email);
+    List<LoyalUser> findByEmail(@Param("email") String email);
 
-    long countByCompaniesId(UUID companyId);
+    @Query("SELECT COUNT(DISTINCT lu) FROM LoyalUser lu JOIN lu.companyLinks l WHERE l.company.id = :companyId")
+    long countByCompanyId(@Param("companyId") UUID companyId);
 
-    long countByCompaniesIdAndCreatedAtAfter(UUID companyId, Instant createdAtAfter);
+    @Query("SELECT COUNT(DISTINCT lu) FROM LoyalUser lu JOIN lu.companyLinks l " +
+           "WHERE l.company.id = :companyId AND l.createdAt > :createdAtAfter")
+    long countByCompanyIdAndLinkCreatedAfter(@Param("companyId") UUID companyId,
+                                             @Param("createdAtAfter") Instant createdAtAfter);
+
+    @Query("SELECT lu FROM LoyalUser lu WHERE lu.user.id = :userId")
+    Optional<LoyalUser> findByUserId(@Param("userId") UUID userId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM LoyalUser lu")
+    void deleteAllLoyalUsers();
 }

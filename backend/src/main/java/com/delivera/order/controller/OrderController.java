@@ -5,7 +5,7 @@ import com.delivera.auth.dto.RequestClientData;
 import com.delivera.auth.service.AuthService;
 import com.delivera.dto.auth.ClaimRegisterRequest;
 import com.delivera.dto.auth.LoginResponse;
-import com.delivera.dto.order.*;
+import com.delivera.security.AuthRateLimiter;
 import com.delivera.order.dto.OrderDetailResponse;
 import com.delivera.order.dto.OrderRequest;
 import com.delivera.order.dto.OrderResponse;
@@ -36,6 +36,7 @@ public class OrderController {
 
     private final OrderService orderService;
     private final AuthService authService;
+    private final AuthRateLimiter authRateLimiter;
 
     @Operation(summary = "Listar pedidos de la empresa")
     @GetMapping
@@ -77,7 +78,9 @@ public class OrderController {
 
     @Operation(summary = "Seguimiento público por referencia")
     @GetMapping("/public/search")
-    public ResponseEntity<PublicOrderResponse> trackByReference(@RequestParam String reference) {
+    public ResponseEntity<PublicOrderResponse> trackByReference(HttpServletRequest httpRequest,
+                                                                @RequestParam String reference) {
+        authRateLimiter.check(AuthRateLimiter.clientIp(httpRequest), "public-search");
         return ResponseEntity.ok(orderService.getPublicByReference(reference));
     }
 

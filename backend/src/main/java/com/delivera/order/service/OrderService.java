@@ -3,7 +3,6 @@ package com.delivera.order.service;
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.depot.model.OperationalUnit;
 import com.delivera.depot.repository.OperationalUnitRepository;
-import com.delivera.dto.order.*;
 import com.delivera.exception.*;
 import com.delivera.model.*;
 import com.delivera.order.dto.OrderDetailResponse;
@@ -44,6 +43,7 @@ public class OrderService {
     private final OperationalUnitRepository unitRepository;
     private final CompanyRepository companyRepository;
     private final LoyalUserRepository loyalUserRepository;
+    private final WorkerRepository workerRepository;
     private final SecurityUtils securityUtils;
     private final AppConfigService appConfigService;
     private final SubscriptionService subscriptionService;
@@ -54,6 +54,7 @@ public class OrderService {
                         OperationalUnitRepository unitRepository,
                         CompanyRepository companyRepository,
                         LoyalUserRepository loyalUserRepository,
+                        WorkerRepository workerRepository,
                         SecurityUtils securityUtils,
                         AppConfigService appConfigService,
                         SubscriptionService subscriptionService,
@@ -63,6 +64,7 @@ public class OrderService {
         this.unitRepository = unitRepository;
         this.companyRepository = companyRepository;
         this.loyalUserRepository = loyalUserRepository;
+        this.workerRepository = workerRepository;
         this.securityUtils = securityUtils;
         this.appConfigService = appConfigService;
         this.subscriptionService = subscriptionService;
@@ -108,8 +110,7 @@ public class OrderService {
                 throw new InvalidOrderUnitsException();
             }
         } else if (orderType == OrderType.B2B) {
-            UUID orgId = company.getOrganization().getId();
-            destination = unitRepository.findByIdAndOrganizationId(request.destinationId(), orgId)
+            destination = unitRepository.findById(request.destinationId())
                     .orElseThrow(InvalidOrderUnitsException::new);
             if (destination.getCompany().getId().equals(companyId)) {
                 throw new InvalidOrderUnitsException();
@@ -133,10 +134,24 @@ public class OrderService {
             order.setRecipientEmail(recipientEmail);
             order.setRecipientName(recipientName);
             order.setTrackingToken(token);
-            Optional<LoyalUser> matchedLu = loyalUserRepository.findByCompaniesIdAndEmail(companyId, recipientEmail);
-            matchedLu.ifPresent(order::setLoyalUser);
+            if (!workerRepository.findByUserEmailOrderByCreatedAtAsc(recipientEmail).isEmpty()) {
+                throw new WorkerCannotBeLoyalUserException();
+            }
+            LoyalUser loyalUser = loyalUserRepository.findByEmail(recipientEmail).stream().findFirst()
+                    .orElseGet(() -> {
+                        LoyalUser lu = new LoyalUser();
+                        lu.setEmail(recipientEmail);
+                        return lu;
+                    });
+            LoyalUserCompany link = loyalUser.linkFor(company);
+            if (link.getName() == null && recipientName != null) link.setName(recipientName);
+            String reqAddr = request.recipientAddress() != null && !request.recipientAddress().isBlank()
+                    ? request.recipientAddress().trim() : null;
+            if (link.getAddress() == null && reqAddr != null) link.setAddress(reqAddr);
+            loyalUser = loyalUserRepository.save(loyalUser);
+            order.setLoyalUser(loyalUser);
 
-            resolveRecipientAddress(order, request, matchedLu.orElse(null));
+            resolveRecipientAddress(order, request, loyalUser.findLink(companyId).orElse(null));
             // Send tracking link after commit to avoid eager flush
             TransactionSynchronizationManager.registerSynchronization(
                 new TransactionSynchronization() {
@@ -218,14 +233,14 @@ public class OrderService {
 
     private record RecipientCoords(String addr, BigDecimal lat, BigDecimal lon) {}
 
-    private void resolveRecipientAddress(Order order, OrderRequest request, LoyalUser matchedLu) {
+    private void resolveRecipientAddress(Order order, OrderRequest request, LoyalUserCompany matchedLink) {
         String addr = request.recipientAddress() != null && !request.recipientAddress().isBlank()
                 ? request.recipientAddress().trim() : null;
         BigDecimal lat = request.recipientLatitude();
         BigDecimal lon = request.recipientLongitude();
         if (addr != null && (lat == null || lon == null)) throw new MissingRecipientAddressException();
-        if (addr == null && matchedLu != null) {
-            RecipientCoords c = resolveFromLoyalUser(matchedLu);
+        if (addr == null && matchedLink != null) {
+            RecipientCoords c = resolveFromLink(matchedLink);
             addr = c.addr();
             lat = c.lat();
             lon = c.lon();
@@ -236,11 +251,12 @@ public class OrderService {
         order.setRecipientLongitude(lon);
     }
 
-    private RecipientCoords resolveFromLoyalUser(LoyalUser lu) {
-        String addr = lu.getAddress();
-        BigDecimal lat = lu.getLatitude();
-        BigDecimal lon = lu.getLongitude();
-        if ((addr == null || lat == null) && lu.getUser() != null) {
+    private RecipientCoords resolveFromLink(LoyalUserCompany link) {
+        String addr = link.getAddress();
+        BigDecimal lat = link.getLatitude();
+        BigDecimal lon = link.getLongitude();
+        LoyalUser lu = link.getLoyalUser();
+        if ((addr == null || lat == null) && lu != null && lu.getUser() != null) {
             if (addr == null) addr = lu.getUser().getAddress();
             if (lat == null) lat = lu.getUser().getLatitude();
             if (lon == null) lon = lu.getUser().getLongitude();

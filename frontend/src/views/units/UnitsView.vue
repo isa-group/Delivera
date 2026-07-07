@@ -160,7 +160,9 @@ watch(units, async () => {
         </div>
 
         <PMessage v-if="error" severity="error" :closable="false">{{ error }}</PMessage>
-        <PMessage v-if="deleteError" severity="error" :closable="false">{{ deleteError }}</PMessage>
+        <div v-if="deleteError" class="delete-error-wrapper">
+          <PMessage severity="error" :closable="false">{{ deleteError }}</PMessage>
+        </div>
 
         <div class="list-scroll">
         <DataTable

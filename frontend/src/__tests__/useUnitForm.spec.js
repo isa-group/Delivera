@@ -81,7 +81,7 @@ describe('useUnitForm submitUnit', () => {
     const f = useUnitForm()
     f.name.value = 'U2'
     f.unitType.value = 'STORE'
-    f.address.value = ''
+    f.address.value = 'calle'
     f.defaultPriority.value = null
 
     await f.submitUnit({ isEdit: true, unitId: 'abc' })

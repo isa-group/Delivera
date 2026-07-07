@@ -135,6 +135,8 @@
   opacity: 0;
   transition: opacity 0.12s;
   flex-shrink: 0;
+  min-width: 64px;
+  justify-content: flex-end;
 }
 .worker-card:hover .worker-actions { opacity: 1; }
 

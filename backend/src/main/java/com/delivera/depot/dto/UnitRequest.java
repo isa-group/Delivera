@@ -32,4 +32,11 @@ public record UnitRequest(
     public boolean isCoordinatesConsistent() {
         return (latitude == null) == (longitude == null);
     }
+
+    @AssertTrue(message = "MISSING_UNIT_LOCATION")
+    public boolean isLocationPresent() {
+        boolean hasAddress = address != null && !address.isBlank();
+        boolean hasCoords = latitude != null && longitude != null;
+        return hasAddress || hasCoords;
+    }
 }

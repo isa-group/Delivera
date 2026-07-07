@@ -16,7 +16,7 @@ Plataforma SaaS multi-tenant de gestión logística que centraliza pedidos y ope
 | Autenticación | Argon2 (Bouncy Castle), JWT HS256 (jjwt 0.12) |
 | API docs | SpringDoc OpenAPI (Swagger UI en `/swagger-ui/index.html`) |
 | Email | Spring Mail |
-| Frontend | Vue 3, Vite 7, Vue Router 4, Pinia, Vue i18n, PrimeVue 4 |
+| Frontend | Vue 3, Vite 8, Vue Router 4, Pinia, Vue i18n, PrimeVue 4 |
 | Mapas | Leaflet 1.9, Leaflet.MarkerCluster, OSRM (cálculo de rutas) |
 | Linting / Formato | ESLint, Oxlint, Prettier |
 | Tests | JaCoCo (backend), Vitest + Playwright (frontend) |
@@ -261,4 +261,5 @@ Activa el perfil `prod` con `SPRING_PROFILES_ACTIVE=prod`. Variables de entorno 
 | `DATABASE_USER` | Usuario de la base de datos |
 | `DATABASE_PASSWORD` | Contraseña de la base de datos |
 | `JWT_SECRET` | Secret para firmar los tokens JWT |
+| `CORS_ALLOWED_ORIGINS` | Orígenes permitidos por CORS (coma-separados, ej. la URL del frontend) |
 

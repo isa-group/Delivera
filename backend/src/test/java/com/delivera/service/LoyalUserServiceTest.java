@@ -56,7 +56,7 @@ class LoyalUserServiceTest {
         loyalUser = new LoyalUser();
         loyalUser.setId(UUID.randomUUID());
         loyalUser.setEmail("loyal@test.com");
-        loyalUser.getCompanies().add(company);
+        loyalUser.linkFor(company);
     }
 
     @Test
@@ -72,7 +72,7 @@ class LoyalUserServiceTest {
     void add_success_noRegisteredUser() {
         LoyalUserRequest req = new LoyalUserRequest("new@test.com", null, null, null, null, null);
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
-        when(loyalUserRepository.findByCompaniesIdAndEmail(companyId, "new@test.com")).thenReturn(Optional.empty());
+        when(loyalUserRepository.findByCompanyIdAndEmail(companyId, "new@test.com")).thenReturn(Optional.empty());
         when(companyRepository.findById(companyId)).thenReturn(Optional.of(company));
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
         when(loyalUserRepository.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -83,19 +83,20 @@ class LoyalUserServiceTest {
     }
 
     @Test
-    void getMyOrders_returnsOrdersByRecipientEmail() {
+    void getMyOrders_returnsOrdersByLoyalUserId() {
         when(securityUtils.getCurrentEmail()).thenReturn("loyal@test.com");
-        when(orderRepository.findByRecipientEmailOrderByCreatedAtDesc("loyal@test.com")).thenReturn(List.of());
+        when(loyalUserRepository.findByEmail("loyal@test.com")).thenReturn(List.of(loyalUser));
+        when(orderRepository.findByLoyalUserIdOrderByCreatedAtDesc(loyalUser.getId())).thenReturn(List.of());
 
         assertThat(loyalUserService.getMyOrders()).isEmpty();
-        verify(orderRepository).findByRecipientEmailOrderByCreatedAtDesc("loyal@test.com");
+        verify(orderRepository).findByLoyalUserIdOrderByCreatedAtDesc(loyalUser.getId());
     }
 
     @Test
     void updateAddress_success() {
         LoyalUserRequest req = new LoyalUserRequest("loyal@test.com", null, null, "New Addr", new java.math.BigDecimal("1.0"), new java.math.BigDecimal("2.0"));
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
-        when(loyalUserRepository.findByIdAndCompaniesId(loyalUser.getId(), companyId)).thenReturn(Optional.of(loyalUser));
+        when(loyalUserRepository.findByIdAndCompanyId(loyalUser.getId(), companyId)).thenReturn(Optional.of(loyalUser));
         when(loyalUserRepository.save(loyalUser)).thenReturn(loyalUser);
 
         var result = loyalUserService.updateAddress(loyalUser.getId(), req);
@@ -105,8 +106,8 @@ class LoyalUserServiceTest {
     @Test
     void getOrdersForLoyalUser_returnsOrders() {
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
-        when(loyalUserRepository.findByIdAndCompaniesId(loyalUser.getId(), companyId)).thenReturn(Optional.of(loyalUser));
-        when(orderRepository.findByLoyalUserIdOrderByCreatedAtDesc(loyalUser.getId())).thenReturn(List.of());
+        when(loyalUserRepository.findByIdAndCompanyId(loyalUser.getId(), companyId)).thenReturn(Optional.of(loyalUser));
+        when(orderRepository.findByLoyalUserIdAndCompanyIdOrderByCreatedAtDesc(loyalUser.getId(), companyId)).thenReturn(List.of());
 
         assertThat(loyalUserService.getOrdersForLoyalUser(loyalUser.getId())).isEmpty();
     }
@@ -115,7 +116,7 @@ class LoyalUserServiceTest {
     void add_alreadyExists_throws() {
         LoyalUserRequest req = new LoyalUserRequest("dup@test.com", null, null, null, null, null);
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
-        when(loyalUserRepository.findByCompaniesIdAndEmail(companyId, "dup@test.com")).thenReturn(Optional.of(loyalUser));
+        when(loyalUserRepository.findByCompanyIdAndEmail(companyId, "dup@test.com")).thenReturn(Optional.of(loyalUser));
         assertThatThrownBy(() -> loyalUserService.add(req)).isInstanceOf(LoyalUserConflictException.class);
     }
 
@@ -124,7 +125,7 @@ class LoyalUserServiceTest {
         LoyalUserRequest req = new LoyalUserRequest("new@test.com", null, null, "St 1",
                 new java.math.BigDecimal("5.0"), new java.math.BigDecimal("6.0"));
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
-        when(loyalUserRepository.findByCompaniesIdAndEmail(companyId, "new@test.com")).thenReturn(Optional.empty());
+        when(loyalUserRepository.findByCompanyIdAndEmail(companyId, "new@test.com")).thenReturn(Optional.empty());
         when(companyRepository.findById(companyId)).thenReturn(Optional.of(company));
         when(loyalUserRepository.findByEmail("new@test.com")).thenReturn(List.of());
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());

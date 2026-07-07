@@ -75,7 +75,7 @@ public class SubscriptionService {
     @Transactional(readOnly = true)
     public void checkLoyalUserLimit(UUID companyId) {
         SubscriptionPlan plan = getPlan(companyId);
-        if (!plan.allows(loyalUserRepository.countByCompaniesId(companyId), plan.getMaxLoyalUsers())) {
+        if (!plan.allows(loyalUserRepository.countByCompanyId(companyId), plan.getMaxLoyalUsers())) {
             throw new SubscriptionLimitException("loyal_users");
         }
     }
@@ -119,7 +119,7 @@ public class SubscriptionService {
                 new ResourceUsage(unitRepository.countByCompanyId(companyId), plan.getMaxUnits()),
                 new ResourceUsage(workerRepository.countByCompanyId(companyId), plan.getMaxWorkers()),
                 new ResourceUsage(orderRepository.countByCompanyIdAndCreatedAtAfter(companyId, som), plan.getMaxOrdersPerMonth()),
-                new ResourceUsage(loyalUserRepository.countByCompaniesId(companyId), plan.getMaxLoyalUsers()),
+                new ResourceUsage(loyalUserRepository.countByCompanyId(companyId), plan.getMaxLoyalUsers()),
                 new ResourceUsage(companyRepository.countByOrganizationId(company.getOrganization().getId()), plan.getMaxCompanies())
         );
     }
@@ -132,7 +132,7 @@ public class SubscriptionService {
             throw new SubscriptionLimitException("workers");
         if (plan.getMaxOrdersPerMonth() != -1 && orderRepository.countByCompanyIdAndCreatedAtAfter(companyId, som) > plan.getMaxOrdersPerMonth())
             throw new SubscriptionLimitException("orders");
-        if (plan.getMaxLoyalUsers() != -1 && loyalUserRepository.countByCompaniesId(companyId) > plan.getMaxLoyalUsers())
+        if (plan.getMaxLoyalUsers() != -1 && loyalUserRepository.countByCompanyId(companyId) > plan.getMaxLoyalUsers())
             throw new SubscriptionLimitException("loyal_users");
         if (plan.getMaxCompanies() != -1 && companyRepository.countByOrganizationId(company.getOrganization().getId()) > plan.getMaxCompanies())
             throw new SubscriptionLimitException("companies");
@@ -166,11 +166,11 @@ public class SubscriptionService {
 
     private void deleteExcessLoyalUsers(UUID companyId, SubscriptionPlan newPlan) {
         if (newPlan.getMaxLoyalUsers() == -1) return;
-        List<LoyalUser> loyalUsers = loyalUserRepository.findByCompaniesIdOrderByCreatedAtDesc(companyId);
+        List<LoyalUser> loyalUsers = loyalUserRepository.findByCompanyIdOrderByLinkCreatedAtDesc(companyId);
         long excess = (long) loyalUsers.size() - newPlan.getMaxLoyalUsers();
         for (int i = 0; i < excess && i < loyalUsers.size(); i++) {
             LoyalUser lu = loyalUsers.get(i);
-            lu.getCompanies().removeIf(c -> c.getId().equals(companyId));
+            lu.unlinkFrom(companyId);
             loyalUserRepository.save(lu);
         }
     }
@@ -204,9 +204,9 @@ public class SubscriptionService {
         UUID cId = c.getId();
         orderRepository.deleteEventsByCompanyId(cId);
         orderRepository.deleteByCompanyId(cId);
-        for (LoyalUser lu : loyalUserRepository.findByCompaniesIdOrderByCreatedAtDesc(cId)) {
-            lu.getCompanies().removeIf(comp -> comp.getId().equals(cId));
-            if (lu.getCompanies().isEmpty()) loyalUserRepository.delete(lu);
+        for (LoyalUser lu : loyalUserRepository.findByCompanyIdOrderByLinkCreatedAtDesc(cId)) {
+            lu.unlinkFrom(cId);
+            if (lu.getCompanyLinks().isEmpty()) loyalUserRepository.delete(lu);
             else loyalUserRepository.save(lu);
         }
         unitRepository.deleteByCompanyId(cId);

@@ -99,7 +99,7 @@ public class UnitService {
 
     @Transactional(readOnly = true)
     public List<B2BUnitResponse> getExternalUnits() {
-        return unitRepository.findExternalByOrganization(securityUtils.getCurrentCompanyId()).stream()
+        return unitRepository.findAllExternalUnits(securityUtils.getCurrentCompanyId()).stream()
                 .map(B2BUnitResponse::from)
                 .toList();
     }

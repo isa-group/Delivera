@@ -45,6 +45,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     List<Order> findByLoyalUserIdOrderByCreatedAtDesc(UUID loyalUserId);
 
+    List<Order> findByLoyalUserIdAndCompanyIdOrderByCreatedAtDesc(UUID loyalUserId, UUID companyId);
+
     List<Order> findByRecipientEmailOrderByCreatedAtDesc(String recipientEmail);
 
     long countByLoyalUserId(UUID loyalUserId);
@@ -84,6 +86,42 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     long countByCreatedAtAfter(Instant after);
 
+    long countByStatusAndCreatedAtAfter(OrderStatus status, Instant after);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status IN :statuses AND o.createdAt > :after")
+    long countByStatusInAndCreatedAtAfter(@Param("statuses") List<OrderStatus> statuses, @Param("after") Instant after);
+
+    @Query("SELECT CAST(o.createdAt AS LocalDate) AS day, COUNT(o) " +
+           "FROM Order o WHERE o.createdAt > :after " +
+           "GROUP BY CAST(o.createdAt AS LocalDate) ORDER BY day")
+    List<Object[]> countByDayGlobal(@Param("after") Instant after);
+
     @Query("SELECT o FROM Order o WHERE o.id = :id AND o.loyalUser.user.email = :email")
     Optional<Order> findByIdForLoyalUser(@Param("id") UUID id, @Param("email") String email);
+
+    @Modifying
+    @Query("DELETE FROM OrderEvent e WHERE e.order.id = :orderId")
+    void deleteEventsByOrderId(@Param("orderId") UUID orderId);
+
+    @Query("SELECT o.company.id, o.company.name, o.company.organization.name, COUNT(o) " +
+           "FROM Order o WHERE o.createdAt > :after " +
+           "GROUP BY o.company.id, o.company.name, o.company.organization.name " +
+           "ORDER BY COUNT(o) DESC")
+    List<Object[]> rankCompaniesByOrderCount(@Param("after") Instant after);
+
+    @Modifying
+    @Query("DELETE FROM OrderEvent e WHERE e.order.origin.company.id = :companyId")
+    void deleteEventsByOriginCompanyId(@Param("companyId") UUID companyId);
+
+    @Modifying
+    @Query("DELETE FROM Order o WHERE o.origin.company.id = :companyId")
+    void deleteByOriginCompanyId(@Param("companyId") UUID companyId);
+
+    @Modifying
+    @Query("UPDATE Order o SET o.destination = null WHERE o.destination IS NOT NULL AND o.destination.company.id = :companyId")
+    void nullifyDestinationByCompanyId(@Param("companyId") UUID companyId);
+
+    @Modifying
+    @Query("DELETE FROM Order o")
+    void deleteAllOrders();
 }

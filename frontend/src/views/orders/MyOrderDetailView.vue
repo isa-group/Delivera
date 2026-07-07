@@ -55,7 +55,7 @@ async function initMap() {
   }).addTo(map)
 
   addMarker(map, {
-    id: 'dest', lat: destLat, lon: destLon, kind: 'CUSTOMER',
+    id: 'dest', lat: destLat, lon: destLon, kind: 'SELF',
     title: o.destinationName || o.recipientName || t('tracking.destination'),
     subtitle: o.recipientAddress || '',
     actionLabel: null, navigateTo: null, router,

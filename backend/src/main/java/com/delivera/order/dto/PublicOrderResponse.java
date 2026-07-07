@@ -48,7 +48,9 @@ public record PublicOrderResponse(
                 order.getStatus().name(),
                 order.getPriority().name(),
                 order.getCreatedAt(),
-                order.getEvents().stream().map(OrderEventResponse::from).toList(),
+                order.getEvents().stream()
+                        .map(e -> new OrderEventResponse(e.getId(), e.getStatus().name(), e.getNote(), null, e.getCreatedAt()))
+                        .toList(),
                 claimable,
                 hint,
                 order.getOrigin().getLatitude() != null ? order.getOrigin().getLatitude().doubleValue() : null,

@@ -28,6 +28,8 @@ public interface WorkerRepository extends JpaRepository<Worker, UUID> {
 
     List<Worker> findByCompanyIdOrderByCreatedAtAsc(UUID companyId);
 
+    List<Worker> findByCompanyIdAndRoleNotOrderByCreatedAtAsc(UUID companyId, WorkerRole role);
+
     Optional<Worker> findByIdAndCompanyId(UUID id, UUID companyId);
 
     long countByCompanyIdAndRole(UUID companyId, WorkerRole role);
@@ -46,4 +48,37 @@ public interface WorkerRepository extends JpaRepository<Worker, UUID> {
     @Modifying
     @Query("DELETE FROM Worker w WHERE w.company.id = :companyId")
     void deleteByCompanyId(@Param("companyId") UUID companyId);
+
+    boolean existsByUser_IdAndRole(UUID userId, WorkerRole role);
+
+    @Query("SELECT w FROM Worker w WHERE w.user.id = :userId")
+    List<Worker> findByUserId(@Param("userId") UUID userId);
+
+    @Modifying
+    @Query("DELETE FROM Worker w WHERE w.user.id = :userId")
+    void deleteByUserId(@Param("userId") UUID userId);
+
+    @Modifying
+    @Query("DELETE FROM Worker w WHERE w.role <> :role")
+    void deleteAllExceptRole(@Param("role") WorkerRole role);
+
+    @Modifying
+    @Query(value = "DELETE FROM unit_workers WHERE worker_id IN (SELECT id FROM workers WHERE company_id = :companyId)", nativeQuery = true)
+    void deleteUnitWorkersByCompanyId(@Param("companyId") UUID companyId);
+
+    @Modifying
+    @Query(value = "DELETE FROM unit_workers WHERE worker_id = :workerId", nativeQuery = true)
+    void deleteUnitWorkersByWorkerId(@Param("workerId") UUID workerId);
+
+    @Modifying
+    @Query(value = "DELETE FROM unit_workers WHERE worker_id IN (SELECT id FROM workers WHERE user_id = :userId)", nativeQuery = true)
+    void deleteUnitWorkersByUserId(@Param("userId") UUID userId);
+
+    @Modifying
+    @Query(value = "DELETE FROM unit_workers WHERE worker_id NOT IN (SELECT id FROM workers WHERE role = 'GLOBAL_ADMIN')", nativeQuery = true)
+    void deleteAllUnitWorkersExceptGlobalAdmin();
+
+    @Modifying
+    @Query(value = "DELETE FROM unit_workers", nativeQuery = true)
+    void deleteAllUnitWorkers();
 }

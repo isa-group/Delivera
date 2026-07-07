@@ -34,4 +34,12 @@ public record OrderRequest(
     public boolean isB2cEmailPresent() {
         return orderType != OrderType.B2C || (recipientEmail != null && !recipientEmail.isBlank());
     }
+
+    @AssertTrue(message = "MISSING_RECIPIENT_LOCATION")
+    public boolean isB2cLocationPresent() {
+        if (orderType != OrderType.B2C) return true;
+        boolean hasAddress = recipientAddress != null && !recipientAddress.isBlank();
+        boolean hasCoords = recipientLatitude != null && recipientLongitude != null;
+        return hasAddress || hasCoords;
+    }
 }

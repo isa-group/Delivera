@@ -1,12 +1,23 @@
 package com.delivera.service;
 
-import com.delivera.dto.admin.GlobalMetrics;
-import com.delivera.dto.admin.OrganizationSummary;
+import com.delivera.depot.repository.OperationalUnitRepository;
+import com.delivera.dto.activity.ActivityMetricsResponse;
+import com.delivera.dto.activity.OrdersByDayEntry;
+import com.delivera.dto.admin.*;
+import com.delivera.exception.ForbiddenException;
+import com.delivera.model.*;
+import com.delivera.order.model.OrderStatus;
+import com.delivera.order.repository.OrderEventRepository;
+import com.delivera.order.repository.OrderMessageRepository;
 import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.sql.Date;
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -17,20 +28,45 @@ import java.util.UUID;
 @Service
 public class AdminService {
 
+    private static final String SYSTEM_ORG_HANDLE = "delivera";
+
     private final OrganizationRepository organizationRepository;
     private final CompanyRepository companyRepository;
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
+    private final WorkerRepository workerRepository;
+    private final OperationalUnitRepository unitRepository;
+    private final OrderMessageRepository orderMessageRepository;
+    private final OrderEventRepository orderEventRepository;
+    private final LoyalUserCompanyRepository loyalUserCompanyRepository;
+    private final LoyalUserRepository loyalUserRepository;
+    private final ApiKeyRepository apiKeyRepository;
 
     public AdminService(OrganizationRepository organizationRepository,
                         CompanyRepository companyRepository,
                         OrderRepository orderRepository,
-                        UserRepository userRepository) {
+                        UserRepository userRepository,
+                        WorkerRepository workerRepository,
+                        OperationalUnitRepository unitRepository,
+                        OrderMessageRepository orderMessageRepository,
+                        OrderEventRepository orderEventRepository,
+                        LoyalUserCompanyRepository loyalUserCompanyRepository,
+                        LoyalUserRepository loyalUserRepository,
+                        ApiKeyRepository apiKeyRepository) {
         this.organizationRepository = organizationRepository;
         this.companyRepository = companyRepository;
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
+        this.workerRepository = workerRepository;
+        this.unitRepository = unitRepository;
+        this.orderMessageRepository = orderMessageRepository;
+        this.orderEventRepository = orderEventRepository;
+        this.loyalUserCompanyRepository = loyalUserCompanyRepository;
+        this.loyalUserRepository = loyalUserRepository;
+        this.apiKeyRepository = apiKeyRepository;
     }
+
+    // ── Listing ──────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public List<OrganizationSummary> listOrganizations() {
@@ -52,9 +88,289 @@ public class AdminService {
                 .with(TemporalAdjusters.firstDayOfMonth())
                 .atStartOfDay().toInstant(ZoneOffset.UTC);
         return new GlobalMetrics(
-                organizationRepository.count(),
-                companyRepository.count(),
+                organizationRepository.countTenants(),
+                companyRepository.countTenants(),
                 orderRepository.countByCreatedAtAfter(monthStart),
-                userRepository.count());
+                userRepository.count() - 1);  // excluye al admin de sistema
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompanySummary> listCompanies() {
+        return companyRepository.findAll().stream()
+                .filter(c -> !SYSTEM_ORG_HANDLE.equals(c.getOrganization().getHandle()))
+                .map(c -> new CompanySummary(
+                        c.getId(),
+                        c.getName(),
+                        c.getOrganization().getId(),
+                        c.getOrganization().getName(),
+                        workerRepository.countByCompanyId(c.getId()),
+                        orderRepository.countByOrganizationId(c.getOrganization().getId()),
+                        c.getCreatedAt()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderAdminSummary> listOrders() {
+        return orderRepository.findAll().stream()
+                .map(o -> new OrderAdminSummary(
+                        o.getId(),
+                        o.getReference(),
+                        o.getStatus().name(),
+                        o.getOrderType().name(),
+                        o.getCompany().getName(),
+                        o.getCompany().getOrganization().getName(),
+                        o.getCreatedAt()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserSummary> listUsers() {
+        return userRepository.findAll().stream()
+                .map(u -> {
+                    boolean isWorker = workerRepository.countByUser_Id(u.getId()) > 0;
+                    boolean isGlobalAdmin = workerRepository.existsByUser_IdAndRole(u.getId(), WorkerRole.GLOBAL_ADMIN);
+                    return new UserSummary(u.getId(), u.getEmail(), u.getFirstName(), u.getLastName(),
+                            u.getCreatedAt(), isWorker, isGlobalAdmin);
+                })
+                .filter(u -> u.isGlobalAdmin() || !u.isWorker())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkerAdminSummary> listWorkers() {
+        return workerRepository.findAll().stream()
+                .filter(w -> !SYSTEM_ORG_HANDLE.equals(w.getCompany().getOrganization().getHandle()))
+                .map(w -> new WorkerAdminSummary(
+                        w.getId(),
+                        w.getUser().getId(),
+                        w.getUser().getEmail(),
+                        w.getUser().getFirstName(),
+                        w.getUser().getLastName(),
+                        w.getRole().name(),
+                        w.getCompany().getName(),
+                        w.getCompany().getOrganization().getName(),
+                        w.getCreatedAt()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ActivityMetricsResponse getGlobalActivityMetrics(String period) {
+        Instant from = periodStart(period);
+        return new ActivityMetricsResponse(
+                period,
+                orderRepository.countByCreatedAtAfter(from),
+                orderRepository.countByStatusAndCreatedAtAfter(OrderStatus.DELIVERED, from),
+                orderRepository.countByStatusAndCreatedAtAfter(OrderStatus.CANCELLED, from),
+                orderRepository.countByStatusInAndCreatedAtAfter(List.of(OrderStatus.PENDING, OrderStatus.IN_TRANSIT), from),
+                0L);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UnitAdminSummary> listUnits() {
+        return unitRepository.findAll().stream()
+                .filter(u -> u.getLatitude() != null && u.getLongitude() != null)
+                .map(u -> new UnitAdminSummary(
+                        u.getId(),
+                        u.getName(),
+                        u.getType().name(),
+                        u.getLatitude(),
+                        u.getLongitude(),
+                        u.getCompany().getName(),
+                        u.getCompany().getOrganization().getName()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<RouteAdminEntry> getActiveRoutes() {
+        return orderRepository.findAll().stream()
+                .filter(o -> o.getStatus() == OrderStatus.PENDING || o.getStatus() == OrderStatus.IN_TRANSIT)
+                .filter(o -> o.getOrigin() != null
+                        && o.getOrigin().getLatitude() != null
+                        && o.getOrigin().getLongitude() != null)
+                .filter(o -> {
+                    boolean unitDest = o.getDestination() != null
+                            && o.getDestination().getLatitude() != null
+                            && o.getDestination().getLongitude() != null;
+                    boolean recipientDest = o.getRecipientLatitude() != null && o.getRecipientLongitude() != null;
+                    return unitDest || recipientDest;
+                })
+                .map(o -> {
+                    boolean useUnit = o.getDestination() != null
+                            && o.getDestination().getLatitude() != null
+                            && o.getDestination().getLongitude() != null;
+                    double destLat = useUnit
+                            ? o.getDestination().getLatitude().doubleValue()
+                            : o.getRecipientLatitude().doubleValue();
+                    double destLon = useUnit
+                            ? o.getDestination().getLongitude().doubleValue()
+                            : o.getRecipientLongitude().doubleValue();
+                    UUID destId = useUnit ? o.getDestination().getId() : null;
+                    String destName = useUnit ? o.getDestination().getName()
+                            : (o.getRecipientName() != null ? o.getRecipientName() : o.getRecipientEmail());
+                    return new RouteAdminEntry(
+                            o.getId(), o.getReference(), o.getStatus().name(),
+                            o.getOrigin().getLatitude().doubleValue(), o.getOrigin().getLongitude().doubleValue(),
+                            o.getOrigin().getId(), o.getOrigin().getName(),
+                            destLat, destLon, destId, destName);
+                })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompanyRankingEntry> getCompanyRanking(String period) {
+        Instant from = periodStart(period);
+        return orderRepository.rankCompaniesByOrderCount(from).stream()
+                .map(row -> new CompanyRankingEntry(
+                        (UUID) row[0],
+                        (String) row[1],
+                        (String) row[2],
+                        ((Number) row[3]).longValue()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrdersByDayEntry> getGlobalOrdersByDay(String period) {
+        Instant from = periodStart(period);
+        return orderRepository.countByDayGlobal(from).stream()
+                .map(row -> {
+                    LocalDate date = row[0] instanceof LocalDate d ? d : ((Date) row[0]).toLocalDate();
+                    return new OrdersByDayEntry(date, ((Number) row[1]).longValue());
+                })
+                .toList();
+    }
+
+    // ── Delete operations ─────────────────────────────────────────────────────
+
+    @Transactional
+    public void deleteOrganization(UUID orgId) {
+        Organization org = organizationRepository.findById(orgId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (SYSTEM_ORG_HANDLE.equals(org.getHandle())) {
+            throw new ForbiddenException("FORBIDDEN");
+        }
+        List<Company> companies = companyRepository.findByOrganizationId(orgId);
+        for (Company company : companies) {
+            deleteCompanyCascade(company.getId());
+        }
+        companyRepository.deleteByOrganizationId(orgId);
+        organizationRepository.deleteById(orgId);
+    }
+
+    @Transactional
+    public void deleteCompany(UUID companyId) {
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (SYSTEM_ORG_HANDLE.equals(company.getOrganization().getHandle())) {
+            throw new ForbiddenException("FORBIDDEN");
+        }
+        deleteCompanyCascade(companyId);
+        companyRepository.deleteById(companyId);
+    }
+
+    @Transactional
+    public void deleteOrder(UUID orderId) {
+        if (!orderRepository.existsById(orderId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        orderMessageRepository.deleteByOrderId(orderId);
+        orderEventRepository.deleteByOrderId(orderId);
+        orderRepository.deleteById(orderId);
+    }
+
+    @Transactional
+    public void deleteUser(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (workerRepository.existsByUser_IdAndRole(userId, WorkerRole.GLOBAL_ADMIN)) {
+            throw new ForbiddenException("FORBIDDEN");
+        }
+        orderMessageRepository.deleteBySenderId(userId);
+        workerRepository.deleteUnitWorkersByUserId(userId);
+        workerRepository.deleteByUserId(userId);
+        loyalUserRepository.findByUserId(userId).ifPresent(lu -> {
+            lu.setUser(null);
+            loyalUserRepository.save(lu);
+        });
+        userRepository.delete(user);
+    }
+
+    @Transactional
+    public void deleteWorker(UUID workerId) {
+        Worker worker = workerRepository.findById(workerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (worker.getRole() == WorkerRole.GLOBAL_ADMIN) {
+            throw new ForbiddenException("FORBIDDEN");
+        }
+        workerRepository.deleteUnitWorkersByWorkerId(workerId);
+        workerRepository.deleteById(workerId);
+    }
+
+    @Transactional
+    public void resetDatabase(String adminEmail) {
+        Worker adminWorker = workerRepository.findByUserEmailOrderByCreatedAtAsc(adminEmail).stream()
+                .filter(w -> w.getRole() == WorkerRole.GLOBAL_ADMIN)
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
+
+        UUID adminUserId = adminWorker.getUser().getId();
+        UUID adminCompanyId = adminWorker.getCompany().getId();
+        UUID adminOrgId = adminWorker.getCompany().getOrganization().getId();
+
+        // Delete all order-related data (JPQL bulk deletes — evitan el flush diferido de JPA)
+        orderMessageRepository.deleteAllMessages();
+        orderEventRepository.deleteAllEvents();
+        orderRepository.deleteAllOrders();
+
+        // Delete loyal user data
+        loyalUserCompanyRepository.deleteAllLinks();
+        loyalUserRepository.deleteAllLoyalUsers();
+
+        // Delete unit assignments and units
+        workerRepository.deleteAllUnitWorkers();
+        unitRepository.deleteAllUnits();
+
+        // Delete API keys except admin's company
+        apiKeyRepository.deleteAllExceptCompany(adminCompanyId);
+
+        // Delete workers except GLOBAL_ADMIN
+        workerRepository.deleteAllExceptRole(WorkerRole.GLOBAL_ADMIN);
+
+        // Delete companies except admin's
+        companyRepository.deleteAllExcept(adminCompanyId);
+
+        // Delete organizations except admin's
+        organizationRepository.deleteAllExcept(adminOrgId);
+
+        // Delete users except admin
+        userRepository.deleteAllExcept(adminUserId);
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private static Instant periodStart(String period) {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        return switch (period) {
+            case "TODAY" -> today.atStartOfDay().toInstant(ZoneOffset.UTC);
+            case "WEEK"  -> today.with(DayOfWeek.MONDAY).atStartOfDay().toInstant(ZoneOffset.UTC);
+            default      -> today.with(TemporalAdjusters.firstDayOfMonth()).atStartOfDay().toInstant(ZoneOffset.UTC);
+        };
+    }
+
+    private void deleteCompanyCascade(UUID companyId) {
+        // Own orders
+        orderMessageRepository.deleteByCompanyId(companyId);
+        orderRepository.deleteEventsByCompanyId(companyId);
+        orderRepository.deleteByCompanyId(companyId);
+        // Cross-company orders whose origin unit belongs to this company (origin is NOT NULL)
+        orderMessageRepository.deleteByOriginCompanyId(companyId);
+        orderRepository.deleteEventsByOriginCompanyId(companyId);
+        orderRepository.deleteByOriginCompanyId(companyId);
+        // Null out destinations pointing to this company's units (destination is nullable)
+        orderRepository.nullifyDestinationByCompanyId(companyId);
+        loyalUserCompanyRepository.deleteByCompanyId(companyId);
+        apiKeyRepository.deleteByCompanyId(companyId);
+        workerRepository.deleteUnitWorkersByCompanyId(companyId);
+        unitRepository.deleteByCompanyId(companyId);
+        workerRepository.deleteByCompanyId(companyId);
     }
 }

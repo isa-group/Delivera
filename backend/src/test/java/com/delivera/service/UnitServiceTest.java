@@ -188,8 +188,12 @@ class UnitServiceTest {
 
     @Test
     void getExternalUnits_mapsResults() {
+        Organization org = new Organization();
+        org.setId(UUID.randomUUID());
+        org.setName("Org");
+        company.setOrganization(org);
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
-        when(unitRepository.findExternalByOrganization(companyId)).thenReturn(List.of(unit));
+        when(unitRepository.findAllExternalUnits(companyId)).thenReturn(List.of(unit));
         assertThat(unitService.getExternalUnits()).hasSize(1);
     }
 

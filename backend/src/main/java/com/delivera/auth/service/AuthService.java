@@ -122,6 +122,9 @@ public class AuthService {
             throw new UsernameAlreadyExistsException();
         }
         User user = buildUser(request.email(), request.username(), request.firstName(), request.lastName(), request.phone());
+        if (StringUtils.hasText(request.address())) user.setAddress(request.address());
+        user.setLatitude(request.latitude());
+        user.setLongitude(request.longitude());
         User savedUser = userRepository.save(user);
        
         List<LoyalUser> loyalUsers = loyalUserRepository.findByEmail(user.getEmail());
@@ -218,24 +221,30 @@ public class AuthService {
             throw new EmailAlreadyExistsException();
         }
 
-        User user = buildUser(email, null, request.firstName(), request.lastName(), null);
+        User user = buildUser(email, request.username(), request.firstName(), request.lastName(), null);
 
+        if (order.getRecipientAddress() != null) user.setAddress(order.getRecipientAddress());
         User savedUser = userRepository.save(user);
 
           
 
         LoyalUser loyalUser = loyalUserRepository
-                .findByCompaniesIdAndEmail(order.getCompany().getId(), email)
+                .findByCompanyIdAndEmail(order.getCompany().getId(), email)
                 .orElseGet(() -> {
-                    LoyalUser lu = new LoyalUser();
-                    lu.getCompanies().add(order.getCompany());
-                    lu.setEmail(email);
+                    LoyalUser lu = loyalUserRepository.findByEmail(email).stream().findFirst()
+                            .orElseGet(() -> {
+                                LoyalUser fresh = new LoyalUser();
+                                fresh.setEmail(email);
+                                return fresh;
+                            });
+                    lu.linkFor(order.getCompany());
                     return lu;
                 });
         loyalUser.setUser(user);
         loyalUserRepository.save(loyalUser);
 
         order.setLoyalUser(loyalUser);
+        order.setTrackingToken(null);
         orderRepository.save(order);
 
         return client.register(
