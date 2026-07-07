@@ -71,3 +71,6 @@ frontend/blob-report/
 # Los de demo (seed-demo.sh, reset-demo.sh, seed.py) son locales.
 scripts/*
 !scripts/seed-init.sh
+
+###
+*.p12

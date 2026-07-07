@@ -1,0 +1,11 @@
+server:
+  port: 9092
+spring:
+  application:
+    name: data-service
+    
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+app:
+  api-prefix: /api/v2
