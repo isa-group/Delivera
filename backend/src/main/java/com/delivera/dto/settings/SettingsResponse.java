@@ -1,8 +1,8 @@
 package com.delivera.dto.settings;
 
-import com.delivera.model.OrderPriority;
-
 import java.util.UUID;
+
+import com.delivera.order.model.OrderPriority;
 
 public record SettingsResponse(
         UUID orgId,

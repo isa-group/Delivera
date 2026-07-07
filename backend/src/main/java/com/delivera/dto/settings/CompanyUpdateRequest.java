@@ -1,6 +1,7 @@
 package com.delivera.dto.settings;
 
-import com.delivera.model.OrderPriority;
+import com.delivera.order.model.OrderPriority;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 

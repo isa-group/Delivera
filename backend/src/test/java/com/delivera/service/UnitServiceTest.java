@@ -6,6 +6,7 @@ import com.delivera.depot.dto.UnitRequest;
 import com.delivera.depot.model.OperationalUnit;
 import com.delivera.depot.model.UnitType;
 import com.delivera.depot.repository.OperationalUnitRepository;
+import com.delivera.depot.service.UnitService;
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.UnitNameConflictException;
 import com.delivera.exception.UnitNotFoundException;

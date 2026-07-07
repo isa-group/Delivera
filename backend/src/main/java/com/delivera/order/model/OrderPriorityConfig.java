@@ -1,4 +1,4 @@
-package com.delivera.model;
+package com.delivera.order.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;

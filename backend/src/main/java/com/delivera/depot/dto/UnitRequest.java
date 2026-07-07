@@ -1,7 +1,7 @@
 package com.delivera.depot.dto;
 
 import com.delivera.depot.model.UnitType;
-import com.delivera.model.OrderPriority;
+import com.delivera.order.model.OrderPriority;
 
 import jakarta.validation.constraints.*;
 

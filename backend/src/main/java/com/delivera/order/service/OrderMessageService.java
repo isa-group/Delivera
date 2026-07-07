@@ -1,15 +1,15 @@
-package com.delivera.service;
+package com.delivera.order.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.chat.OrderMessageRequest;
 import com.delivera.dto.chat.OrderMessageResponse;
 import com.delivera.exception.ForbiddenException;
 import com.delivera.exception.OrderNotFoundException;
-import com.delivera.model.Order;
-import com.delivera.model.OrderMessage;
 import com.delivera.model.User;
-import com.delivera.repository.OrderMessageRepository;
-import com.delivera.repository.OrderRepository;
+import com.delivera.order.model.Order;
+import com.delivera.order.model.OrderMessage;
+import com.delivera.order.repository.OrderMessageRepository;
+import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.UserRepository;
 
 import org.springframework.stereotype.Service;

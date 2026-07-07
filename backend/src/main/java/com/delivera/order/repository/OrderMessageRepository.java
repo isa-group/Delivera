@@ -1,7 +1,8 @@
-package com.delivera.repository;
+package com.delivera.order.repository;
 
-import com.delivera.model.OrderMessage;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.delivera.order.model.OrderMessage;
 
 import java.util.List;
 import java.util.UUID;

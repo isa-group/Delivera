@@ -1,11 +1,12 @@
-package com.delivera.controller;
+package com.delivera.order.controller;
 
-import com.delivera.dto.order.OrderDetailResponse;
-import com.delivera.dto.order.OrderLocationRequest;
-import com.delivera.dto.order.OrderRequest;
-import com.delivera.dto.order.OrderResponse;
-import com.delivera.dto.order.OrderStatusRequest;
-import com.delivera.service.OrderService;
+import com.delivera.order.dto.OrderDetailResponse;
+import com.delivera.order.dto.OrderLocationRequest;
+import com.delivera.order.dto.OrderRequest;
+import com.delivera.order.dto.OrderResponse;
+import com.delivera.order.dto.OrderStatusRequest;
+import com.delivera.order.service.OrderService;
+
 import java.util.UUID;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

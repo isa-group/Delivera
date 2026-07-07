@@ -1,7 +1,7 @@
-package com.delivera.dto.order;
+package com.delivera.order.dto;
 
 import com.delivera.depot.model.OperationalUnit;
-import com.delivera.model.Order;
+import com.delivera.order.model.Order;
 
 import java.math.BigDecimal;
 import java.time.Instant;

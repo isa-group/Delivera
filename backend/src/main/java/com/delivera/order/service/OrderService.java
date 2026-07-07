@@ -1,4 +1,4 @@
-package com.delivera.service;
+package com.delivera.order.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.depot.model.OperationalUnit;
@@ -6,7 +6,23 @@ import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.dto.order.*;
 import com.delivera.exception.*;
 import com.delivera.model.*;
+import com.delivera.order.dto.OrderDetailResponse;
+import com.delivera.order.dto.OrderLocationRequest;
+import com.delivera.order.dto.OrderRequest;
+import com.delivera.order.dto.OrderResponse;
+import com.delivera.order.dto.OrderStatusRequest;
+import com.delivera.order.dto.PublicOrderResponse;
+import com.delivera.order.model.Order;
+import com.delivera.order.model.OrderEvent;
+import com.delivera.order.model.OrderPriority;
+import com.delivera.order.model.OrderStatus;
+import com.delivera.order.model.OrderType;
+import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.*;
+import com.delivera.service.AppConfigService;
+import com.delivera.service.EmailService;
+import com.delivera.service.SubscriptionService;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -233,7 +249,7 @@ public class OrderService {
         return new RecipientCoords(addr, lat, lon);
     }
 
-    static OrderPriority resolveDefaultPriority(OrderPriority requested,
+    public static OrderPriority resolveDefaultPriority(OrderPriority requested,
                                                OperationalUnit originUnit,
                                                Company company) {
         if (requested != null) return requested;

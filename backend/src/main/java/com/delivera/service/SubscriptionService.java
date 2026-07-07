@@ -11,6 +11,7 @@ import com.delivera.model.LoyalUser;
 import com.delivera.model.SubscriptionPlan;
 import com.delivera.model.Worker;
 import com.delivera.model.WorkerRole;
+import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

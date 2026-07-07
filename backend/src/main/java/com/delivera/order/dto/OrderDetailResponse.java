@@ -1,33 +1,38 @@
-package com.delivera.dto.order;
+package com.delivera.order.dto;
 
 import com.delivera.depot.model.OperationalUnit;
+import com.delivera.model.Company;
 import com.delivera.model.LoyalUser;
-import com.delivera.model.Order;
+import com.delivera.order.model.Order;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
-public record OrderResponse(
+public record OrderDetailResponse(
         UUID id,
         String reference,
         String orderType,
         UUID originId,
         String originName,
         UUID originCompanyId,
+        String originCompanyName,
         UUID destinationId,
         String destinationName,
         UUID destinationCompanyId,
+        String destinationCompanyName,
         String recipientEmail,
         String recipientName,
         String recipientAddress,
         String status,
         String priority,
-        String notes,
         String trackingToken,
         boolean claimed,
+        String notes,
         UUID loyalUserId,
         Instant createdAt,
+        List<OrderEventResponse> events,
         Double originLat,
         Double originLon,
         Double destinationLat,
@@ -36,44 +41,55 @@ public record OrderResponse(
         Double currentLon,
         Instant currentLocationAt) {
 
-    public static OrderResponse from(Order order) {
+    public static OrderDetailResponse from(Order order) {
         LoyalUser lu = order.getLoyalUser();
         OperationalUnit dest = order.getDestination();
         OperationalUnit origin = order.getOrigin();
-        boolean claimed = lu != null && lu.getUser() != null;
+        Company originCompany = origin.getCompany();
+        Company destCompany = dest != null ? dest.getCompany() : null;
         Double destLat = resolveDestCoord(dest != null ? dest.getLatitude() : null, order.getRecipientLatitude());
         Double destLon = resolveDestCoord(dest != null ? dest.getLongitude() : null, order.getRecipientLongitude());
-        return new OrderResponse(
+        List<OrderEventResponse> events = order.getEvents() != null
+                ? order.getEvents().stream().map(OrderEventResponse::from).toList()
+                : List.of();
+        return new OrderDetailResponse(
                 order.getId(),
                 order.getReference(),
                 order.getOrderType().name(),
                 origin.getId(),
                 origin.getName(),
-                origin.getCompany() != null ? origin.getCompany().getId() : null,
+                originCompany != null ? originCompany.getId() : null,
+                originCompany != null ? originCompany.getName() : null,
                 dest != null ? dest.getId() : null,
                 dest != null ? dest.getName() : null,
-                dest != null && dest.getCompany() != null ? dest.getCompany().getId() : null,
+                destCompany != null ? destCompany.getId() : null,
+                destCompany != null ? destCompany.getName() : null,
                 order.getRecipientEmail(),
                 order.getRecipientName(),
                 order.getRecipientAddress(),
                 order.getStatus().name(),
                 order.getPriority().name(),
-                order.getNotes(),
                 order.getTrackingToken(),
-                claimed,
+                lu != null && lu.getUser() != null,
+                order.getNotes(),
                 lu != null ? lu.getId() : null,
                 order.getCreatedAt(),
-                origin.getLatitude() != null ? origin.getLatitude().doubleValue() : null,
-                origin.getLongitude() != null ? origin.getLongitude().doubleValue() : null,
+                events,
+                toDouble(origin.getLatitude()),
+                toDouble(origin.getLongitude()),
                 destLat,
                 destLon,
-                order.getCurrentLat() != null ? order.getCurrentLat().doubleValue() : null,
-                order.getCurrentLon() != null ? order.getCurrentLon().doubleValue() : null,
+                toDouble(order.getCurrentLat()),
+                toDouble(order.getCurrentLon()),
                 order.getCurrentLocationAt());
     }
 
     private static Double resolveDestCoord(BigDecimal destCoord, BigDecimal recipientCoord) {
         if (destCoord != null) return destCoord.doubleValue();
         return recipientCoord != null ? recipientCoord.doubleValue() : null;
+    }
+
+    private static Double toDouble(BigDecimal v) {
+        return v != null ? v.doubleValue() : null;
     }
 }

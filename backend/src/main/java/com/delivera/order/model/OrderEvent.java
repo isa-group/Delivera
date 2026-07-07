@@ -1,4 +1,4 @@
-package com.delivera.model;
+package com.delivera.order.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -12,8 +12,8 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "order_messages")
-public class OrderMessage {
+@Table(name = "order_events")
+public class OrderEvent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -23,18 +23,21 @@ public class OrderMessage {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "sender_id", nullable = false)
-    private User sender;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private OrderStatus status;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String content;
+    @Column(columnDefinition = "TEXT")
+    private String note;
+
+    @Column(name = "author_email", length = 255)
+    private String authorEmail;
 
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
     @PrePersist
-    void prePersist() {
+    void onPrePersist() {
         if (createdAt == null) createdAt = Instant.now();
     }
 }

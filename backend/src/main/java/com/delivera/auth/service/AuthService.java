@@ -12,6 +12,8 @@ import com.delivera.dto.auth.RegisterRequest;
 import com.delivera.dto.auth.RegisterResponse;
 import com.delivera.exception.*;
 import com.delivera.model.*;
+import com.delivera.order.model.Order;
+import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.*;
 
 import jakarta.servlet.http.HttpServletRequest;

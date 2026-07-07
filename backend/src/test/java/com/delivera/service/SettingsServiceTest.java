@@ -10,6 +10,7 @@ import com.delivera.exception.CompanyHasActiveOrdersException;
 import com.delivera.exception.ForbiddenException;
 import com.delivera.exception.HandleConflictException;
 import com.delivera.model.*;
+import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.*;
 import com.delivera.repository.ActivityTypeRepository;
 import org.junit.jupiter.api.BeforeEach;

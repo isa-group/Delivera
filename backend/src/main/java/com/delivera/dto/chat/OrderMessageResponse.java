@@ -1,9 +1,9 @@
 package com.delivera.dto.chat;
 
-import com.delivera.model.OrderMessage;
-
 import java.time.Instant;
 import java.util.UUID;
+
+import com.delivera.order.model.OrderMessage;
 
 public record OrderMessageResponse(
         UUID id,

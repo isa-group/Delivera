@@ -12,8 +12,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.delivera.model.Company;
-import com.delivera.model.OrderPriority;
 import com.delivera.model.Worker;
+import com.delivera.order.model.OrderPriority;
 
 @Getter
 @Setter

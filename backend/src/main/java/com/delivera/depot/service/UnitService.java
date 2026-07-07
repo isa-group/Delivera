@@ -1,4 +1,4 @@
-package com.delivera.service;
+package com.delivera.depot.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.depot.dto.B2BUnitResponse;
@@ -17,6 +17,8 @@ import com.delivera.model.Worker;
 import com.delivera.model.WorkerRole;
 import com.delivera.repository.CompanyRepository;
 import com.delivera.repository.WorkerRepository;
+import com.delivera.service.SubscriptionService;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

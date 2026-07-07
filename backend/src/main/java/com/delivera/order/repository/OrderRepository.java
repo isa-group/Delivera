@@ -1,11 +1,12 @@
-package com.delivera.repository;
+package com.delivera.order.repository;
 
-import com.delivera.model.Order;
-import com.delivera.model.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.delivera.order.model.Order;
+import com.delivera.order.model.OrderStatus;
 
 import java.time.Instant;
 import java.util.List;

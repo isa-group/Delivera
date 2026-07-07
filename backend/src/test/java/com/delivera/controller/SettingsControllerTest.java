@@ -2,8 +2,7 @@ package com.delivera.controller;
 
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.settings.*;
-import com.delivera.model.OrderPriority;
-
+import com.delivera.order.model.OrderPriority;
 import com.delivera.service.SettingsService;
 import com.delivera.service.SubscriptionService;
 import org.junit.jupiter.api.Test;

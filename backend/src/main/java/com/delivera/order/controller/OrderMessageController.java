@@ -1,8 +1,9 @@
-package com.delivera.controller;
+package com.delivera.order.controller;
 
 import com.delivera.dto.chat.OrderMessageRequest;
 import com.delivera.dto.chat.OrderMessageResponse;
-import com.delivera.service.OrderMessageService;
+import com.delivera.order.service.OrderMessageService;
+
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;

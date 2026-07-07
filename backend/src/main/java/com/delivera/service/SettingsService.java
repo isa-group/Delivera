@@ -10,16 +10,17 @@ import com.delivera.exception.ForbiddenException;
 import com.delivera.exception.HandleConflictException;
 import com.delivera.exception.UserNotFoundException;
 import com.delivera.model.*;
+import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static com.delivera.order.model.OrderStatus.IN_TRANSIT;
+import static com.delivera.order.model.OrderStatus.PENDING;
+
 import java.util.List;
 import java.util.UUID;
-
-import static com.delivera.model.OrderStatus.IN_TRANSIT;
-import static com.delivera.model.OrderStatus.PENDING;
 
 @RequiredArgsConstructor
 @Service

@@ -7,6 +7,7 @@ import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.LoyalUserConflictException;
 import com.delivera.exception.OrderNotFoundException;
 import com.delivera.model.*;
+import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

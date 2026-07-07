@@ -1,7 +1,5 @@
-package com.delivera.dto.order;
+package com.delivera.order.dto;
 
-import com.delivera.model.OrderPriority;
-import com.delivera.model.OrderType;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -11,6 +9,9 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+
+import com.delivera.order.model.OrderPriority;
+import com.delivera.order.model.OrderType;
 
 public record OrderRequest(
         @NotNull UUID originId,

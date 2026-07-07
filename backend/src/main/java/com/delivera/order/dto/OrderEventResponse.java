@@ -1,9 +1,9 @@
-package com.delivera.dto.order;
-
-import com.delivera.model.OrderEvent;
+package com.delivera.order.dto;
 
 import java.time.Instant;
 import java.util.UUID;
+
+import com.delivera.order.model.OrderEvent;
 
 public record OrderEventResponse(
         UUID id,

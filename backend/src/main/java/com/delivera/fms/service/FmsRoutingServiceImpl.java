@@ -7,9 +7,9 @@ import com.delivera.fms.dto.DepotDto;
 import com.delivera.fms.dto.RoutingRequest;
 import com.delivera.fms.dto.RoutingResponse;
 import com.delivera.fms.dto.VehicleDto;
-import com.delivera.model.Order;
-import com.delivera.model.OrderStatus;
-import com.delivera.repository.OrderRepository;
+import com.delivera.order.model.Order;
+import com.delivera.order.model.OrderStatus;
+import com.delivera.order.repository.OrderRepository;
 import com.delivera.vehicle.model.Vehicle;
 import com.delivera.vehicle.repository.VehicleRepository;
 

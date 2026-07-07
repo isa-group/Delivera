@@ -1,14 +1,19 @@
 package com.delivera.service;
 
 
-import com.delivera.dto.order.OrderRequest;
-import com.delivera.model.OrderType;
-import com.delivera.dto.order.OrderStatusRequest;
+import com.delivera.order.dto.OrderLocationRequest;
+import com.delivera.order.dto.OrderRequest;
+import com.delivera.order.dto.OrderStatusRequest;
+import com.delivera.order.model.Order;
+import com.delivera.order.model.OrderPriority;
+import com.delivera.order.model.OrderStatus;
+import com.delivera.order.model.OrderType;
+import com.delivera.order.repository.OrderRepository;
+import com.delivera.order.service.OrderService;
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.depot.model.OperationalUnit;
 import com.delivera.depot.model.UnitType;
 import com.delivera.depot.repository.OperationalUnitRepository;
-import com.delivera.dto.order.OrderLocationRequest;
 import com.delivera.exception.InvalidOrderUnitsException;
 import com.delivera.exception.OrderNotFoundException;
 import com.delivera.model.*;

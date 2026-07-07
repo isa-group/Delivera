@@ -5,7 +5,8 @@ import com.delivera.depot.dto.UnitDetailResponse;
 import com.delivera.depot.dto.UnitRequest;
 import com.delivera.depot.dto.UnitResponse;
 import com.delivera.depot.model.UnitType;
-import com.delivera.service.UnitService;
+import com.delivera.depot.service.UnitService;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

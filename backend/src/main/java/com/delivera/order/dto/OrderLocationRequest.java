@@ -1,4 +1,4 @@
-package com.delivera.dto.order;
+package com.delivera.order.dto;
 
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;

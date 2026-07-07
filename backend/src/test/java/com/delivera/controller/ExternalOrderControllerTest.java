@@ -1,14 +1,17 @@
 package com.delivera.controller;
 
-import com.delivera.dto.order.OrderDetailResponse;
-import com.delivera.dto.order.OrderLocationRequest;
-import com.delivera.dto.order.OrderRequest;
-import com.delivera.dto.order.OrderResponse;
-import com.delivera.dto.order.OrderStatusRequest;
 import java.math.BigDecimal;
-import com.delivera.model.OrderStatus;
-import com.delivera.model.OrderType;
-import com.delivera.service.OrderService;
+
+import com.delivera.order.controller.ExternalOrderController;
+import com.delivera.order.dto.OrderDetailResponse;
+import com.delivera.order.dto.OrderLocationRequest;
+import com.delivera.order.dto.OrderRequest;
+import com.delivera.order.dto.OrderResponse;
+import com.delivera.order.dto.OrderStatusRequest;
+import com.delivera.order.model.OrderStatus;
+import com.delivera.order.model.OrderType;
+import com.delivera.order.service.OrderService;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
