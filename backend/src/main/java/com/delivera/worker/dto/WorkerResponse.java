@@ -1,9 +1,9 @@
-package com.delivera.dto.worker;
-
-import com.delivera.model.Worker;
+package com.delivera.worker.dto;
 
 import java.time.Instant;
 import java.util.UUID;
+
+import com.delivera.worker.model.Worker;
 
 public record WorkerResponse(
         UUID id,

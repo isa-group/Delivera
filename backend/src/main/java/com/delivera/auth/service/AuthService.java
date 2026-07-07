@@ -15,6 +15,9 @@ import com.delivera.model.*;
 import com.delivera.order.model.Order;
 import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.*;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.model.WorkerRole;
+import com.delivera.worker.repository.WorkerRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
 

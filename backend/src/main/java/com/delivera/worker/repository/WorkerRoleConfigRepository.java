@@ -1,7 +1,8 @@
-package com.delivera.repository;
+package com.delivera.worker.repository;
 
-import com.delivera.model.WorkerRoleConfig;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.delivera.worker.model.WorkerRoleConfig;
 
 public interface WorkerRoleConfigRepository extends JpaRepository<WorkerRoleConfig, String> {
 }

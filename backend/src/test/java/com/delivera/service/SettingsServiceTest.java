@@ -13,6 +13,9 @@ import com.delivera.model.*;
 import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.*;
 import com.delivera.repository.ActivityTypeRepository;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.repository.WorkerRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

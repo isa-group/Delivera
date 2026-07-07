@@ -3,7 +3,8 @@ package com.delivera.service;
 import com.delivera.order.model.OrderStatusConfig;
 import com.delivera.order.repository.OrderPriorityConfigRepository;
 import com.delivera.order.repository.OrderStatusConfigRepository;
-import com.delivera.repository.WorkerRoleConfigRepository;
+import com.delivera.worker.repository.WorkerRoleConfigRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -1,8 +1,8 @@
 package com.delivera.depot.dto;
 
-import com.delivera.model.Worker;
-
 import java.util.UUID;
+
+import com.delivera.worker.model.Worker;
 
 public record UnitWorkerSummary(UUID id, String email, String firstName, String lastName, String role) {
     public static UnitWorkerSummary from(Worker w) {

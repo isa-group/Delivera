@@ -2,9 +2,6 @@ package com.delivera.service;
 
 import com.delivera.auth.service.AuthClient;
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.dto.worker.ChangeRoleRequest;
-import com.delivera.dto.worker.WorkerInviteRequest;
-import com.delivera.dto.worker.WorkerResponse;
 import com.delivera.exception.ForbiddenException;
 import com.delivera.exception.LastAdminException;
 import com.delivera.exception.LoyalUserCannotBeWorkerException;
@@ -12,6 +9,13 @@ import com.delivera.exception.WorkerAlreadyExistsException;
 import com.delivera.exception.WorkerNotFoundException;
 import com.delivera.model.*;
 import com.delivera.repository.*;
+import com.delivera.worker.dto.ChangeRoleRequest;
+import com.delivera.worker.dto.WorkerInviteRequest;
+import com.delivera.worker.dto.WorkerResponse;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.model.WorkerRole;
+import com.delivera.worker.repository.WorkerRepository;
+import com.delivera.worker.service.WorkerService;
 
 import reactor.core.publisher.Mono;
 

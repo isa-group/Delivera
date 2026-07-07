@@ -15,6 +15,9 @@ import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.*;
 import com.delivera.vehicle.model.Vehicle;
 import com.delivera.vehicle.repository.VehicleRepository;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.model.WorkerRole;
+import com.delivera.worker.repository.WorkerRepository;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;

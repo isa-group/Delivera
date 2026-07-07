@@ -7,6 +7,8 @@ import com.delivera.model.Organization;
 import com.delivera.model.SubscriptionPlan;
 import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.*;
+import com.delivera.worker.repository.WorkerRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -233,12 +235,12 @@ class SubscriptionServiceTest {
     @Test
     void changePlan_force_deletesExcessResources() {
         SubscriptionPlan free = buildPlan("FREE", 1, 0, 0, 50, 0);
-        com.delivera.model.Worker admin = new com.delivera.model.Worker();
+        com.delivera.worker.model.Worker admin = new com.delivera.worker.model.Worker();
         admin.setId(UUID.randomUUID());
-        admin.setRole(com.delivera.model.WorkerRole.COMPANY_ADMIN);
-        com.delivera.model.Worker analyst = new com.delivera.model.Worker();
+        admin.setRole(com.delivera.worker.model.WorkerRole.COMPANY_ADMIN);
+        com.delivera.worker.model.Worker analyst = new com.delivera.worker.model.Worker();
         analyst.setId(UUID.randomUUID());
-        analyst.setRole(com.delivera.model.WorkerRole.ANALYST);
+        analyst.setRole(com.delivera.worker.model.WorkerRole.ANALYST);
         com.delivera.model.LoyalUser lu = new com.delivera.model.LoyalUser();
         com.delivera.depot.model.OperationalUnit unit = new com.delivera.depot.model.OperationalUnit();
         lu.setId(UUID.randomUUID());

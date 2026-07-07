@@ -7,6 +7,8 @@ import com.delivera.order.repository.OrderEventRepository;
 import com.delivera.order.repository.OrderMessageRepository;
 import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.*;
+import com.delivera.worker.repository.WorkerRepository;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

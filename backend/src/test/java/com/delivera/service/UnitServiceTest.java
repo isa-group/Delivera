@@ -12,9 +12,10 @@ import com.delivera.exception.UnitNameConflictException;
 import com.delivera.exception.UnitNotFoundException;
 import com.delivera.model.Company;
 import com.delivera.model.Organization;
-import com.delivera.model.Worker;
 import com.delivera.repository.CompanyRepository;
-import com.delivera.repository.WorkerRepository;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.repository.WorkerRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -140,7 +141,7 @@ class UnitServiceTest {
         Worker worker = new Worker();
         worker.setId(workerId);
         worker.setUser(user);
-        worker.setRole(com.delivera.model.WorkerRole.OPERATOR);
+        worker.setRole(com.delivera.worker.model.WorkerRole.OPERATOR);
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
         when(unitRepository.findByIdAndCompanyIdWithWorkers(unit.getId(), companyId)).thenReturn(Optional.of(unit));
         when(workerRepository.findByIdAndCompanyId(workerId, companyId)).thenReturn(Optional.of(worker));

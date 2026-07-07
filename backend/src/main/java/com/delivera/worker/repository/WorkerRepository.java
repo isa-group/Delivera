@@ -1,11 +1,12 @@
-package com.delivera.repository;
+package com.delivera.worker.repository;
 
-import com.delivera.model.Worker;
-import com.delivera.model.WorkerRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.model.WorkerRole;
 
 import java.util.List;
 import java.util.Optional;

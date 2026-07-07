@@ -1,7 +1,8 @@
 package com.delivera.depot.repository;
 
 import com.delivera.depot.model.OperationalUnit;
-import com.delivera.model.Worker;
+import com.delivera.worker.model.Worker;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

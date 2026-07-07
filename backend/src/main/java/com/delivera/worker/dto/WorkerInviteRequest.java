@@ -1,6 +1,7 @@
-package com.delivera.dto.worker;
+package com.delivera.worker.dto;
 
-import com.delivera.model.WorkerRole;
+import com.delivera.worker.model.WorkerRole;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

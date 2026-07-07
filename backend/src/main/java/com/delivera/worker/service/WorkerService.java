@@ -1,13 +1,17 @@
-package com.delivera.service;
+package com.delivera.worker.service;
 
 import com.delivera.auth.service.AuthClient;
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.dto.worker.ChangeRoleRequest;
-import com.delivera.dto.worker.WorkerInviteRequest;
-import com.delivera.dto.worker.WorkerResponse;
 import com.delivera.exception.*;
 import com.delivera.model.*;
 import com.delivera.repository.*;
+import com.delivera.service.SubscriptionService;
+import com.delivera.worker.dto.ChangeRoleRequest;
+import com.delivera.worker.dto.WorkerInviteRequest;
+import com.delivera.worker.dto.WorkerResponse;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.model.WorkerRole;
+import com.delivera.worker.repository.WorkerRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -11,6 +11,10 @@ import com.delivera.order.repository.OrderEventRepository;
 import com.delivera.order.repository.OrderMessageRepository;
 import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.*;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.model.WorkerRole;
+import com.delivera.worker.repository.WorkerRepository;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -6,6 +6,8 @@ import com.delivera.order.model.OrderStatusConfig;
 import com.delivera.order.repository.OrderPriorityConfigRepository;
 import com.delivera.order.repository.OrderStatusConfigRepository;
 import com.delivera.repository.*;
+import com.delivera.worker.repository.WorkerRoleConfigRepository;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

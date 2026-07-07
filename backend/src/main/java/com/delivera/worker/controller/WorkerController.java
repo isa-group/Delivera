@@ -1,9 +1,10 @@
-package com.delivera.controller;
+package com.delivera.worker.controller;
 
-import com.delivera.dto.worker.ChangeRoleRequest;
-import com.delivera.dto.worker.WorkerInviteRequest;
-import com.delivera.dto.worker.WorkerResponse;
-import com.delivera.service.WorkerService;
+import com.delivera.worker.dto.ChangeRoleRequest;
+import com.delivera.worker.dto.WorkerInviteRequest;
+import com.delivera.worker.dto.WorkerResponse;
+import com.delivera.worker.service.WorkerService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

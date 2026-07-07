@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.delivera.auth.dto.DeliveraOrgContext;
-import com.delivera.model.Worker;
+import com.delivera.worker.model.Worker;
 
 
 public interface AuthRepository  extends JpaRepository<Worker, UUID> {

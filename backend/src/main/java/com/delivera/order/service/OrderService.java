@@ -21,6 +21,7 @@ import com.delivera.repository.*;
 import com.delivera.service.AppConfigService;
 import com.delivera.service.EmailService;
 import com.delivera.service.SubscriptionService;
+import com.delivera.worker.repository.WorkerRepository;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

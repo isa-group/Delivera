@@ -13,11 +13,11 @@ import com.delivera.exception.UnitNameConflictException;
 import com.delivera.exception.UnitNotFoundException;
 import com.delivera.exception.WorkerNotFoundException;
 import com.delivera.model.Company;
-import com.delivera.model.Worker;
-import com.delivera.model.WorkerRole;
 import com.delivera.repository.CompanyRepository;
-import com.delivera.repository.WorkerRepository;
 import com.delivera.service.SubscriptionService;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.model.WorkerRole;
+import com.delivera.worker.repository.WorkerRepository;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
