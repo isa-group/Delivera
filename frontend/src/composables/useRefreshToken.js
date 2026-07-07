@@ -26,23 +26,24 @@ const headers = {
   'X-Device-Id': getDeviceId(),
 }
 
+const beforeRefreshTime = Number(import.meta.env.VITE_BEFORE_REFRESH_TIME)
 
 export function startAuthRefresh() {
   const auth = useAuthStore()
   if (!auth.token) {
     return
   }
-    
+  
   const payload = parseJwt(auth.token)
 
   const expiresAt = payload.exp * 1000
   const now = Date.now()
 
-  const delay = expiresAt - now - 60000 // 1 min before it expires 
+  const delay = expiresAt - now - beforeRefreshTime // 1 min before it expires 
 
   clearTimeout(interval)
 
-  const refreshTime = Number(import.meta.env.VITE_REFRESH_TIME)
+  
 
   interval = setTimeout(async () => {
     try {
