@@ -37,12 +37,14 @@ import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.client.exception.ClientException;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 
 @RestController
+@Tag(name = "Auth", description = "all features related to authentication and login in different devices")
 @RequestMapping("/auth")
 public class AuthController {
 
