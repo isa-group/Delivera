@@ -1,7 +1,6 @@
 package com.delivera.controller;
 
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.dto.settings.*;
 import com.delivera.order.model.OrderPriority;
 import com.delivera.org.controller.SettingsController;
 import com.delivera.org.dto.ChangePlanRequest;
