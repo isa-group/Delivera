@@ -85,7 +85,7 @@ app:
   refresh-token:
     daysToRefresh: 1
     maxDaysToRefresh: 2
-    periodicDeletionMs: 60000
+    periodicDeletionMs: 3600000
     # 3600000
     secure: false
     domain: localhost
@@ -93,7 +93,7 @@ app:
 
   jwt:
     # in miliseconds
-    expiration: 90000
+    expiration: 900000
     issuer: ${JWT_ISSUER:delivera-auth-service}
     audience: ${JWT_AUDIENCE:delivera-api}
     rotation:

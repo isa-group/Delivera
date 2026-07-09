@@ -17,5 +17,6 @@ public class DeliveraOrgContext {
         String companyName;
         String orgHandle;
         String orgName;
+        UUID orgId;
 }
         

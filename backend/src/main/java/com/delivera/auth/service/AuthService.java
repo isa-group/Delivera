@@ -141,7 +141,7 @@ public class AuthService {
             request.email(),
             request.username(), 
             request.password(), 
-            new DeliveraOrgContext(null, null, role, null, null),
+            new DeliveraOrgContext(null, null, role, null, null,null),
             requestClientData
         ).block();
         return new RegisterResponse(loginResponse.getToken(), user.getEmail(), role, loginResponse.getRefreshCookie());
@@ -196,7 +196,7 @@ public class AuthService {
             savedUser.getId(), request.email(), request.username(), request.password(), 
             new DeliveraOrgContext(
                 savedCompany.getId(), WorkerRole.COMPANY_ADMIN, savedCompany.getName(),
-                savedOrganization.getHandle(),savedOrganization.getName() ),
+                savedOrganization.getHandle(),savedOrganization.getName(),savedOrganization.getId() ),
             requestClientData
         ).block();
 
@@ -254,7 +254,7 @@ public class AuthService {
             savedUser.getId(), email, null, request.password(), 
             new DeliveraOrgContext(
                 null, null, 
-                LOYAL_USER_ROLE, null, null
+                LOYAL_USER_ROLE, null, null,null
             ),
             requestClientData
         ).block(); 

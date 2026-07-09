@@ -43,6 +43,7 @@ public class JwtService implements JwtTokenParser{
                                 String email,
                                 UUID companyId,
                                 String role,
+                                UUID orgId,
                                 int tokenVersion) {
 
         String keyId = rotationService.resolveActiveKeyIdSafe();
@@ -71,6 +72,7 @@ public class JwtService implements JwtTokenParser{
                 .issuer(issuer)
                 .audience().add(audience).and()
                 .claim("companyId",companyId !=null? companyId.toString() : null)
+                .claim("orgId", orgId != null? orgId.toString() : null )
                 .claim("email", email )
                 .claim("role", role)
                 .claim("ver", tokenVersion)
@@ -103,6 +105,7 @@ public class JwtService implements JwtTokenParser{
                     claims.get("role", String.class),
                     UUID.fromString(claims.get("companyId", String.class)),
                     UUID.fromString(claims.getSubject()),
+                    UUID.fromString(claims.get("orgId", String.class)),
                     claims.get("ver", Integer.class)
             );
 

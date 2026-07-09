@@ -23,7 +23,8 @@ public interface AuthRepository  extends JpaRepository<Worker, UUID> {
         w.role,
         c.name,
         o.handle,
-        o.name
+        o.name,
+        o.id
     )
     FROM Worker w
     JOIN w.company c
@@ -43,7 +44,8 @@ public interface AuthRepository  extends JpaRepository<Worker, UUID> {
         w.role,
         c.name,
         o.handle,
-        o.name
+        o.name,
+        o.id
     )
     FROM Worker w
     JOIN w.company c
