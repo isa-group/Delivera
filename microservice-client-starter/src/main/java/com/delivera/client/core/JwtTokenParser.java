@@ -12,6 +12,7 @@ public interface JwtTokenParser {
         String role,
         UUID companyId,
         UUID userId,
+        UUID orgId,
         int version
     ) {}
 }

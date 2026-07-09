@@ -35,6 +35,7 @@ public class SecurityUtils {
                 return new UserPrincipal(
                     UUID.fromString(jwt.getSubject()),
                     UUID.fromString(jwt.getClaim("companyId")),
+                    UUID.fromString(jwt.getClaim("orgId")),
                     jwt.getClaim("email"),
                     jwt.getClaim("role"),
                     version
@@ -52,6 +53,10 @@ public class SecurityUtils {
 
     public UUID getCurrentCompanyId() {
         return getPrincipal().getCompanyId();
+    }
+
+    public UUID getCurrentOrgId() {
+        return getPrincipal().getOrgId();
     }
 
     public String getCurrentEmail() {
