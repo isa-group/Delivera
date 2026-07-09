@@ -10,10 +10,12 @@ import com.delivera.data.depot.model.UnitWorker;
 import com.delivera.data.depot.model.WorkerRole;
 import com.delivera.data.depot.repository.OperationalUnitRepository;
 import com.delivera.data.depot.repository.WorkerRepository;
+import com.delivera.data.exception.CompanyContextException;
 import com.delivera.data.exception.UnitNameConflictException;
 import com.delivera.data.exception.UnitNotFoundException;
 import com.delivera.data.exception.WorkerNotFoundException;
-
+import com.delivera.data.org.dto.OrgCheckRequest;
+import com.delivera.data.org.service.OrgClient;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -27,16 +29,19 @@ public class UnitService {
 
     private final OperationalUnitRepository unitRepository;
     //private final CompanyRepository companyRepository;
+    private final OrgClient orgClient;
     private final WorkerRepository workerRepository;
     private final SecurityUtils securityUtils;
     //private final SubscriptionService subscriptionService;
 
     public UnitService(OperationalUnitRepository unitRepository,
                        WorkerRepository workerRepository,
+                       OrgClient orgClient,
                        SecurityUtils securityUtils
                        //SubscriptionService subscriptionService
                        ) {
         this.unitRepository = unitRepository;
+        this.orgClient = orgClient;
        // this.companyRepository = companyRepository;
         this.workerRepository = workerRepository;
         this.securityUtils = securityUtils;
@@ -46,16 +51,17 @@ public class UnitService {
     @Transactional
     public UnitResponse create(UnitRequest request) {
         UUID companyId = securityUtils.getCurrentCompanyId();
+        UUID orgId = securityUtils.getCurrentOrgId();
        //TODO: subscriptionService.checkUnitLimit(companyId);
         if (unitRepository.existsByCompanyIdAndName(companyId, request.name())) {
             throw new UnitNameConflictException();
         }
-       // Company company = companyRepository.findById(companyId)
-       //         .orElseThrow(CompanyContextException::new);
-       
-       // TODO: CHECKS: SE ENTIENDE COMO TAL QUE SI TE LLEGA EN UN JWT ES PQ EXISTE LA COMPAÑÍA
+
+        Boolean orgCheck = orgClient.checkOrgData(new OrgCheckRequest(companyId, orgId)).block();
+        if (!orgCheck) {
+                throw new CompanyContextException();
+        }
         OperationalUnit unit = new OperationalUnit();
-       // TODO:  unit.setCompany(company);
         unit.setCompanyId(companyId);
         applyRequest(unit, request);
         try {
@@ -156,7 +162,7 @@ public class UnitService {
                 .orElseThrow(() -> new UnitNotFoundException(id)));
     }
 
-    /*
+    /* TODO: DELETE
     @Transactional
     public UnitDetailResponse assignWorker(UUID unitId, UUID workerId) {
         UUID companyId = securityUtils.getCurrentCompanyId();
@@ -168,7 +174,7 @@ public class UnitService {
         return UnitDetailResponse.from(unitRepository.save(unit));
     } 
     
-
+    TODO: DELETE
     @Transactional
     public UnitDetailResponse unassignWorker(UUID unitId, UUID workerId) {
         UUID companyId = securityUtils.getCurrentCompanyId();
@@ -194,10 +200,10 @@ public class UnitService {
     }
 
 
-
+    @Transactional(readOnly = true)
     public List<UUID> getWorkersIdByUnit(UUID unitId) {
         UUID companyId = securityUtils.getCurrentCompanyId();
-        return workerRepository.getWorkersIdByUnitIdAndCompanyId(unitId, companyId);
+        return workerRepository.findWorkersIdByUnitIdAndCompanyId(unitId, companyId);
     }
 
 

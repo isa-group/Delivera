@@ -40,7 +40,7 @@ public interface WorkerRepository extends JpaRepository<UnitWorker, UUID>{
             w.companyId = :companyId
     """)
     List<UUID> findWorkersIdByUnitIdAndCompanyId( 
-        @Param("unitId") UUID workerId,  
+        @Param("unitId") UUID unitId,  
         @Param("companyId") UUID companyId
     );
 
