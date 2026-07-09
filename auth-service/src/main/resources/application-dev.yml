@@ -83,8 +83,8 @@ app:
     enabled: false
   
   refresh-token:
-    daysToRefresh: 1
-    maxDaysToRefresh: 2
+    daysToRefresh: 2
+    maxDaysToRefresh: 7
     periodicDeletionMs: 3600000
     # 3600000
     secure: false
@@ -131,6 +131,12 @@ app:
           window-ms: 60000
         USER:
           max-attempts: 50
+          window-ms: 60000
+        REFRESH:
+          max-attempts: 100
+          window-ms: 60000
+        DEVICE:
+          max-attempts: 30
           window-ms: 60000
 
 
