@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.delivera.depot.model.OperationalUnit;
-import com.delivera.model.Company;
+import com.delivera.org.model.Company;
 
 @Getter
 @Setter

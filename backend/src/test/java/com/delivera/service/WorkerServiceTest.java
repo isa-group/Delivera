@@ -8,6 +8,8 @@ import com.delivera.exception.LoyalUserCannotBeWorkerException;
 import com.delivera.exception.WorkerAlreadyExistsException;
 import com.delivera.exception.WorkerNotFoundException;
 import com.delivera.model.*;
+import com.delivera.org.model.Company;
+import com.delivera.org.repository.CompanyRepository;
 import com.delivera.repository.*;
 import com.delivera.worker.dto.ChangeRoleRequest;
 import com.delivera.worker.dto.WorkerInviteRequest;

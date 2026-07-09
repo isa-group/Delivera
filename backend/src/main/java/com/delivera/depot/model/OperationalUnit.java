@@ -11,8 +11,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import com.delivera.model.Company;
 import com.delivera.order.model.OrderPriority;
+import com.delivera.org.model.Company;
 import com.delivera.worker.model.Worker;
 
 @Getter

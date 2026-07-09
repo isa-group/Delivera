@@ -2,10 +2,11 @@ package com.delivera.service;
 
 import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.exception.SubscriptionLimitException;
-import com.delivera.model.Company;
-import com.delivera.model.Organization;
 import com.delivera.model.SubscriptionPlan;
 import com.delivera.order.repository.OrderRepository;
+import com.delivera.org.model.Company;
+import com.delivera.org.model.Organization;
+import com.delivera.org.repository.CompanyRepository;
 import com.delivera.repository.*;
 import com.delivera.worker.repository.WorkerRepository;
 

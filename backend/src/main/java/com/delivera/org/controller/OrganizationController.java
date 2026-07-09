@@ -1,4 +1,4 @@
-package com.delivera.controller;
+package com.delivera.org.controller;
 
 import com.delivera.auth.service.AuthService;
 import com.delivera.dto.common.AvailabilityCheckResponse;

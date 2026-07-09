@@ -1,9 +1,8 @@
-package com.delivera.service;
+package com.delivera.org.service;
 
 
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.depot.repository.OperationalUnitRepository;
-import com.delivera.dto.settings.*;
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.CompanyHasActiveOrdersException;
 import com.delivera.exception.ForbiddenException;
@@ -11,7 +10,18 @@ import com.delivera.exception.HandleConflictException;
 import com.delivera.exception.UserNotFoundException;
 import com.delivera.model.*;
 import com.delivera.order.repository.OrderRepository;
+import com.delivera.org.dto.CompanyCreateRequest;
+import com.delivera.org.dto.CompanySummary;
+import com.delivera.org.dto.CompanyUpdateRequest;
+import com.delivera.org.dto.OrgUpdateRequest;
+import com.delivera.org.dto.SettingsResponse;
+import com.delivera.org.model.Company;
+import com.delivera.org.model.Organization;
+import com.delivera.org.repository.CompanyRepository;
+import com.delivera.org.repository.OrganizationRepository;
 import com.delivera.repository.*;
+import com.delivera.service.AppConfigService;
+import com.delivera.service.SubscriptionService;
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.model.WorkerRole;
 import com.delivera.worker.repository.WorkerRepository;

@@ -1,9 +1,9 @@
 package com.delivera.order.dto;
 
 import com.delivera.depot.model.OperationalUnit;
-import com.delivera.model.Company;
 import com.delivera.model.LoyalUser;
 import com.delivera.order.model.Order;
+import com.delivera.org.model.Company;
 
 import java.math.BigDecimal;
 import java.time.Instant;

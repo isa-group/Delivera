@@ -6,6 +6,8 @@ import com.delivera.dto.admin.OrganizationSummary;
 import com.delivera.order.repository.OrderEventRepository;
 import com.delivera.order.repository.OrderMessageRepository;
 import com.delivera.order.repository.OrderRepository;
+import com.delivera.org.repository.CompanyRepository;
+import com.delivera.org.repository.OrganizationRepository;
 import com.delivera.repository.*;
 import com.delivera.worker.repository.WorkerRepository;
 

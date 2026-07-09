@@ -8,8 +8,8 @@ import lombok.Setter;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.delivera.model.Company;
 import com.delivera.model.User;
+import com.delivera.org.model.Company;
 
 @Getter
 @Setter

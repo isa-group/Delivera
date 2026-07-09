@@ -1,8 +1,14 @@
-package com.delivera.controller;
+package com.delivera.org.controller;
 
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.dto.settings.*;
-import com.delivera.service.SettingsService;
+import com.delivera.org.dto.ChangePlanRequest;
+import com.delivera.org.dto.CompanyCreateRequest;
+import com.delivera.org.dto.CompanySummary;
+import com.delivera.org.dto.CompanyUpdateRequest;
+import com.delivera.org.dto.OrgUpdateRequest;
+import com.delivera.org.dto.SettingsResponse;
+import com.delivera.org.dto.SubscriptionUsageResponse;
+import com.delivera.org.service.SettingsService;
 import com.delivera.service.SubscriptionService;
 
 import io.swagger.v3.oas.annotations.Operation;

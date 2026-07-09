@@ -10,9 +10,9 @@ import com.delivera.depot.service.UnitService;
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.UnitNameConflictException;
 import com.delivera.exception.UnitNotFoundException;
-import com.delivera.model.Company;
-import com.delivera.model.Organization;
-import com.delivera.repository.CompanyRepository;
+import com.delivera.org.model.Company;
+import com.delivera.org.model.Organization;
+import com.delivera.org.repository.CompanyRepository;
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.repository.WorkerRepository;
 

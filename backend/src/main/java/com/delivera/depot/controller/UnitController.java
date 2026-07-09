@@ -5,7 +5,7 @@ import com.delivera.depot.dto.UnitDetailResponse;
 import com.delivera.depot.dto.UnitRequest;
 import com.delivera.depot.dto.UnitResponse;
 import com.delivera.depot.service.UnitService;
-import com.delivera.dto.settings.CompanySummary;
+import com.delivera.org.dto.CompanySummary;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

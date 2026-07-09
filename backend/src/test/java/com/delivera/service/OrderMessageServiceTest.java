@@ -11,6 +11,7 @@ import com.delivera.order.model.OrderMessage;
 import com.delivera.order.repository.OrderMessageRepository;
 import com.delivera.order.repository.OrderRepository;
 import com.delivera.order.service.OrderMessageService;
+import com.delivera.org.model.Company;
 import com.delivera.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

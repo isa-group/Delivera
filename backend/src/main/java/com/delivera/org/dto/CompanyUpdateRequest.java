@@ -1,4 +1,4 @@
-package com.delivera.dto.settings;
+package com.delivera.org.dto;
 
 import com.delivera.order.model.OrderPriority;
 

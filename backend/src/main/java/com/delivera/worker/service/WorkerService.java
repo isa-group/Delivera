@@ -4,6 +4,8 @@ import com.delivera.auth.service.AuthClient;
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.exception.*;
 import com.delivera.model.*;
+import com.delivera.org.model.Company;
+import com.delivera.org.repository.CompanyRepository;
 import com.delivera.repository.*;
 import com.delivera.service.SubscriptionService;
 import com.delivera.worker.dto.ChangeRoleRequest;

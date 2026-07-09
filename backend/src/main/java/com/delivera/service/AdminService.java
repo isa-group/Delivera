@@ -10,6 +10,10 @@ import com.delivera.order.model.OrderStatus;
 import com.delivera.order.repository.OrderEventRepository;
 import com.delivera.order.repository.OrderMessageRepository;
 import com.delivera.order.repository.OrderRepository;
+import com.delivera.org.model.Company;
+import com.delivera.org.model.Organization;
+import com.delivera.org.repository.CompanyRepository;
+import com.delivera.org.repository.OrganizationRepository;
 import com.delivera.repository.*;
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.model.WorkerRole;
@@ -32,6 +36,7 @@ import java.util.UUID;
 @Service
 public class AdminService {
 
+    /// TODO: ADAPT TO BE USE IN A MICROSERVICE ARCHITECTURE
     private static final String SYSTEM_ORG_HANDLE = "delivera";
 
     private final OrganizationRepository organizationRepository;

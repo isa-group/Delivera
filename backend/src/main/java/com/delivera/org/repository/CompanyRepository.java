@@ -1,10 +1,11 @@
-package com.delivera.repository;
+package com.delivera.org.repository;
 
-import com.delivera.model.Company;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.delivera.org.model.Company;
 
 import java.util.List;
 import java.util.UUID;

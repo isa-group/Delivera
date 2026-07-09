@@ -11,6 +11,8 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
+import com.delivera.org.model.Company;
+
 @Getter
 @Setter
 @NoArgsConstructor

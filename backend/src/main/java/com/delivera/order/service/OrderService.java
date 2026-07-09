@@ -17,6 +17,8 @@ import com.delivera.order.model.OrderPriority;
 import com.delivera.order.model.OrderStatus;
 import com.delivera.order.model.OrderType;
 import com.delivera.order.repository.OrderRepository;
+import com.delivera.org.model.Company;
+import com.delivera.org.repository.CompanyRepository;
 import com.delivera.repository.*;
 import com.delivera.service.AppConfigService;
 import com.delivera.service.EmailService;

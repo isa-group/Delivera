@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.delivera.org.model.Company;
+
 @Getter
 @Setter
 @NoArgsConstructor

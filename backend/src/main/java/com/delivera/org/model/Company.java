@@ -1,4 +1,4 @@
-package com.delivera.model;
+package com.delivera.org.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -8,6 +8,8 @@ import lombok.Setter;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.delivera.model.ActivityType;
+import com.delivera.model.SubscriptionPlan;
 import com.delivera.order.model.OrderPriority;
 
 
