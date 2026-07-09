@@ -4,15 +4,10 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
-
 import com.delivera.data.dto.common.OrderPriority;
-import com.delivera.data.worker.model.Worker;
 
 
 @Getter
@@ -26,8 +21,11 @@ public class OperationalUnit {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @JoinColumn(name = "company_id", nullable = false)
+    @Column(name = "company_id", nullable = false)
     private UUID companyId;
+
+    @Column(name = "org_id", nullable = false)
+    private UUID orgId;
 
     @Column(nullable = false)
     private String name;
@@ -58,10 +56,4 @@ public class OperationalUnit {
     @Column(name = "default_priority", length = 10)
     private OrderPriority defaultPriority;
 
-
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "unit_workers",
-            joinColumns = @JoinColumn(name = "unit_id"),
-            inverseJoinColumns = @JoinColumn(name = "worker_id"))
-    private Set<Worker> workers = new HashSet<>();
 }

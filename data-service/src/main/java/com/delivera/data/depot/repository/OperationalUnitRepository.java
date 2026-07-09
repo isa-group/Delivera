@@ -6,8 +6,9 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.delivera.data.depot.dto.B2BUnitResponse;
 import com.delivera.data.depot.model.OperationalUnit;
-import com.delivera.data.worker.model.Worker;
+/*import com.delivera.data.worker.model.Worker;*/
 
 import java.util.List;
 import java.util.Optional;
@@ -23,9 +24,19 @@ public interface OperationalUnitRepository extends JpaRepository<OperationalUnit
 
     boolean existsByCompanyIdAndNameAndIdNot(UUID companyId, String name, UUID id);
 
-    List<OperationalUnit> findAllByCompanyIdAndWorkersContaining(UUID companyId, Worker worker);
 
-    @Query("SELECT u FROM OperationalUnit u LEFT JOIN FETCH u.workers WHERE u.id = :id AND u.company.id = :companyId")
+    
+    @Query("""
+      SELECT DISTINCT w.unit
+      FROM UnitWorker w
+      WHERE
+          w.unit.companyId = :companyId
+          AND 
+          w.userId = :userId
+    """)
+    List<OperationalUnit> findAllByCompanyIdAndUserId(UUID companyId, UUID userId);
+
+   /*  @Query("SELECT u FROM OperationalUnit u LEFT JOIN FETCH u.workers WHERE u.id = :id AND u.company.id = :companyId")
     Optional<OperationalUnit> findByIdAndCompanyIdWithWorkers(@Param("id") UUID id, @Param("companyId") UUID companyId);
 
     @Query("SELECT u FROM OperationalUnit u WHERE u.company.organization.id = " +
@@ -36,8 +47,31 @@ public interface OperationalUnitRepository extends JpaRepository<OperationalUnit
     @Query("SELECT u FROM OperationalUnit u JOIN FETCH u.company c JOIN FETCH c.organization WHERE u.company.id <> :companyId")
     List<OperationalUnit> findAllExternalUnits(@Param("companyId") UUID companyId);
 
+    @Query("SELECT u FROM OperationalUnit u JOIN FETCH u.company c JOIN FETCH c.organization WHERE u.company.id <> :companyId")
+    List<OperationalUnit> findAllExternalUnits(@Param("companyId") UUID companyId);
+
     @Query("SELECT u FROM OperationalUnit u WHERE u.id = :id AND u.company.organization.id = :orgId")
     Optional<OperationalUnit> findByIdAndOrganizationId(@Param("id") UUID id, @Param("orgId") UUID orgId);
+*/
+    
+    @Query("""
+        SELECT new com.delivera.data.depot.dto.B2BUnitResponse(
+            u.id,
+            u.name,
+            u.type,
+            u.companyId,
+            u.orgId
+        )
+        FROM OperationalUnit u
+        WHERE 
+          u.companyId <> :companyId
+          AND
+          u.companyId = :externalCompanyId
+    """)
+    List<B2BUnitResponse> findAllExternalUnits(
+        @Param("companyId") UUID companyId,
+        @Param("externalCompanyId") UUID externalCompanyId
+    );
 
     long countByCompanyId(UUID companyId);
 

@@ -27,18 +27,19 @@ public class UnitController {
 
     private final UnitService unitService;
 
+    /* 
     @Operation(summary = "Listar unidades de la empresa")
     @GetMapping
     public ResponseEntity<List<UnitResponse>> list() {
         return ResponseEntity.ok(unitService.getByCompany());
-    }
+    }*/
 
     @Operation(summary = "Listar unidades de otras empresas de la misma organización (B2B)")
-    @GetMapping("/external")
-    public ResponseEntity<List<B2BUnitResponse>> listExternal() {
-        return ResponseEntity.ok(unitService.getExternalUnits());
+    @GetMapping("/external/company/{companyId}")
+    public ResponseEntity<List<B2BUnitResponse>> listExternal(@Valid @PathVariable UUID companyId ) {
+        return ResponseEntity.ok(unitService.getExternalUnits(companyId));
     }
-    /* TODO:
+    /* TODO: CREO QUE NO SE UTILIZA
     @Operation(summary = "Listar empresas de la misma organización (B2B)")
     @GetMapping("/external-companies")
     public ResponseEntity<List<CompanySummary>> listExternalCompanies() {
@@ -58,17 +59,19 @@ public class UnitController {
         return ResponseEntity.ok(unitService.getDetail(id));
     }
 
+    /* 
     @Operation(summary = "Asignar trabajador a una unidad")
     @PostMapping("/{id}/workers/{workerId}")
     public ResponseEntity<UnitDetailResponse> assignWorker(@PathVariable UUID id, @PathVariable UUID workerId) {
         return ResponseEntity.ok(unitService.assignWorker(id, workerId));
-    }
+    }*/
 
+    /* 
     @Operation(summary = "Desasignar trabajador de una unidad")
     @DeleteMapping("/{id}/workers/{workerId}")
     public ResponseEntity<UnitDetailResponse> unassignWorker(@PathVariable UUID id, @PathVariable UUID workerId) {
         return ResponseEntity.ok(unitService.unassignWorker(id, workerId));
-    }
+    }*/
 
     @Operation(summary = "Editar unidad operativa")
     @PutMapping("/{id}")
