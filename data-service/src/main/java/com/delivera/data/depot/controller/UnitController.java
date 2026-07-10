@@ -27,12 +27,12 @@ public class UnitController {
 
     private final UnitService unitService;
 
-    /* 
+    
     @Operation(summary = "Listar unidades de la empresa")
     @GetMapping
     public ResponseEntity<List<UnitResponse>> list() {
         return ResponseEntity.ok(unitService.getByCompany());
-    }*/
+    }
 
     @Operation(summary = "Listar unidades de otras empresas de la misma organización (B2B)")
     @GetMapping("/external/company/{companyId}")

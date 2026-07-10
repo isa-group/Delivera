@@ -3,6 +3,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { useValidation } from '@/composables/useValidation'
+import { useServices } from './useServices'
 
 function parseCoord(val) {
   const trimmed = String(val).trim()
@@ -26,6 +27,7 @@ export function useUnitForm() {
   const { t } = useI18n()
   const router = useRouter()
   const api = useApi()
+  const dataApi = useServices("data-service")
   const { validate, required, errors, invalids } = useValidation()
 
   const name = ref('')
@@ -72,8 +74,8 @@ export function useUnitForm() {
         defaultPriority: defaultPriority.value || null,
       }
       const res = isEdit
-        ? await api.put(`/units/${unitId}`, body)
-        : await api.post('/units', body)
+        ? await dataApi.put(`/units/${unitId}`, body)
+        : await dataApi.post('/units', body)
 
       if (res.ok) {
         if (isEdit) {

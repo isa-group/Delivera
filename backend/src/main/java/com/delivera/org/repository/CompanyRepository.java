@@ -26,4 +26,7 @@ public interface CompanyRepository extends JpaRepository<Company, UUID> {
 
     @Query("SELECT COUNT(c) FROM Company c WHERE c.organization.handle <> 'delivera'")
     long countTenants();
+
+    @Query("SELECT COUNT(c) > 0 FROM Company c WHERE c.id = :id AND c.organization.id = :organizationId")
+    Boolean existsByIdAndOrganizationId(UUID id, UUID organizationId);
 }

@@ -1,6 +1,7 @@
 package com.delivera.data.depot.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.data.depot.dto.AssignRequest;
 import com.delivera.data.depot.dto.B2BUnitResponse;
 import com.delivera.data.depot.dto.UnitDetailResponse;
 import com.delivera.data.depot.dto.UnitRequest;
@@ -13,7 +14,6 @@ import com.delivera.data.depot.repository.WorkerRepository;
 import com.delivera.data.exception.CompanyContextException;
 import com.delivera.data.exception.UnitNameConflictException;
 import com.delivera.data.exception.UnitNotFoundException;
-import com.delivera.data.exception.WorkerNotFoundException;
 import com.delivera.data.org.dto.OrgCheckRequest;
 import com.delivera.data.org.service.OrgClient;
 
@@ -28,7 +28,6 @@ import java.util.UUID;
 public class UnitService {
 
     private final OperationalUnitRepository unitRepository;
-    //private final CompanyRepository companyRepository;
     private final OrgClient orgClient;
     private final WorkerRepository workerRepository;
     private final SecurityUtils securityUtils;
@@ -42,18 +41,34 @@ public class UnitService {
                        ) {
         this.unitRepository = unitRepository;
         this.orgClient = orgClient;
-       // this.companyRepository = companyRepository;
         this.workerRepository = workerRepository;
         this.securityUtils = securityUtils;
        // this.subscriptionService = subscriptionService;
     }
 
     @Transactional
+    public UnitResponse createSeed(UnitRequest request, UUID orgId, UUID companyId) {
+        if (unitRepository.existsByCompanyIdAndName(companyId, request.getName())) {
+            throw new UnitNameConflictException();
+        }
+        OperationalUnit unit = new OperationalUnit();
+        unit.setCompanyId(companyId);
+        unit.setOrgId(orgId);
+        applyRequest(unit, request);
+        try {
+            return UnitResponse.from(unitRepository.save(unit));
+        } catch (DataIntegrityViolationException e) {
+            throw new UnitNameConflictException();
+        }
+    }
+
+
+    @Transactional
     public UnitResponse create(UnitRequest request) {
         UUID companyId = securityUtils.getCurrentCompanyId();
         UUID orgId = securityUtils.getCurrentOrgId();
        //TODO: subscriptionService.checkUnitLimit(companyId);
-        if (unitRepository.existsByCompanyIdAndName(companyId, request.name())) {
+        if (unitRepository.existsByCompanyIdAndName(companyId, request.getName())) {
             throw new UnitNameConflictException();
         }
 
@@ -63,6 +78,7 @@ public class UnitService {
         }
         OperationalUnit unit = new OperationalUnit();
         unit.setCompanyId(companyId);
+        unit.setOrgId(orgId);
         applyRequest(unit, request);
         try {
             return UnitResponse.from(unitRepository.save(unit));
@@ -76,7 +92,7 @@ public class UnitService {
         UUID companyId = securityUtils.getCurrentCompanyId();
         OperationalUnit unit = unitRepository.findByIdAndCompanyId(unitId, companyId)
                 .orElseThrow(() -> new UnitNotFoundException(unitId));
-        if (unitRepository.existsByCompanyIdAndNameAndIdNot(companyId, request.name(), unitId)) {
+        if (unitRepository.existsByCompanyIdAndNameAndIdNot(companyId, request.getName(), unitId)) {
             throw new UnitNameConflictException();
         }
         applyRequest(unit, request);
@@ -86,22 +102,6 @@ public class UnitService {
             throw new UnitNameConflictException();
         }
     }
-
-   /*
-    @Transactional(readOnly = true)
-    public List<UnitResponse> getByCompany() {
-        UUID companyId = securityUtils.getCurrentCompanyId();
-        String role = securityUtils.getCurrentRole();
-        if (WorkerRole.OPERATOR.name().equals(role)) {
-            String email = securityUtils.getCurrentEmail();
-            Worker worker = workerRepository.findByUserEmailAndCompanyId(email, companyId).orElse(null);
-            if (worker == null) return List.of();
-            return unitRepository.findAllByCompanyIdAndWorkersContaining(companyId, worker).stream()
-                    .map(UnitResponse::from).toList();
-        }
-        return unitRepository.findAllByCompanyId(companyId).stream()
-                .map(UnitResponse::from).toList();
-    } */
 
 
     @Transactional(readOnly = true)
@@ -118,14 +118,7 @@ public class UnitService {
     } 
             
 
-    /* TODO: MOVER AL ORG-SERVICE??
-    @Transactional(readOnly = true)
-    public List<B2BUnitResponse> getExternalUnits() {
-        return unitRepository.findAllExternalUnits(securityUtils.getCurrentCompanyId()).stream()
-                .map(B2BUnitResponse::from)
-                .toList();
-    }
-    */
+
    
     @Transactional(readOnly = true)
     public List<B2BUnitResponse> getExternalUnits(UUID externalCompanyId) {
@@ -146,14 +139,6 @@ public class UnitService {
                 .toList();
     }*/
 
-    /* TODO: 
-    @Transactional(readOnly = true)
-    public UnitDetailResponse getDetail(UUID id) {
-        UUID companyId = securityUtils.getCurrentCompanyId();
-        return UnitDetailResponse.from(unitRepository.findByIdAndCompanyIdWithWorkers(id, companyId)
-                .orElseThrow(() -> new UnitNotFoundException(id)));
-    }
-    */
 
     @Transactional(readOnly = true)
     public UnitDetailResponse getDetail(UUID id) {
@@ -162,34 +147,14 @@ public class UnitService {
                 .orElseThrow(() -> new UnitNotFoundException(id)));
     }
 
-    /* TODO: DELETE
+ 
     @Transactional
-    public UnitDetailResponse assignWorker(UUID unitId, UUID workerId) {
+    public UnitWorker assignWorker(UUID unitId, AssignRequest request) {
         UUID companyId = securityUtils.getCurrentCompanyId();
-        OperationalUnit unit = unitRepository.findByIdAndCompanyIdWithWorkers(unitId, companyId)
-                .orElseThrow(() -> new UnitNotFoundException(unitId));
-        UnitWorker worker = workerRepository.findByIdAndCompanyId(workerId, companyId)
-                .orElseThrow(WorkerNotFoundException::new);
-        unit.getWorkers().add(worker);
-        return UnitDetailResponse.from(unitRepository.save(unit));
-    } 
-    
-    TODO: DELETE
-    @Transactional
-    public UnitDetailResponse unassignWorker(UUID unitId, UUID workerId) {
-        UUID companyId = securityUtils.getCurrentCompanyId();
-        OperationalUnit unit = unitRepository.findByIdAndCompanyIdWithWorkers(unitId, companyId)
-                .orElseThrow(() -> new UnitNotFoundException(unitId));
-        unit.getWorkers().removeIf(w -> w.getId().equals(workerId));
-        return UnitDetailResponse.from(unitRepository.save(unit));
-    } */
-
-    @Transactional
-    public UnitWorker assignWorker(UUID unitId, UUID workerId, UUID userId) {
-        UUID companyId = securityUtils.getCurrentCompanyId();
+        request.setCompanyId(companyId);
         OperationalUnit unit = unitRepository.findByIdAndCompanyId(unitId, companyId)
                 .orElseThrow(() -> new UnitNotFoundException(unitId));
-        return workerRepository.save(buildUnitWorker(unit, workerId, userId));
+        return workerRepository.save(buildUnitWorker(unit, request));
     } 
         
 
@@ -198,6 +163,18 @@ public class UnitService {
         UUID companyId = securityUtils.getCurrentCompanyId();
         workerRepository.unassignWorker(workerId,unitId,companyId);
     }
+
+    
+    @Transactional
+    public UnitWorker assignWorkerSeed(UUID unitId, AssignRequest request ) {
+        UUID companyId = request.getCompanyId();
+        OperationalUnit unit = unitRepository.findByIdAndCompanyId(unitId, companyId)
+                .orElseThrow(() -> new UnitNotFoundException(unitId));
+        return workerRepository.save(buildUnitWorker(unit, request));
+    } 
+        
+
+
 
 
     @Transactional(readOnly = true)
@@ -218,21 +195,20 @@ public class UnitService {
     }
 
     private void applyRequest(OperationalUnit unit, UnitRequest request) {
-        unit.setName(request.name());
-        unit.setType(request.type());
-        unit.setAddress(request.address());
-        unit.setLatitude(request.latitude());
-        unit.setLongitude(request.longitude());
-        unit.setDefaultPriority(request.defaultPriority());
+        unit.setName(request.getName());
+        unit.setType(request.getType());
+        unit.setAddress(request.getAddress());
+        unit.setLatitude(request.getLatitude());
+        unit.setLongitude(request.getLongitude());
+        unit.setDefaultPriority(request.getDefaultPriority());
     }
 
-    private UnitWorker buildUnitWorker(OperationalUnit unit, UUID workerId, UUID userId) {
-        UUID companyId = securityUtils.getCurrentCompanyId();
+    private UnitWorker buildUnitWorker(OperationalUnit unit,AssignRequest assignRequest) {
         UnitWorker unitWorker = new UnitWorker();
-        unitWorker.setCompanyId(companyId);
+        unitWorker.setCompanyId(assignRequest.getCompanyId());
         unitWorker.setUnit(unit);
-        unitWorker.setWorkerId(workerId);
-        unitWorker.setUserId(userId);
+        unitWorker.setWorkerId(assignRequest.getWorkerId());
+        unitWorker.setUserId(assignRequest.getUserId());
         return unitWorker;
     }
 }

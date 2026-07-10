@@ -12,6 +12,7 @@ import 'leaflet/dist/leaflet.css'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
+import { useServices } from '@/composables/useServices'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow })
@@ -20,6 +21,7 @@ const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const api = useApi()
+const dataApi = useServices("data-service")
 
 const unitId = computed(() => route.params.id || null)
 const isEdit = computed(() => !!unitId.value)
@@ -154,7 +156,7 @@ async function loadUnit(id) {
   loadError.value = ''
   try {
     const [unitRes, ordersRes] = await Promise.all([
-      api.get(`/units/${id}`),
+      dataApi.get(`/units/${id}`),
       api.get('/orders'),
     ])
     if (!unitRes.ok) { loadError.value = t('error.connection'); return }

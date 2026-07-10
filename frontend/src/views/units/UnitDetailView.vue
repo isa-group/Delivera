@@ -7,12 +7,14 @@ import { useAuthStore } from '@/stores/auth'
 import { useFormatDate } from '@/composables/useFormatDate'
 import { createMap, ownUnitIcon } from '@/composables/useDeliveraMap'
 import L from 'leaflet'
+import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const { formatDate } = useFormatDate()
 const route = useRoute()
 const router = useRouter()
 const api = useApi()
+const dataApi = useServices("data-service")
 const auth = useAuthStore()
 
 const unit = ref(null)
@@ -42,7 +44,7 @@ function initMap() {
 async function load() {
   loading.value = true
   try {
-    const res = await api.get(`/units/${route.params.id}`)
+    const res = await dataApi.get(`/units/${route.params.id}`)
     if (res.ok) unit.value = await res.json()
     else if (res.status === 404 || res.status === 400) error.value = t('units.notFound')
     else error.value = t('error.connection')

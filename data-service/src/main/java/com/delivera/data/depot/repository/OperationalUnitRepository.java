@@ -74,14 +74,14 @@ public interface OperationalUnitRepository extends JpaRepository<OperationalUnit
     );
 
     long countByCompanyId(UUID companyId);
-
+    /*
     @Query("SELECT u FROM OperationalUnit u WHERE u.company.id = :companyId AND NOT EXISTS (SELECT o FROM Order o WHERE o.origin.id = u.id OR o.destination.id = u.id) ORDER BY u.createdAt DESC")
     List<OperationalUnit> findByCompanyIdWithNoOrdersOrderByCreatedAtDesc(@Param("companyId") UUID companyId);
 
     @Modifying
     @Query("DELETE FROM OperationalUnit u WHERE u.company.id = :companyId")
     void deleteByCompanyId(@Param("companyId") UUID companyId);
-
+     */
     @Modifying
     @Query("DELETE FROM OperationalUnit u")
     void deleteAllUnits();

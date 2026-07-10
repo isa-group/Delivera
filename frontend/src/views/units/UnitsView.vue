@@ -11,13 +11,16 @@ import EmptyState from '@/components/EmptyState.vue'
 import L from 'leaflet'
 import { createMap, addMarker, clusterOptions, fitBounds } from '@/composables/useDeliveraMap'
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM_REGION } from '@/constants/map'
+import { useResourceListFromService } from '@/composables/useResourceListFromService'
+import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const router = useRouter()
 const api = useApi()
+const dataApi = useServices("data-service")
 const confirm = useConfirm()
 const auth = useAuthStore()
-const { items: units, loading, error } = useResourceList('/units')
+const { items: units, loading, error } = useResourceListFromService('/units',"data-service")
 
 const deleteError = ref('')
 const filterText = ref('')
@@ -86,7 +89,7 @@ async function deleteUnit(e, id) {
   e.stopPropagation()
   deleteError.value = ''
   confirm.require(buildDeleteConfirmOptions(t, t('units.deleteConfirm'), async () => {
-    const res = await api.del(`/units/${id}`)
+    const res = await dataApi.del(`/units/${id}`)
     if (res.ok) {
       units.value = units.value.filter(u => u.id !== id)
     } else {

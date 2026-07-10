@@ -22,6 +22,11 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private static final String ADMIN      = "COMPANY_ADMIN";
+    private static final String ANALYST    = "ANALYST";
+    private static final String OPERATOR   = "OPERATOR";
+    private static final String LOYAL_USER = "LOYAL_USER";
+    private static final String UNITS_ALL  = "/units/**";
 
     private static final String[] SWAGGER_PATHS = {
         "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/webjars/**"
@@ -44,6 +49,13 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers(SWAGGER_PATHS).permitAll();
+                auth.requestMatchers(HttpMethod.POST, api+"/internal/units/seed/organization/*/company/*").permitAll();
+                auth.requestMatchers(HttpMethod.POST, api+"/internal/units/*/seed/assign").permitAll();
+                auth.requestMatchers(HttpMethod.GET, api+"/units" ).hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.POST, api+"/units" ).hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.GET, api+"/units/*" ).hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.PUT, api + "/units/*").hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.DELETE, api + "/units/*").hasRole(ADMIN);
                 auth.anyRequest().denyAll();
             });
             

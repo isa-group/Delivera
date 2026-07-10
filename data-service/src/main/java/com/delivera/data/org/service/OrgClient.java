@@ -21,8 +21,8 @@ public class OrgClient {
 
      public  Mono<Boolean> checkOrgData(OrgCheckRequest requestBody) {
         return client.request()
-        .service("org-service")
-        .path("/internal/org/check")
+        .service("delivera-service")
+        .path("/internal/organization/check")
         .method(HttpMethod.GET)
         .mtls()
         .body(requestBody)

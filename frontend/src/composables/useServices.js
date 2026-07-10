@@ -7,6 +7,7 @@ export function useServices(service) {
   const SERVICE_MAP = {
     "auth-service": import.meta.env.VITE_AUTH_API_URL,
     "delivera-service": import.meta.env.VITE_API_URL,
+    "data-service": import.meta.env.VITE_DATA_API_URL
   }
   const auth = useAuthStore()
   const router = useRouter()
@@ -16,6 +17,8 @@ export function useServices(service) {
  
 
   function resolveBaseUrl(service) {
+    console.log(service)
+    console.log( SERVICE_MAP[service] || import.meta.env.VITE_API_URL)
     return SERVICE_MAP[service] || import.meta.env.VITE_API_URL
   }
   
@@ -46,11 +49,12 @@ export function useServices(service) {
 
     // Sólo forzamos logout si el usuario estaba autenticado y la llamada no es de auth.
     // Evita que un 401 sobre un endpoint público cierre sesión al vuelo.
+    /*
     if (response.status === 401 && auth.token && !endpoint.startsWith('/auth/')) {
       auth.logout()
       router.push('/')
       throw new Error('No autorizado')
-    }
+    }*/
 
     return response
   }

@@ -52,6 +52,7 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.POST, api + "/auth/switch-company").authenticated();
                 auth.requestMatchers(api + "/auth/**").permitAll();
                 auth.requestMatchers(api + "/internal/auth/**").permitAll();
+                auth.requestMatchers(api + "/internal/organization/check").permitAll();
                 auth.requestMatchers(HttpMethod.GET, api + "/organizations/**").permitAll();
                 auth.requestMatchers(HttpMethod.GET, api + "/activity-types", api + "/activity-types/**").permitAll();
                 auth.requestMatchers(HttpMethod.GET, api + "/app-config/**").permitAll();

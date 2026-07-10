@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/delivera_auth_dev
-    username: delivera_auth_user
-    password: delivera_auth_pass
+    url: jdbc:postgresql://localhost:5434/delivera_data_dev
+    username: delivera_data_user
+    password: delivera_data_pass
 
   jpa:
     hibernate:
@@ -46,6 +46,8 @@ delivera:
       delivera-service: 
         api-internal-key: delivera-internal-key
         allowed-paths: 
+          - /internal/units/seed/organization/*/company/*
+          - /internal/units/*/seed/assign
       data-service: 
         api-internal-key: data-internal-key
         allowed-paths: 
