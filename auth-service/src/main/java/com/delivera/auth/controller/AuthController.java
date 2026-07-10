@@ -86,6 +86,7 @@ public class AuthController {
         if (ip == null || activeGateway) {
             ip = httpRequest.getRemoteAddr();
         }
+        ip = ip.split(",")[0].trim();
         return ip.length() > 40
         ? ip.substring(0, 40)
         : ip;

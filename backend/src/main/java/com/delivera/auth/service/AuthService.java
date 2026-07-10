@@ -82,6 +82,7 @@ public class AuthService {
         if (ip == null || activeGateway) {
             ip = httpRequest.getRemoteAddr();
         }
+        ip = ip.split(",")[0].trim();
         return ip;
     }
 

@@ -106,6 +106,12 @@ app:
       key-2026-07:
         private-key: keys/private_key_2026_07.pem
         public-key: keys/public_key_2026_07.pem
+      key-2026-08:
+        private-key: keys/private_key_2026_08.pem
+        public-key: keys/public_key_2026_08.pem
+      key-2026-09:
+        private-key: keys/private_key_2026_09.pem
+        public-key: keys/public_key_2026_09.pem
     active-key-id: ${JWT_ACTIVE_KEY:key-2026-06}
   cors:
     allowed-origins: http://localhost:3000

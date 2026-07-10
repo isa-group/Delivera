@@ -19,6 +19,30 @@ services:
       timeout: 5s
       retries: 5
     command: postgres -c 'max_connections=200'
+  
+  auth-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.auth
+
+    container_name: auth-service
+
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    ports:
+      - "9090:9090"
+
+    expose:
+      - "9091"
+
+    volumes:
+      - ../auth-service/src/main/resources/keys:/app/keys:ro
+      - ../auth-service/src/main/resources/certs:/app/certs:ro
+
+   
     
   auth-postgres:
     image: postgres:16
@@ -34,6 +58,25 @@ services:
       - delivera_auth_pg_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U delivera_auth_user -d delivera_auth_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: postgres -c 'max_connections=200'
+
+  data-postgres:
+    image: postgres:16
+    container_name: delivera_data_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: delivera_data_dev
+      POSTGRES_USER: delivera_data_user
+      POSTGRES_PASSWORD: delivera_data_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - delivera_data_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U delivera_data_user -d delivera_data_dev"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -58,4 +101,5 @@ services:
 volumes:
   delivera_pg_data:
   delivera_auth_pg_data:
+  delivera_data_pg_data:
 
