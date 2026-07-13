@@ -4,11 +4,13 @@ import { useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { useValidation } from '@/composables/useValidation'
 import { useGeolocation } from '@/composables/useGeolocation'
+import { useServices } from './useServices'
 
 export function useOrderForm() {
   const { t } = useI18n()
   const router = useRouter()
   const api = useApi()
+  const dataApi = useServices("data-service")
   const { validate, required, email: emailRule, errors, invalids } = useValidation()
 
   const units = ref([])
@@ -81,7 +83,7 @@ export function useOrderForm() {
   onMounted(async () => {
     try {
       const [unitsRes, externalRes, luRes] = await Promise.all([
-        api.get('/units'),
+        dataApi.get('/units'),
         api.get('/units/external'),
         api.get('/loyal-users'),
       ])

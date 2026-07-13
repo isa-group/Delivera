@@ -32,7 +32,7 @@ public class UnitInternalController {
     
     //@Profile(value = {"dev"})
     @Operation(summary = "Crear unidad operativa")
-    @PostMapping("/seed/organization/{orgId}/company/{companyId}")
+    @PostMapping("/seed/organizations/{orgId}/companies/{companyId}")
     public ResponseEntity<UUID> createSeed(
         @Valid @PathVariable(name = "orgId") UUID orgId,
         @Valid @PathVariable(name = "companyId") UUID companyId,

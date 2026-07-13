@@ -5,11 +5,13 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.delivera.worker.dto.WorkerResponse;
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.model.WorkerRole;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface WorkerRepository extends JpaRepository<Worker, UUID> {
@@ -38,6 +40,21 @@ public interface WorkerRepository extends JpaRepository<Worker, UUID> {
 
     @Query("SELECT w FROM Worker w JOIN FETCH w.company c JOIN c.organization o JOIN w.user u WHERE u.email = :email ORDER BY w.createdAt ASC")
     List<Worker> findByUserEmailOrderByCreatedAtAsc(@Param("email") String email);
+
+    @Query("""
+        SELECT w
+        FROM Worker w 
+        WHERE 
+            w.id IN :workerIds 
+            AND 
+            w.company.id = :companyId
+        ORDER BY w.createdAt ASC
+    """)
+    List<Worker> findRequiredWorkersOfCompanyOrderByCreatedAtAsc(
+        @Param("companyId") UUID companyId,
+        @Param("workerIds") Set<UUID> workerIds 
+    );
+
 
     long countByCompanyId(UUID companyId);
 

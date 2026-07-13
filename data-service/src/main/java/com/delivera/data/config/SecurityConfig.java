@@ -49,13 +49,16 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers(SWAGGER_PATHS).permitAll();
-                auth.requestMatchers(HttpMethod.POST, api+"/internal/units/seed/organization/*/company/*").permitAll();
+                auth.requestMatchers(HttpMethod.POST, api+"/internal/units/seed/organizations/*/companies/*").permitAll();
                 auth.requestMatchers(HttpMethod.POST, api+"/internal/units/*/seed/assign").permitAll();
                 auth.requestMatchers(HttpMethod.GET, api+"/units" ).hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.POST, api+"/units" ).hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.GET, api+"/units/*" ).hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.PUT, api + "/units/*").hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.DELETE, api + "/units/*").hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.GET, api + "/units/*/workers").hasAnyRole(ADMIN, ANALYST);
+                auth.requestMatchers(HttpMethod.POST, api + "/units/*/workers").hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.DELETE, api + "/units/*/workers/*").hasRole(ADMIN);
                 auth.anyRequest().denyAll();
             });
             

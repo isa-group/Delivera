@@ -470,7 +470,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 BigDecimal.valueOf(lon),
                 OrderPriority.NORMAL
         );
-        String url = dataHost+dataPrefix+"/internal/units/seed/organization/"+c.getOrganization().getId()+"/company/"+c.getId();
+        String url = dataHost+dataPrefix+"/internal/units/seed/organizations/"+c.getOrganization().getId()+"/companies/"+c.getId();
         
         return unitClient.createSeed(u, url);
     }

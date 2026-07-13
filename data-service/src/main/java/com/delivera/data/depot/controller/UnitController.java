@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.delivera.data.depot.dto.AssignRequest;
 import com.delivera.data.depot.dto.B2BUnitResponse;
 import com.delivera.data.depot.dto.UnitDetailResponse;
 import com.delivera.data.depot.dto.UnitRequest;
@@ -17,6 +18,7 @@ import com.delivera.data.depot.dto.UnitResponse;
 import com.delivera.data.depot.service.UnitService;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -59,19 +61,26 @@ public class UnitController {
         return ResponseEntity.ok(unitService.getDetail(id));
     }
 
-    /* 
+    
     @Operation(summary = "Asignar trabajador a una unidad")
-    @PostMapping("/{id}/workers/{workerId}")
-    public ResponseEntity<UnitDetailResponse> assignWorker(@PathVariable UUID id, @PathVariable UUID workerId) {
-        return ResponseEntity.ok(unitService.assignWorker(id, workerId));
-    }*/
+    @PostMapping("/{id}/workers")
+    public ResponseEntity<Set<UUID>> assignWorker(@PathVariable UUID id, @Valid @RequestBody AssignRequest request) {
+        return ResponseEntity.ok(unitService.assignWorker(id, request));
+    }
 
-    /* 
+    
     @Operation(summary = "Desasignar trabajador de una unidad")
     @DeleteMapping("/{id}/workers/{workerId}")
-    public ResponseEntity<UnitDetailResponse> unassignWorker(@PathVariable UUID id, @PathVariable UUID workerId) {
+    public ResponseEntity<Set<UUID>> unassignWorker(@PathVariable UUID id, @PathVariable UUID workerId) {
         return ResponseEntity.ok(unitService.unassignWorker(id, workerId));
-    }*/
+    }
+
+    @Operation(summary = "Obtener los trabajadores de una unidad")
+    @GetMapping("/{id}/workers")
+    public ResponseEntity<Set<UUID>> getWorkers(@PathVariable UUID id) {
+        return ResponseEntity.ok(unitService.getWorkersIdByUnit(id));
+    }
+    
 
     @Operation(summary = "Editar unidad operativa")
     @PutMapping("/{id}")

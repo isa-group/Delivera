@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -31,6 +32,13 @@ public class WorkerController {
     public ResponseEntity<List<WorkerResponse>> list() {
         return ResponseEntity.ok(workerService.getByCompany());
     }
+
+    @Operation(summary = "Listar trabajadores de la empresa")
+    @PostMapping("/required")
+    public ResponseEntity<List<WorkerResponse>> listRequired(@RequestBody @Valid Set<UUID> workerIds ) {
+        return ResponseEntity.ok(workerService.getRequired(workerIds));
+    }
+
 
     @Operation(summary = "Invitar trabajador por email con rol")
     @PostMapping("/invite")

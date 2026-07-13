@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -54,6 +55,20 @@ public class WorkerService {
         return workerRepository.findByCompanyIdAndRoleNotOrderByCreatedAtAsc(companyId, WorkerRole.GLOBAL_ADMIN).stream()
                 .map(WorkerResponse::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkerResponse> getRequired(Set<UUID> workerIds) {
+        UUID companyId = securityUtils.getCurrentCompanyId();
+        if (workerIds.isEmpty()) {
+            return List.of();
+        }
+        return workerRepository.findRequiredWorkersOfCompanyOrderByCreatedAtAsc(
+            companyId, 
+            workerIds
+        ).stream()
+        .map(WorkerResponse::from)
+        .toList();
     }
 
     @Transactional

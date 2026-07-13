@@ -26,7 +26,7 @@ class WorkerControllerTest {
     @InjectMocks private WorkerController controller;
 
     private static WorkerResponse sampleWorker() {
-        return new WorkerResponse(UUID.randomUUID(), "w@e.com", "First", "Last", "OPERATOR", null, null);
+        return new WorkerResponse(UUID.randomUUID(),null ,"w@e.com", "First", "Last", "OPERATOR", null, null);
     }
 
     @Test

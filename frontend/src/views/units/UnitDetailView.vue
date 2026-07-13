@@ -2,7 +2,6 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useApi } from '@/composables/useApi'
 import { useAuthStore } from '@/stores/auth'
 import { useFormatDate } from '@/composables/useFormatDate'
 import { createMap, ownUnitIcon } from '@/composables/useDeliveraMap'
@@ -13,14 +12,12 @@ const { t } = useI18n()
 const { formatDate } = useFormatDate()
 const route = useRoute()
 const router = useRouter()
-const api = useApi()
 const dataApi = useServices("data-service")
 const auth = useAuthStore()
 
 const unit = ref(null)
 const loading = ref(false)
 const error = ref('')
-const workerActionError = ref('')
 const mapEl = ref(null)
 let map = null
 
@@ -53,15 +50,6 @@ async function load() {
   } finally {
     loading.value = false
   }
-}
-
-async function unassignWorker(workerId) {
-  workerActionError.value = ''
-  try {
-    const res = await api.del(`/units/${route.params.id}/workers/${workerId}`)
-    if (res.ok) unit.value = await res.json()
-    else { const d = await res.json(); workerActionError.value = api.translateError(d, 'error.saveFailed') }
-  } catch { workerActionError.value = t('error.connection') }
 }
 
 onMounted(async () => {
@@ -145,22 +133,32 @@ onUnmounted(() => { if (map) { map.remove(); map = null } })
         <!-- Trabajadores asignados -->
         <div v-if="isAdmin" class="workers-section">
           <h3>{{ t('units.workers') }}</h3>
-          <PMessage v-if="workerActionError" severity="error" :closable="false" class="form-message">{{ workerActionError }}</PMessage>
-          <div v-if="unit.workers && unit.workers.length" class="worker-list">
-            <div v-for="w in unit.workers" :key="w.id" class="worker-row">
-              <span class="worker-info">
-                <span class="worker-name">{{ w.firstName }} {{ w.lastName }}</span>
-                <span class="worker-email">{{ w.email }}</span>
-              </span>
-              <PTag :value="t('workers.roles.' + w.role)" severity="info" />
-              <PButton icon="pi pi-times" text rounded severity="danger" size="small" :aria-label="t('common.delete')"
-                       v-tooltip.top="t('common.delete')" @click="unassignWorker(w.id)" />
+            <div class="buttons-section">
+              <RouterLink
+                :to="{
+                  path: `/units/${unit.id}/assign-workers`,
+                  query: {
+                    name: unit.name
+                  }
+                }"
+              >
+                <PButton :label="t('units.assignWorkers')" icon="pi pi-plus" severity="secondary" size="small" class="assign-btn" />
+              </RouterLink>
+              <RouterLink
+                  :to="{
+                    path: `/units/${unit.id}/workers`,
+                    query: {
+                      name: unit.name
+                    }
+                  }"
+                >
+                
+
+                <PButton :label="t('units.workers')" icon="" severity="secondary" size="small" class="assign-btn" />
+              </RouterLink>
             </div>
-          </div>
-          <p v-else class="empty-workers">{{ t('units.noWorkers') }}</p>
-          <RouterLink :to="`/units/${unit.id}/assign-workers`">
-            <PButton :label="t('units.assignWorkers')" icon="pi pi-plus" severity="secondary" size="small" class="assign-btn" />
-          </RouterLink>
+            
+          
         </div>
       </div>
 

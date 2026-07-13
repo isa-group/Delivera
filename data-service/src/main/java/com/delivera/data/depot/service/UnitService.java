@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -149,19 +150,26 @@ public class UnitService {
 
  
     @Transactional
-    public UnitWorker assignWorker(UUID unitId, AssignRequest request) {
+    public Set<UUID> assignWorker(UUID unitId, AssignRequest request) {
         UUID companyId = securityUtils.getCurrentCompanyId();
         request.setCompanyId(companyId);
         OperationalUnit unit = unitRepository.findByIdAndCompanyId(unitId, companyId)
                 .orElseThrow(() -> new UnitNotFoundException(unitId));
-        return workerRepository.save(buildUnitWorker(unit, request));
+        Set<UUID> workerIds = workerRepository.findWorkersIdByUnitIdAndCompanyId(unitId, companyId);
+        if (!workerIds.contains(request.getWorkerId())) {
+            workerRepository.save(buildUnitWorker(unit, request));
+            workerIds.add(request.getWorkerId());
+        }
+        
+        return workerIds;
     } 
         
 
     @Transactional
-    public void unassignWorker(UUID unitId, UUID workerId) {
+    public Set<UUID> unassignWorker(UUID unitId, UUID workerId) {
         UUID companyId = securityUtils.getCurrentCompanyId();
         workerRepository.unassignWorker(workerId,unitId,companyId);
+        return workerRepository.findWorkersIdByUnitIdAndCompanyId(unitId, companyId);
     }
 
     
@@ -178,7 +186,7 @@ public class UnitService {
 
 
     @Transactional(readOnly = true)
-    public List<UUID> getWorkersIdByUnit(UUID unitId) {
+    public Set<UUID> getWorkersIdByUnit(UUID unitId) {
         UUID companyId = securityUtils.getCurrentCompanyId();
         return workerRepository.findWorkersIdByUnitIdAndCompanyId(unitId, companyId);
     }

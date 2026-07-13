@@ -1,0 +1,13 @@
+.card { text-align: left; }
+.subtitle { font-size: 14px; color: #64748b; margin: 4px 0 20px; }
+.worker-list { display: flex; flex-direction: column; gap: 8px; }
+.worker-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: background 0.1s; }
+.worker-row:hover { background: #f8fafc; }
+.worker-info { flex: 1; min-width: 0; }
+.worker-name { display: block; font-size: 14px; font-weight: 500; color: #1e293b; }
+.worker-email { display: block; font-size: 12px; color: #94a3b8; }
+.empty { font-size: 13px; color: #94a3b8; }
+.worker-row--busy { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
+.worker-spinner { font-size: 14px; color: #7c3aed; flex-shrink: 0; width: 20px; text-align: center; }
+
+.assign-button {display: flex; justify-content: center;}

@@ -7,6 +7,7 @@ import com.delivera.worker.model.Worker;
 
 public record WorkerResponse(
         UUID id,
+        UUID userId,
         String email,
         String firstName,
         String lastName,
@@ -17,6 +18,7 @@ public record WorkerResponse(
     public static WorkerResponse from(Worker w) {
         return new WorkerResponse(
                 w.getId(),
+                w.getUser().getId(),
                 w.getUser().getEmail(),
                 w.getUser().getFirstName(),
                 w.getUser().getLastName(),
@@ -28,6 +30,7 @@ public record WorkerResponse(
     public static WorkerResponse withTemp(Worker w, String tempPassword) {
         return new WorkerResponse(
                 w.getId(),
+                w.getUser().getId(),
                 w.getUser().getEmail(),
                 w.getUser().getFirstName(),
                 w.getUser().getLastName(),

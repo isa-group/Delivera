@@ -1,7 +1,7 @@
 package com.delivera.data.depot.repository;
 
 
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 
@@ -39,11 +39,12 @@ public interface WorkerRepository extends JpaRepository<UnitWorker, UUID>{
             AND 
             w.companyId = :companyId
     """)
-    List<UUID> findWorkersIdByUnitIdAndCompanyId( 
+    Set<UUID> findWorkersIdByUnitIdAndCompanyId( 
         @Param("unitId") UUID unitId,  
         @Param("companyId") UUID companyId
     );
 
+    
 
 
 
