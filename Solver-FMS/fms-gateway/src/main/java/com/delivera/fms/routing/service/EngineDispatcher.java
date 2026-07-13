@@ -24,10 +24,12 @@ public class EngineDispatcher {
 
     public EngineDispatcher(
             @Qualifier("greedyWebClient") WebClient greedyWebClient,
-            @Qualifier("randomWebClient") WebClient randomWebClient) {
+            @Qualifier("randomWebClient") WebClient randomWebClient,
+            @Qualifier("geneticWebClient") WebClient geneticWebClient) {
         this.engineClients = Map.of(
                 TypeSolver.GREEDY, greedyWebClient,
-                TypeSolver.RANDOM, randomWebClient
+                TypeSolver.RANDOM, randomWebClient,
+                TypeSolver.GENETIC, geneticWebClient
         );
     }
 
