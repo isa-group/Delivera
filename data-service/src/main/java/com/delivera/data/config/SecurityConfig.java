@@ -51,6 +51,7 @@ public class SecurityConfig {
                 auth.requestMatchers(SWAGGER_PATHS).permitAll();
                 auth.requestMatchers(HttpMethod.POST, api+"/internal/units/seed/organizations/*/companies/*").permitAll();
                 auth.requestMatchers(HttpMethod.POST, api+"/internal/units/*/seed/assign").permitAll();
+                auth.requestMatchers(HttpMethod.DELETE, api+"/internal/units/companies/*").permitAll();
                 auth.requestMatchers(HttpMethod.GET, api+"/units" ).hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.POST, api+"/units" ).hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.GET, api+"/units/*" ).hasRole(ADMIN);

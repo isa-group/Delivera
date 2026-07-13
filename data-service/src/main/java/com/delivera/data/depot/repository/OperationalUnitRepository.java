@@ -85,4 +85,13 @@ public interface OperationalUnitRepository extends JpaRepository<OperationalUnit
     @Modifying
     @Query("DELETE FROM OperationalUnit u")
     void deleteAllUnits();
+
+
+    @Modifying
+    @Query("""
+        DELETE 
+        FROM OperationalUnit u 
+        WHERE u.companyId = :companyId
+    """)
+    void deleteAllFromCompany(@Param("companyId") UUID companyId);
 }

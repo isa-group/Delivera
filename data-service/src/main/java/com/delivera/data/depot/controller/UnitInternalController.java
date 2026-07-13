@@ -54,5 +54,16 @@ public class UnitInternalController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    
+    //@Profile(value = {"dev"})
+    @Operation(summary = "Crear unidad operativa")
+    @DeleteMapping("/companies/{companyId}")
+    public ResponseEntity<Void> createAssign(
+        @Valid @PathVariable(name = "companyId") UUID companyId
+    ) {
+        unitService.deleteByCompanyId(companyId);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
 
 }

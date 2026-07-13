@@ -202,6 +202,12 @@ public class UnitService {
         unitRepository.delete(unit);
     }
 
+
+    @Transactional
+    public void deleteByCompanyId(UUID companyId) {
+        unitRepository.deleteAllFromCompany(companyId);
+    }
+
     private void applyRequest(OperationalUnit unit, UnitRequest request) {
         unit.setName(request.getName());
         unit.setType(request.getType());

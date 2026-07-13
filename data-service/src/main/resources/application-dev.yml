@@ -48,6 +48,7 @@ delivera:
         allowed-paths: 
           - /internal/units/seed/organizations/*/companies/*
           - /internal/units/*/seed/assign
+          - /internal/units/companies/*
       data-service: 
         api-internal-key: data-internal-key
         allowed-paths: 

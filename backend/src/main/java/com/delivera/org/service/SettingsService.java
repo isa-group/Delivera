@@ -3,6 +3,7 @@ package com.delivera.org.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.depot.repository.OperationalUnitRepository;
+import com.delivera.depot.service.UnitClient;
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.CompanyHasActiveOrdersException;
 import com.delivera.exception.ForbiddenException;
@@ -46,7 +47,7 @@ public class SettingsService {
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
     private final LoyalUserRepository loyalUserRepository;
-    private final OperationalUnitRepository operationalUnitRepository;
+    private final UnitClient unitClient;
     private final ActivityTypeRepository activityTypeRepository;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
     private final SecurityUtils securityUtils;
@@ -139,7 +140,7 @@ public class SettingsService {
             else loyalUserRepository.save(lu);
         }
         // TODO: WORKER REPOSITORY DOESN'T DELETE USER ACCOUNT IF IT'S THE WORKER ASSOCIATE TO THAT ACCOUNT.
-        operationalUnitRepository.deleteAll(operationalUnitRepository.findAllByCompanyId(companyId));
+        unitClient.deleteAllFromCompany(companyId);
         workerRepository.deleteAll(workerRepository.findByCompanyId(companyId));
         companyRepository.delete(target);
     }

@@ -52,6 +52,21 @@ public class UnitClient {
         .executeBasicRequest(Void.class).block();
     }
 
+    public void deleteAllFromCompany(UUID companyId) {
+        client.request()
+        .service("data-service")
+        .path("/internal/units/companies/"+companyId)
+        .method(HttpMethod.DELETE)
+        .mtls()
+        .internal()
+        .failOn4xx(true)
+        .failOn5xx(true)
+        .retry(3)
+        .timeout(5000)
+        .log()
+        .executeBasicRequest(Void.class).block();
+    }
+
 
 
 }
