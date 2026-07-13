@@ -1,0 +1,30 @@
+{
+  "problemId": "PROBLEM-001",
+  "status": "COMPLETED",
+  "solverUsed": "GREEDY",
+  "totalCost": 19.4,
+  "computationTimeMs": 12,
+  "routes": [
+    {
+      "vehicleId": "V-001",
+      "depotId": "DEP-1",
+      "stops": ["C-001", "C-003"],
+      "totalDistance": 6.9,
+      "totalLoad": 18
+    },
+    {
+      "vehicleId": "V-001",
+      "depotId": "DEP-1",
+      "stops": ["C-002"],
+      "totalDistance": 7.6,
+      "totalLoad": 15
+    },
+    {
+      "vehicleId": "V-002",
+      "depotId": "DEP-2",
+      "stops": ["C-005", "C-004"],
+      "totalDistance": 4.9,
+      "totalLoad": 32
+    }
+  ]
+}

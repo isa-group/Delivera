@@ -74,7 +74,9 @@ npm run dev
 |---|---|
 | PostgreSQL (host) | 5433 |
 | Spring Boot | 8080 |
-|FMS | 8082 |
+| FMS Gateway | 8090 |
+| FMS Greedy Engine | 8091 |
+| FMS Random Engine | 8092 |
 | Vite dev server | 3000 |
 | Swagger UI | http://localhost:8080/swagger-ui/index.html |
 
