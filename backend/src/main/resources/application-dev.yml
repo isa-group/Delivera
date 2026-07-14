@@ -24,13 +24,16 @@ delivera:
     service-name: delivera-service
     internal-hosts: 
       - auth-service
+      - data-service
     
     service-hosts:
       auth-service: https://localhost:9091
+      data-service: https://localhost:9093
     
     
     service-base-paths:
       auth-service: /api/v2
+      data-service: /api/v2
 
 
     internal-auth:
@@ -48,6 +51,10 @@ delivera:
       delivera-service: 
         api-internal-key: delivera-internal-key
         allowed-paths:
+      data-service:
+        api-internal-key: data-internal-key
+        allowed-paths:
+          - /internal/organization/check 
       
   mtls:
     enabled: true
@@ -98,3 +105,6 @@ app:
         prefix: /api/v2 
         host: http://localhost:9090
         path: /internal/auth/seed/register
+      data:
+        prefix: /api/v2 
+        host: http://localhost:9092

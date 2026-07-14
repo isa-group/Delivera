@@ -5,8 +5,18 @@ import com.delivera.auth.service.AuthClient;
 import com.delivera.auth.service.AuthService;
 import com.delivera.dto.auth.*;
 import com.delivera.exception.*;
+import java.math.BigDecimal;
 import com.delivera.model.*;
+import com.delivera.order.model.Order;
+import com.delivera.order.repository.OrderRepository;
+import com.delivera.org.model.Company;
+import com.delivera.org.model.Organization;
+import com.delivera.org.repository.CompanyRepository;
+import com.delivera.org.repository.OrganizationRepository;
 import com.delivera.repository.*;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.model.WorkerRole;
+import com.delivera.worker.repository.WorkerRepository;
 
 import reactor.core.publisher.Mono;
 
@@ -82,7 +92,7 @@ class AuthServiceTest {
         claimOrder.setRecipientEmail("juan@gmail.com");
         claimOrder.setCompany(company);
 
-        claimRequest = new ClaimRegisterRequest("Juan", "García", "juan@gmail.com", "Password1");
+        claimRequest = new ClaimRegisterRequest("Juan", "García", "juan@gmail.com", "juangarcia", "Password1");
     }
 
   
@@ -90,7 +100,7 @@ class AuthServiceTest {
 
     @Test
     void register_success() {
-        RegisterRequest req = new RegisterRequest("new@test.com", "newuser", "John", null, null, "Password1");
+        RegisterRequest req = new RegisterRequest("new@test.com", "newuser", "John", null, null, "Password1", "Calle Mayor 1, Madrid", new BigDecimal("40.4168"), new BigDecimal("-3.7038"));
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
         when(userRepository.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -141,7 +151,7 @@ class AuthServiceTest {
     void claimRegister_success_noExistingLoyalUser() {
         when(orderRepository.findByTrackingToken("testtoken")).thenReturn(Optional.of(claimOrder));
         when(userRepository.findByEmail("juan@gmail.com")).thenReturn(Optional.empty());
-        when(loyalUserRepository.findByCompaniesIdAndEmail(company.getId(), "juan@gmail.com")).thenReturn(Optional.empty());
+        when(loyalUserRepository.findByCompanyIdAndEmail(company.getId(), "juan@gmail.com")).thenReturn(Optional.empty());
         when(userRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(loyalUserRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -178,7 +188,7 @@ class AuthServiceTest {
 
     @Test
     void register_emailExists_throws() {
-        RegisterRequest req = new RegisterRequest("dup@test.com", "u", "A", null, null, "Password1");
+        RegisterRequest req = new RegisterRequest("dup@test.com", "u", "A", null, null, "Password1", "Calle Mayor 1, Madrid", new BigDecimal("40.4168"), new BigDecimal("-3.7038"));
         when(userRepository.findByEmail("dup@test.com")).thenReturn(Optional.of(user));
         assertThatThrownBy(() -> authService.register(req, new RequestClientData("device", "userAgent", "ip")))
         .isInstanceOf(EmailAlreadyExistsException.class);
@@ -186,7 +196,7 @@ class AuthServiceTest {
 
     @Test
     void register_usernameExists_throws() {
-        RegisterRequest req = new RegisterRequest("new@test.com", "taken", "A", null, null, "Password1");
+        RegisterRequest req = new RegisterRequest("new@test.com", "taken", "A", null, null, "Password1", "Calle Mayor 1, Madrid", new BigDecimal("40.4168"), new BigDecimal("-3.7038"));
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
         when(userRepository.existsByUsername("taken")).thenReturn(true);
         assertThatThrownBy(() -> authService.register(req, new RequestClientData("device", "userAgent", "ip"))).isInstanceOf(UsernameAlreadyExistsException.class);
@@ -213,7 +223,7 @@ class AuthServiceTest {
     @Test
     void claimRegister_emailMismatch_throws() {
         when(orderRepository.findByTrackingToken("testtoken")).thenReturn(Optional.of(claimOrder));
-        ClaimRegisterRequest req = new ClaimRegisterRequest("A", "B", "other@gmail.com", "Password1");
+        ClaimRegisterRequest req = new ClaimRegisterRequest("A", "B", "other@gmail.com", "", "Password1");
         assertThatThrownBy(() -> authService.claimRegister("testtoken", req, new RequestClientData("device", "userAgent", "ip")))
                 .isInstanceOf(OrderClaimEmailMismatchException.class);
     }

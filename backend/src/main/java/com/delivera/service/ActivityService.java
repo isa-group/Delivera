@@ -1,12 +1,13 @@
 package com.delivera.service;
 
+import com.delivera.depot.model.UnitType;
 import com.delivera.dto.activity.ActivityMetricsResponse;
 import com.delivera.dto.activity.OrdersByDayEntry;
 import com.delivera.dto.activity.UnitRankingEntry;
-import com.delivera.model.UnitType;
-import com.delivera.model.OrderStatus;
+import com.delivera.order.model.OrderStatus;
+import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.LoyalUserRepository;
-import com.delivera.repository.OrderRepository;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,7 +42,7 @@ public class ActivityService {
                 orderRepository.countByCompanyIdAndStatusAndCreatedAtAfter(companyId, OrderStatus.DELIVERED, from),
                 orderRepository.countByCompanyIdAndStatusAndCreatedAtAfter(companyId, OrderStatus.CANCELLED, from),
                 orderRepository.countByCompanyIdAndStatusNotIn(companyId, TERMINAL),
-                loyalUserRepository.countByCompaniesIdAndCreatedAtAfter(companyId, from)
+                loyalUserRepository.countByCompanyIdAndLinkCreatedAfter(companyId, from)
         );
     }
 

@@ -31,6 +31,7 @@ const WorkersView = () => import('@/views/workers/WorkersView.vue')
 const InviteWorkerView = () => import('@/views/workers/InviteWorkerView.vue')
 const HomeView = () => import('@/views/home/HomeView.vue')
 const AdminDashboardView = () => import('@/views/admin/AdminDashboardView.vue')
+const UnitWorkersView = () => import('@/views/units/UnitWorkersView.vue')
 const UnitAssignWorkersView = () => import('@/views/units/UnitAssignWorkersView.vue')
 const UnitsMapView = () => import('@/views/units/UnitsMapView.vue')
 const OnboardingView = () => import('@/views/auth/OnboardingView.vue')
@@ -58,6 +59,7 @@ const router = createRouter({
         { path: 'units/new', component: UnitFormView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN'] } },
         { path: 'units/:id', component: UnitDetailView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN', 'ANALYST', 'OPERATOR'] } },
         { path: 'units/:id/edit', component: UnitFormView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN'] } },
+        { path: 'units/:id/workers', component: UnitWorkersView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN'] } },
         { path: 'units/:id/assign-workers', component: UnitAssignWorkersView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN'] } },
         { path: 'vehicles', component: VehiclesView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN', 'ANALYST', 'OPERATOR'] } },
         { path: 'vehicles/new', component: VehicleFormView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN'] } },

@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useApi } from '@/composables/useApi'
 import { useValidation } from '@/composables/useValidation'
 import { useAvailabilityCheck } from '@/composables/useAvailabilityCheck'
+import { useGeolocation } from '@/composables/useGeolocation'
 import BaseLayout from '@/components/BaseLayout.vue'
 import AvailabilityBadge from '@/components/AvailabilityBadge.vue'
 import { startAuthRefresh } from '@/composables/useRefreshToken'
@@ -25,8 +26,24 @@ const username = ref('')
 const firstName = ref('')
 const lastName = ref('')
 const phone = ref('')
+const address = ref('')
+const latitude = ref(null)
+const longitude = ref(null)
+const locationCaptured = ref(false)
 const password = ref('')
 const error = ref('')
+const { locating, getPosition } = useGeolocation()
+
+async function captureLocation() {
+  try {
+    const { lat, lon } = await getPosition()
+    latitude.value = lat
+    longitude.value = lon
+    locationCaptured.value = true
+  } catch {
+    error.value = t('profile.locationDenied')
+  }
+}
 
 function isUsernameFormat(val) {
   return /^[a-z0-9_-]{3,50}$/.test(val)
@@ -76,6 +93,14 @@ async function handleRegister() {
     password: [required(password.value, 'password'), minLength(password.value, 8, 'password'), passwordStrength(password.value)],
   })
   if (!valid) return
+
+  const hasAddress = address.value.trim().length > 0
+  const hasCoords = latitude.value != null && longitude.value != null
+  if (!hasAddress && !hasCoords) {
+    error.value = t('error.MISSING_USER_LOCATION')
+    return
+  }
+
   try {
     const response = await api.post('/auth/register', {
       email: email.value,
@@ -84,6 +109,9 @@ async function handleRegister() {
       lastName: lastName.value.trim() || null,
       phone: phone.value || null,
       password: password.value,
+      address: address.value.trim() || null,
+      latitude: latitude.value,
+      longitude: longitude.value,
     })
     const data = await response.json()
     if (response.ok) {
@@ -177,6 +205,13 @@ async function handleRegister() {
         <label for="register-phone">{{ t('fields.phone') }}</label>
         <InputText id="register-phone" v-model="phone" type="tel" :placeholder="t('fields.phonePlaceholder')" maxlength="20" :invalid="!!invalids.phone" fluid />
         <small v-if="errors.phone" class="field-error">{{ errors.phone }}</small>
+      </div>
+      <div class="form-field">
+        <label for="register-address">{{ t('fields.address') }} <span style="color:var(--p-red-500)">*</span></label>
+        <InputText id="register-address" v-model="address" :placeholder="t('fields.addressPlaceholder')" maxlength="500" fluid />
+        <div style="display:flex;justify-content:center;margin-top:6px">
+          <PButton type="button" :label="locationCaptured ? t('profile.locationCaptured') : t('profile.useCurrentLocation')" :icon="locationCaptured ? 'pi pi-check' : 'pi pi-map-marker'" :severity="locationCaptured ? 'success' : 'secondary'" outlined size="small" :loading="locating" @click="captureLocation" />
+        </div>
       </div>
       <div class="form-field">
         <label for="register-password">{{ t('fields.password') }}</label>

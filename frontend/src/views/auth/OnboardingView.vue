@@ -14,6 +14,7 @@ const step = ref(1) // 1 = crear unidad, 2 = invitar trabajador
 // Step 1: unidad
 const unitName = ref('')
 const unitType = ref('WAREHOUSE')
+const unitAddress = ref('')
 const unitSaving = ref(false)
 const unitError = ref('')
 
@@ -30,10 +31,11 @@ const roleOptions = WORKER_ROLES.map(r => ({ label: t('workers.roles.' + r), val
 
 async function createUnit() {
   if (!unitName.value.trim()) { unitError.value = t('validation.required', { field: t('fields.unitName') }); return }
+  if (!unitAddress.value.trim()) { unitError.value = t('validation.required', { field: t('fields.address') }); return }
   unitSaving.value = true
   unitError.value = ''
   try {
-    const res = await api.post('/units', { name: unitName.value.trim(), type: unitType.value })
+    const res = await api.post('/units', { name: unitName.value.trim(), type: unitType.value, address: unitAddress.value.trim() })
     if (res.ok) step.value = 2
     else { const d = await res.json(); unitError.value = api.translateError(d, 'error.saveFailed') }
   } catch { unitError.value = t('error.connection') }
@@ -78,6 +80,10 @@ async function inviteWorker() {
         <div class="form-field">
           <label for="ob-unit-type">{{ t('fields.type') }}</label>
           <PSelect input-id="ob-unit-type" v-model="unitType" :options="unitTypeOptions" option-label="label" option-value="value" fluid />
+        </div>
+        <div class="form-field">
+          <label for="ob-unit-address">{{ t('fields.address') }}</label>
+          <InputText id="ob-unit-address" v-model="unitAddress" :placeholder="t('fields.addressPlaceholder')" fluid />
         </div>
 
         <PMessage v-if="unitError" severity="error" :closable="false" class="form-message">{{ unitError }}</PMessage>

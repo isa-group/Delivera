@@ -22,4 +22,5 @@ jobs:
         run: npm install --global @commitlint/cli @commitlint/config-conventional
 
       - name: Validate commits
+        if: github.head_ref != 'develop'
         run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --config .commitlintrc.yml

@@ -207,7 +207,8 @@ public class AuthServiceImpl implements AuthService {
             credential.getUserId(),
             credential.getEmail(), 
             orgInfo.getCompanyId() , 
-            orgInfo.getRole(), 
+            orgInfo.getRole(),
+            orgInfo.getOrgId(),
             credential.getTokenVersion()
         );
 

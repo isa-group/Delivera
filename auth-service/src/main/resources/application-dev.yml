@@ -83,9 +83,9 @@ app:
     enabled: false
   
   refresh-token:
-    daysToRefresh: 1
-    maxDaysToRefresh: 2
-    periodicDeletionMs: 60000
+    daysToRefresh: 2
+    maxDaysToRefresh: 7
+    periodicDeletionMs: 3600000
     # 3600000
     secure: false
     domain: localhost
@@ -93,7 +93,7 @@ app:
 
   jwt:
     # in miliseconds
-    expiration: 90000
+    expiration: 900000
     issuer: ${JWT_ISSUER:delivera-auth-service}
     audience: ${JWT_AUDIENCE:delivera-api}
     rotation:
@@ -106,6 +106,12 @@ app:
       key-2026-07:
         private-key: keys/private_key_2026_07.pem
         public-key: keys/public_key_2026_07.pem
+      key-2026-08:
+        private-key: keys/private_key_2026_08.pem
+        public-key: keys/public_key_2026_08.pem
+      key-2026-09:
+        private-key: keys/private_key_2026_09.pem
+        public-key: keys/public_key_2026_09.pem
     active-key-id: ${JWT_ACTIVE_KEY:key-2026-06}
   cors:
     allowed-origins: http://localhost:3000
@@ -131,6 +137,12 @@ app:
           window-ms: 60000
         USER:
           max-attempts: 50
+          window-ms: 60000
+        REFRESH:
+          max-attempts: 100
+          window-ms: 60000
+        DEVICE:
+          max-attempts: 30
           window-ms: 60000
 
 

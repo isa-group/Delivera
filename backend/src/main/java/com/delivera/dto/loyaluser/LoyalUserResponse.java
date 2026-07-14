@@ -1,6 +1,7 @@
 package com.delivera.dto.loyaluser;
 
 import com.delivera.model.LoyalUser;
+import com.delivera.model.LoyalUserCompany;
 import com.delivera.model.User;
 
 import java.math.BigDecimal;
@@ -19,26 +20,27 @@ public record LoyalUserResponse(
         BigDecimal longitude,
         Instant createdAt) {
 
-    public static LoyalUserResponse from(LoyalUser lu) {
-        return from(lu, 0);
+    public static LoyalUserResponse from(LoyalUser lu, LoyalUserCompany link) {
+        return from(lu, link, 0);
     }
 
-    public static LoyalUserResponse from(LoyalUser lu, long orderCount) {
-        BigDecimal addrLat = lu.getLatitude();
-        BigDecimal addrLon = lu.getLongitude();
-        String addr = lu.getAddress();
-        String name = lu.getName();
-        String phone = lu.getPhone();
+    public static LoyalUserResponse from(LoyalUser lu, LoyalUserCompany link, long orderCount) {
+        String name = link != null ? link.getName() : null;
+        String phone = link != null ? link.getPhone() : null;
+        String address = link != null ? link.getAddress() : null;
+        BigDecimal lat = link != null ? link.getLatitude() : null;
+        BigDecimal lon = link != null ? link.getLongitude() : null;
         if (lu.getUser() != null) {
             User u = lu.getUser();
-            addrLat = addrLat != null ? addrLat : u.getLatitude();
-            addrLon = addrLon != null ? addrLon : u.getLongitude();
-            addr    = addr    != null ? addr    : u.getAddress();
             name    = name    != null ? name    : resolveFullName(u);
             phone   = phone   != null ? phone   : u.getPhone();
+            address = address != null ? address : u.getAddress();
+            lat     = lat     != null ? lat     : u.getLatitude();
+            lon     = lon     != null ? lon     : u.getLongitude();
         }
+        Instant createdAt = link != null && link.getCreatedAt() != null ? link.getCreatedAt() : lu.getCreatedAt();
         return new LoyalUserResponse(lu.getId(), lu.getEmail(), name, phone,
-                lu.getUser() != null, orderCount, addr, addrLat, addrLon, lu.getCreatedAt());
+                lu.getUser() != null, orderCount, address, lat, lon, createdAt);
     }
 
     private static String resolveFullName(User user) {

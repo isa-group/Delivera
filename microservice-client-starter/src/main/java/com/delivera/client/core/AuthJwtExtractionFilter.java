@@ -44,7 +44,8 @@ public class AuthJwtExtractionFilter extends OncePerRequestFilter {
                 
                 UserPrincipal principal = new UserPrincipal(
                     claims.userId(),
-                    claims.companyId(),    
+                    claims.companyId(),
+                    claims.orgId(),    
                     claims.email(),
                     claims.role(),
                     claims.version()       

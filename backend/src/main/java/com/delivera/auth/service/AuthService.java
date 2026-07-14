@@ -12,7 +12,16 @@ import com.delivera.dto.auth.RegisterRequest;
 import com.delivera.dto.auth.RegisterResponse;
 import com.delivera.exception.*;
 import com.delivera.model.*;
+import com.delivera.order.model.Order;
+import com.delivera.order.repository.OrderRepository;
+import com.delivera.org.model.Company;
+import com.delivera.org.model.Organization;
+import com.delivera.org.repository.CompanyRepository;
+import com.delivera.org.repository.OrganizationRepository;
 import com.delivera.repository.*;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.model.WorkerRole;
+import com.delivera.worker.repository.WorkerRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -73,6 +82,7 @@ public class AuthService {
         if (ip == null || activeGateway) {
             ip = httpRequest.getRemoteAddr();
         }
+        ip = ip.split(",")[0].trim();
         return ip;
     }
 
@@ -120,6 +130,9 @@ public class AuthService {
             throw new UsernameAlreadyExistsException();
         }
         User user = buildUser(request.email(), request.username(), request.firstName(), request.lastName(), request.phone());
+        if (StringUtils.hasText(request.address())) user.setAddress(request.address());
+        user.setLatitude(request.latitude());
+        user.setLongitude(request.longitude());
         User savedUser = userRepository.save(user);
        
         List<LoyalUser> loyalUsers = loyalUserRepository.findByEmail(user.getEmail());
@@ -133,7 +146,7 @@ public class AuthService {
             request.email(),
             request.username(), 
             request.password(), 
-            new DeliveraOrgContext(null, null, role, null, null),
+            new DeliveraOrgContext(null, null, role, null, null,null),
             requestClientData
         ).block();
         return new RegisterResponse(loginResponse.getToken(), user.getEmail(), role, loginResponse.getRefreshCookie());
@@ -188,7 +201,7 @@ public class AuthService {
             savedUser.getId(), request.email(), request.username(), request.password(), 
             new DeliveraOrgContext(
                 savedCompany.getId(), WorkerRole.COMPANY_ADMIN, savedCompany.getName(),
-                savedOrganization.getHandle(),savedOrganization.getName() ),
+                savedOrganization.getHandle(),savedOrganization.getName(),savedOrganization.getId() ),
             requestClientData
         ).block();
 
@@ -216,31 +229,37 @@ public class AuthService {
             throw new EmailAlreadyExistsException();
         }
 
-        User user = buildUser(email, null, request.firstName(), request.lastName(), null);
+        User user = buildUser(email, request.username(), request.firstName(), request.lastName(), null);
 
+        if (order.getRecipientAddress() != null) user.setAddress(order.getRecipientAddress());
         User savedUser = userRepository.save(user);
 
           
 
         LoyalUser loyalUser = loyalUserRepository
-                .findByCompaniesIdAndEmail(order.getCompany().getId(), email)
+                .findByCompanyIdAndEmail(order.getCompany().getId(), email)
                 .orElseGet(() -> {
-                    LoyalUser lu = new LoyalUser();
-                    lu.getCompanies().add(order.getCompany());
-                    lu.setEmail(email);
+                    LoyalUser lu = loyalUserRepository.findByEmail(email).stream().findFirst()
+                            .orElseGet(() -> {
+                                LoyalUser fresh = new LoyalUser();
+                                fresh.setEmail(email);
+                                return fresh;
+                            });
+                    lu.linkFor(order.getCompany());
                     return lu;
                 });
         loyalUser.setUser(user);
         loyalUserRepository.save(loyalUser);
 
         order.setLoyalUser(loyalUser);
+        order.setTrackingToken(null);
         orderRepository.save(order);
 
         return client.register(
             savedUser.getId(), email, null, request.password(), 
             new DeliveraOrgContext(
                 null, null, 
-                LOYAL_USER_ROLE, null, null
+                LOYAL_USER_ROLE, null, null,null
             ),
             requestClientData
         ).block(); 

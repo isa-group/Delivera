@@ -1,0 +1,102 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5434/delivera_data_dev
+    username: delivera_data_user
+    password: delivera_data_pass
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+
+  flyway:
+    enabled: true
+
+delivera:
+  jwt:
+    jwks-uri: http://localhost:9090/api/v2/.well-known/jwks.json
+  client: 
+    service-name: data-service
+    internal-hosts: 
+      - delivera-service
+      - auth-service
+    
+    service-hosts:
+      delivera-service: https://localhost:8081
+      auth-service: https://localhost:9091
+    
+    
+    service-base-paths:
+      delivera-service: /api/v2
+      auth-service: /api/v2
+
+
+    internal-auth:
+      enabled: true
+      filter-enabled: true
+      header-name: X-Internal-Key
+      service-header-name: X-Service-Name
+  
+  security:
+    default-deny: false
+    services:
+      auth-service: 
+        api-internal-key: auth-internal-key
+        allowed-paths:
+      delivera-service: 
+        api-internal-key: delivera-internal-key
+        allowed-paths: 
+          - /internal/units/seed/organizations/*/companies/*
+          - /internal/units/*/seed/assign
+          - /internal/units/companies/*
+      data-service: 
+        api-internal-key: data-internal-key
+        allowed-paths: 
+
+
+  mtls:
+    enabled: true
+    key-store: ${DATA_KEY_STORE:classpath:certs/data-keystore.p12}
+    key-store-password: ${DATA_KEYSTORE_PASSWORD:delivera_data_password}
+    key-store-type: ${DATA_KEY_STORE_TYPE:PKCS12}
+    trust-store: ${DATA_TRUST_STORE:classpath:certs/data-truststore.p12}
+    trust-store-password: ${DATA_TRUSTSTORE_PASSWORD:delivera_data_password}
+    trust-store-type: ${DATA_TRUST_STORE_TYPE:PKCS12}
+    server:
+      enabled: true
+      port: 9093
+
+      key-store: ${delivera.mtls.key-store}
+      key-store-password: ${delivera.mtls.key-store-password}
+      key-store-type: ${delivera.mtls.key-store-type}
+
+      trust-store: ${delivera.mtls.trust-store}
+      trust-store-password: ${delivera.mtls.trust-store-password}
+      trust-store-type: ${delivera.mtls.trust-store-type}
+
+      use-temp-file: false
+server:
+  ssl:
+    enabled: false
+    key-store: ${delivera.mtls.key-store}
+    key-store-password: ${delivera.mtls.key-store-password}
+    key-store-type: ${delivera.mtls.key-store-type}
+    client-auth: none
+
+
+app:
+  gateway: 
+    enabled: false
+  cors:
+    allowed-origins: http://localhost:3000
+  mail:
+    enabled: false
+    from: noreply@delivera.app
+  frontend-url: http://localhost:3000
+  contact-email: contact@delivera.com
+
+
+
+
+
+

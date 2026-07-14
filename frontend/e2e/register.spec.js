@@ -55,6 +55,7 @@ test('register individual successful redirects to /profile', { tag: '@register' 
   await page.locator('#register-username').fill('juantest')
   await page.locator('#register-first-name').fill('Juan')
   await page.locator('#register-last-name').fill('García')
+  await page.locator('#register-address').fill('Calle Test 1')
   await page.locator('#register-password input').fill('Password1')
   await page.getByRole('button', { name: 'Registrarse' }).click()
   await expect(page).toHaveURL('/profile')

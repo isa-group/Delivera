@@ -1,0 +1,157 @@
+package com.delivera.worker.service;
+
+import com.delivera.auth.service.AuthClient;
+import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.exception.*;
+import com.delivera.model.*;
+import com.delivera.org.model.Company;
+import com.delivera.org.repository.CompanyRepository;
+import com.delivera.repository.*;
+import com.delivera.service.SubscriptionService;
+import com.delivera.worker.dto.ChangeRoleRequest;
+import com.delivera.worker.dto.WorkerInviteRequest;
+import com.delivera.worker.dto.WorkerResponse;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.model.WorkerRole;
+import com.delivera.worker.repository.WorkerRepository;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+@Service
+public class WorkerService {
+
+    private final WorkerRepository workerRepository;
+    private final UserRepository userRepository;
+    private final CompanyRepository companyRepository;
+    private final LoyalUserRepository loyalUserRepository;
+    private final SecurityUtils securityUtils;
+    private final SubscriptionService subscriptionService;
+    private final AuthClient client;
+
+    public WorkerService(WorkerRepository workerRepository,
+                         UserRepository userRepository,
+                         CompanyRepository companyRepository,
+                         LoyalUserRepository loyalUserRepository,
+                         SecurityUtils securityUtils,
+                         AuthClient client,
+                         SubscriptionService subscriptionService) {
+        this.workerRepository = workerRepository;
+        this.userRepository = userRepository;
+        this.companyRepository = companyRepository;
+        this.loyalUserRepository = loyalUserRepository;
+        this.securityUtils = securityUtils;
+        this.subscriptionService = subscriptionService;
+        this.client = client;
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkerResponse> getByCompany() {
+        UUID companyId = securityUtils.getCurrentCompanyId();
+        return workerRepository.findByCompanyIdAndRoleNotOrderByCreatedAtAsc(companyId, WorkerRole.GLOBAL_ADMIN).stream()
+                .map(WorkerResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkerResponse> getRequired(Set<UUID> workerIds) {
+        UUID companyId = securityUtils.getCurrentCompanyId();
+        if (workerIds.isEmpty()) {
+            return List.of();
+        }
+        return workerRepository.findRequiredWorkersOfCompanyOrderByCreatedAtAsc(
+            companyId, 
+            workerIds
+        ).stream()
+        .map(WorkerResponse::from)
+        .toList();
+    }
+
+    @Transactional
+    public WorkerResponse invite(WorkerInviteRequest req) {
+        UUID companyId = securityUtils.getCurrentCompanyId();
+        subscriptionService.checkWorkerLimit(companyId);
+
+        String email = req.email().toLowerCase().trim();
+        WorkerRole role = req.role();
+
+        if (workerRepository.findByUserEmailAndCompanyId(email, companyId).isPresent()) {
+            throw new WorkerAlreadyExistsException();
+        }
+
+        if (!loyalUserRepository.findByEmail(email).isEmpty()) {
+            throw new LoyalUserCannotBeWorkerException();
+        }
+
+        Company company = companyRepository.findById(companyId).orElseThrow(CompanyContextException::new);
+
+        String tempPassword = null;
+        User savedUser = null;
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            tempPassword = UUID.randomUUID().toString().replace("-", "").substring(0, 12) + "A1";
+            user = new User();
+            user.setEmail(email);
+            user.setFirstName(email.split("@")[0]);
+            user.setLastName("");
+            user.setInvited(true);
+            savedUser = userRepository.save(user);
+         
+        }
+
+        Worker worker = new Worker();
+        worker.setUser(user);
+        worker.setCompany(company);
+        worker.setRole(role);
+        worker = workerRepository.save(worker);
+        if (savedUser != null) {
+            client.register(savedUser.getId(), email, null, tempPassword).block();
+        }
+        return tempPassword != null ? WorkerResponse.withTemp(worker, tempPassword) : WorkerResponse.from(worker);
+    }
+
+    @Transactional
+    public WorkerResponse changeRole(UUID workerId, ChangeRoleRequest req) {
+        UUID companyId = securityUtils.getCurrentCompanyId();
+        Worker worker = workerRepository.findByIdAndCompanyId(workerId, companyId)
+                .orElseThrow(WorkerNotFoundException::new);
+
+        WorkerRole newRole = req.role();
+
+        if (worker.getRole() == WorkerRole.COMPANY_ADMIN && newRole != WorkerRole.COMPANY_ADMIN
+                && workerRepository.countByCompanyIdAndRole(companyId, WorkerRole.COMPANY_ADMIN) <= 1) {
+            throw new LastAdminException();
+        }
+
+        worker.setRole(newRole);
+        return WorkerResponse.from(workerRepository.save(worker));
+    }
+
+    @Transactional
+    public void remove(UUID workerId) {
+        UUID companyId = securityUtils.getCurrentCompanyId();
+        Worker worker = workerRepository.findByIdAndCompanyId(workerId, companyId)
+                .orElseThrow(WorkerNotFoundException::new);
+
+        if (worker.getUser().getEmail().equalsIgnoreCase(securityUtils.getCurrentEmail())) {
+            throw new ForbiddenException("CANNOT_REMOVE_SELF");
+        }
+
+        if (worker.getRole() == WorkerRole.COMPANY_ADMIN
+                && workerRepository.countByCompanyIdAndRole(companyId, WorkerRole.COMPANY_ADMIN) <= 1) {
+            throw new LastAdminException();
+        }
+
+        User user = worker.getUser();
+        workerRepository.delete(worker);
+        if (user.isInvited() && workerRepository.countByUser_Id(user.getId()) == 0) {
+            userRepository.delete(user);
+            client.deleteUser(user.getId()).block();
+            
+        }
+    }
+}

@@ -43,7 +43,7 @@ const navItems = [
 
 const visibleItems = computed(() =>
   navItems.filter(item => {
-    if (item.noRole) return !auth.role
+    if (item.noRole) return !auth.isWorker && auth.role !== 'GLOBAL_ADMIN'
     return !item.roles || item.roles.includes(auth.role)
   })
 )

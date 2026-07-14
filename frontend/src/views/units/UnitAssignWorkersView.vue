@@ -3,11 +3,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useApi } from '@/composables/useApi'
+import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const api = useApi()
+const dataApi = useServices("data-service")
 
 const unit = ref(null)
 const allWorkers = ref([])
@@ -16,13 +18,15 @@ const error = ref('')
 const toggleError = ref('')
 const togglingIds = ref(new Set())
 
-const assignedIds = computed(() => new Set((unit.value?.workers || []).map(w => w.id)))
+
+const unitName = computed(() => route.query.name)
+const assignedIds = computed(() => new Set((unit.value || [])))
 
 async function load() {
   loading.value = true
   try {
     const [unitRes, workersRes] = await Promise.all([
-      api.get(`/units/${route.params.id}`),
+      dataApi.get(`/units/${route.params.id}/workers`),
       api.get('/workers'),
     ])
     if (unitRes.ok) unit.value = await unitRes.json()
@@ -41,8 +45,8 @@ async function toggle(worker) {
   togglingIds.value.add(worker.id)
   try {
     const res = assignedIds.value.has(worker.id)
-      ? await api.del(`/units/${route.params.id}/workers/${worker.id}`)
-      : await api.post(`/units/${route.params.id}/workers/${worker.id}`)
+      ? await dataApi.del(`/units/${route.params.id}/workers/${worker.id}`)
+      : await dataApi.post(`/units/${route.params.id}/workers`,{workerId: worker.id, userId: worker.userId })
     if (res.ok) unit.value = await res.json()
     else toggleError.value = t('error.saveFailed')
   } catch {
@@ -61,7 +65,7 @@ onMounted(load)
       @click="router.push(`/units/${route.params.id}`)" />
 
     <h1>{{ t('units.assignWorkers') }}</h1>
-    <p v-if="unit" class="subtitle">{{ unit.name }}</p>
+    <p v-if="unitName" class="subtitle">{{unitName}}</p>
 
     <PMessage v-if="error" severity="error" :closable="false">{{ error }}</PMessage>
     <PMessage v-if="toggleError" severity="error" :closable="false">{{ toggleError }}</PMessage>

@@ -1,6 +1,6 @@
 package com.delivera.dto.config;
 
-import com.delivera.model.WorkerRoleConfig;
+import com.delivera.worker.model.WorkerRoleConfig;
 
 public record WorkerRoleConfigDto(
         String role,

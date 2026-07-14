@@ -2,7 +2,7 @@ package com.delivera.auth.dto;
 
 import java.util.UUID;
 
-import com.delivera.model.WorkerRole;
+import com.delivera.worker.model.WorkerRole;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,5 +17,6 @@ public class DeliveraOrgContext {
         String companyName;
         String orgHandle;
         String orgName;
+        UUID orgId;
 }
         

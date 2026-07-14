@@ -1,8 +1,16 @@
 package com.delivera.service;
 
+import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.dto.admin.GlobalMetrics;
 import com.delivera.dto.admin.OrganizationSummary;
+import com.delivera.order.repository.OrderEventRepository;
+import com.delivera.order.repository.OrderMessageRepository;
+import com.delivera.order.repository.OrderRepository;
+import com.delivera.org.repository.CompanyRepository;
+import com.delivera.org.repository.OrganizationRepository;
 import com.delivera.repository.*;
+import com.delivera.worker.repository.WorkerRepository;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -25,6 +33,12 @@ class AdminServiceTest {
     @Mock private WorkerRepository workerRepository;
     @Mock private OrderRepository orderRepository;
     @Mock private UserRepository userRepository;
+    @Mock private OperationalUnitRepository unitRepository;
+    @Mock private OrderMessageRepository orderMessageRepository;
+    @Mock private OrderEventRepository orderEventRepository;
+    @Mock private LoyalUserCompanyRepository loyalUserCompanyRepository;
+    @Mock private LoyalUserRepository loyalUserRepository;
+    @Mock private ApiKeyRepository apiKeyRepository;
     @InjectMocks private AdminService adminService;
 
     @Test
@@ -71,10 +85,10 @@ class AdminServiceTest {
 
     @Test
     void getGlobalMetrics_returnsCorrectCounts() {
-        when(organizationRepository.count()).thenReturn(5L);
-        when(companyRepository.count()).thenReturn(12L);
+        when(organizationRepository.countTenants()).thenReturn(5L);
+        when(companyRepository.countTenants()).thenReturn(12L);
         when(orderRepository.countByCreatedAtAfter(any(Instant.class))).thenReturn(100L);
-        when(userRepository.count()).thenReturn(42L);
+        when(userRepository.count()).thenReturn(43L);
 
         GlobalMetrics result = adminService.getGlobalMetrics();
 
@@ -86,10 +100,10 @@ class AdminServiceTest {
 
     @Test
     void getGlobalMetrics_zeroCounts() {
-        when(organizationRepository.count()).thenReturn(0L);
-        when(companyRepository.count()).thenReturn(0L);
+        when(organizationRepository.countTenants()).thenReturn(0L);
+        when(companyRepository.countTenants()).thenReturn(0L);
         when(orderRepository.countByCreatedAtAfter(any(Instant.class))).thenReturn(0L);
-        when(userRepository.count()).thenReturn(0L);
+        when(userRepository.count()).thenReturn(1L);
 
         GlobalMetrics result = adminService.getGlobalMetrics();
 

@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.delivera.auth.dto.DeliveraOrgContext;
-import com.delivera.model.Worker;
+import com.delivera.worker.model.Worker;
 
 
 public interface AuthRepository  extends JpaRepository<Worker, UUID> {
@@ -23,7 +23,8 @@ public interface AuthRepository  extends JpaRepository<Worker, UUID> {
         w.role,
         c.name,
         o.handle,
-        o.name
+        o.name,
+        o.id
     )
     FROM Worker w
     JOIN w.company c
@@ -43,7 +44,8 @@ public interface AuthRepository  extends JpaRepository<Worker, UUID> {
         w.role,
         c.name,
         o.handle,
-        o.name
+        o.name,
+        o.id
     )
     FROM Worker w
     JOIN w.company c

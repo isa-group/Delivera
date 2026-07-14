@@ -6,9 +6,11 @@ import { useApi } from '@/composables/useApi'
 import L from 'leaflet'
 import { createMap, addMarker, clusterOptions, fitBounds } from '@/composables/useDeliveraMap'
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM_REGION } from '@/constants/map'
+import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const api = useApi()
+const dataApi = useServices("data-service")
 const router = useRouter()
 
 const loading = ref(false)
@@ -23,7 +25,7 @@ onMounted(async () => {
   error.value = ''
   let mapped = []
   try {
-    const res = await api.get('/units')
+    const res = await dataApi.get('/units')
     if (!res.ok) { error.value = t('error.connection'); return }
     const units = await res.json()
     mapped = units.filter(u => u.latitude != null && u.longitude != null)

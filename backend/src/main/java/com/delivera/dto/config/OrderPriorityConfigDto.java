@@ -1,6 +1,6 @@
 package com.delivera.dto.config;
 
-import com.delivera.model.OrderPriorityConfig;
+import com.delivera.order.model.OrderPriorityConfig;
 
 public record OrderPriorityConfigDto(String priority, String uiSeverity, int sortOrder) {
     public static OrderPriorityConfigDto from(OrderPriorityConfig c) {

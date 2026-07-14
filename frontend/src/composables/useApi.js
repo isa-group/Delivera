@@ -35,11 +35,12 @@ export function useApi() {
 
     // Sólo forzamos logout si el usuario estaba autenticado y la llamada no es de auth.
     // Evita que un 401 sobre un endpoint público cierre sesión al vuelo.
+    /*
     if (response.status === 401 && auth.token && !endpoint.startsWith('/auth/')) {
       auth.logout()
       router.push('/')
       throw new Error('No autorizado')
-    }
+    }*/
 
     return response
   }

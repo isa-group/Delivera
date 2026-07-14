@@ -2,18 +2,20 @@ package com.delivera.service;
 
 
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.dto.unit.UnitRequest;
+import com.delivera.depot.dto.UnitRequest;
+import com.delivera.depot.model.OperationalUnit;
+import com.delivera.depot.model.UnitType;
+import com.delivera.depot.repository.OperationalUnitRepository;
+import com.delivera.depot.service.UnitService;
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.UnitNameConflictException;
 import com.delivera.exception.UnitNotFoundException;
-import com.delivera.model.Company;
-import com.delivera.model.OperationalUnit;
-import com.delivera.model.Organization;
-import com.delivera.model.UnitType;
-import com.delivera.model.Worker;
-import com.delivera.repository.CompanyRepository;
-import com.delivera.repository.OperationalUnitRepository;
-import com.delivera.repository.WorkerRepository;
+import com.delivera.org.model.Company;
+import com.delivera.org.model.Organization;
+import com.delivera.org.repository.CompanyRepository;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.repository.WorkerRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -139,7 +141,7 @@ class UnitServiceTest {
         Worker worker = new Worker();
         worker.setId(workerId);
         worker.setUser(user);
-        worker.setRole(com.delivera.model.WorkerRole.OPERATOR);
+        worker.setRole(com.delivera.worker.model.WorkerRole.OPERATOR);
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
         when(unitRepository.findByIdAndCompanyIdWithWorkers(unit.getId(), companyId)).thenReturn(Optional.of(unit));
         when(workerRepository.findByIdAndCompanyId(workerId, companyId)).thenReturn(Optional.of(worker));
@@ -187,8 +189,12 @@ class UnitServiceTest {
 
     @Test
     void getExternalUnits_mapsResults() {
+        Organization org = new Organization();
+        org.setId(UUID.randomUUID());
+        org.setName("Org");
+        company.setOrganization(org);
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
-        when(unitRepository.findExternalByOrganization(companyId)).thenReturn(List.of(unit));
+        when(unitRepository.findAllExternalUnits(companyId)).thenReturn(List.of(unit));
         assertThat(unitService.getExternalUnits()).hasSize(1);
     }
 

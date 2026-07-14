@@ -86,6 +86,7 @@ public class AuthController {
         if (ip == null || activeGateway) {
             ip = httpRequest.getRemoteAddr();
         }
+        ip = ip.split(",")[0].trim();
         return ip.length() > 40
         ? ip.substring(0, 40)
         : ip;
@@ -279,7 +280,8 @@ public class AuthController {
         String ip = getIp(httpRequest);
         String deviceId = getDeviceId(httpRequest);
         String userAgent = getUserAgent(httpRequest);
-        
+        authRateLimiter.check("REFRESH:" + ip);
+
         RefreshToken refreshToken = refreshTokenService.validateAndGet(token);
         Credential credential = refreshToken.getCredential();
         DeliveraOrgContext orgInfo;
@@ -333,6 +335,8 @@ public class AuthController {
     ){
 
         String token = getRefreshTokenFromCookies(httpRequest);
+        String ip = getIp(httpRequest);
+        authRateLimiter.check("DEVICE:" + ip);
         RefreshToken refreshToken = refreshTokenService.validateAndGet(token);
 
         return ResponseEntity.ok().body(
@@ -354,7 +358,7 @@ public class AuthController {
         String ip = getIp(httpRequest);
         String deviceId = getDeviceId(httpRequest);
         String userAgent = getUserAgent(httpRequest);
-
+        authRateLimiter.check("DEVICE:" + ip);
         RefreshToken refreshToken = refreshTokenService.validateAndGet(token);
         
         authService.avoidAttacksWithCorrectIdentifier(
@@ -380,7 +384,8 @@ public class AuthController {
         String ip = getIp(httpRequest);
         String deviceId = getDeviceId(httpRequest);
         String userAgent = getUserAgent(httpRequest);
-
+        authRateLimiter.check("DEVICE:" + ip);
+        
         RefreshToken refreshToken = refreshTokenService.validateAndGet(token);
         
         authService.avoidAttacksWithCorrectIdentifier(

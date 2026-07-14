@@ -2,7 +2,7 @@ package com.delivera.controller;
 
 import com.delivera.dto.loyaluser.LoyalUserRequest;
 import com.delivera.dto.loyaluser.LoyalUserResponse;
-import com.delivera.dto.order.OrderResponse;
+import com.delivera.order.dto.OrderResponse;
 import com.delivera.service.LoyalUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

@@ -73,6 +73,7 @@ function _divIcon(bg, piClass, size = 32) {
 export function ownUnitIcon() { return _divIcon(COLORS.own, 'pi pi-building') }
 export function otherUnitIcon() { return _divIcon(COLORS.other, 'pi pi-building') }
 export function customerIcon() { return _divIcon(COLORS.other, 'pi pi-user') }
+export function selfIcon() { return _divIcon(COLORS.own, 'pi pi-user') }
 
 // ---------------------------------------------------------------------------
 // Cluster options — número en blanco sobre círculo morado.
@@ -143,6 +144,7 @@ export function addMarker(map, {
   let icon
   if (kind === 'OWN_UNIT') icon = ownUnitIcon()
   else if (kind === 'OTHER_UNIT') icon = otherUnitIcon()
+  else if (kind === 'SELF') icon = selfIcon()
   else icon = customerIcon()
 
   const marker = L.marker([lat, lon], { icon })

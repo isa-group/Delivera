@@ -65,6 +65,7 @@ class SecurityUtilsTest {
         return new UserPrincipal(
                 UUID.randomUUID(),
                 companyId,
+                null,
                 "user@test.com",
                 "COMPANY_ADMIN",
                 0

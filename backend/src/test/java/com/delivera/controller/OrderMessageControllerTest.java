@@ -2,7 +2,9 @@ package com.delivera.controller;
 
 import com.delivera.dto.chat.OrderMessageRequest;
 import com.delivera.dto.chat.OrderMessageResponse;
-import com.delivera.service.OrderMessageService;
+import com.delivera.order.controller.OrderMessageController;
+import com.delivera.order.service.OrderMessageService;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

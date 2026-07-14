@@ -7,6 +7,7 @@ import com.delivera.auth.service.AuthService;
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.auth.*;
 import com.delivera.dto.common.AvailabilityCheckResponse;
+import java.math.BigDecimal;
 import com.delivera.security.AuthRateLimiter;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -54,7 +55,7 @@ class AuthControllerTest {
     @Test
     void register_checksRateLimitAndDelegates() {
         // RegisterRequest(email, username, firstName, lastName, phone, password)
-        RegisterRequest req = new RegisterRequest("u@e.com", "user1", "First", null, null, "Pass1a2B");
+        RegisterRequest req = new RegisterRequest("u@e.com", "user1", "First", null, null, "Pass1a2B", "Calle Mayor 1, Madrid", new BigDecimal("40.4168"), new BigDecimal("-3.7038"));
         RegisterResponse expected = new RegisterResponse("tok", "u@e.com", "LOYAL_USER");
         when(authService.getIp(any())).thenReturn("127.0.0.1");
         when(authService.refreshCookie(any())).thenReturn(ResponseCookie.from("saasa").build());

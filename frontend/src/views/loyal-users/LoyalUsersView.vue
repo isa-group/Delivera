@@ -21,9 +21,11 @@ const addPhone = ref('')
 const adding = ref(false)
 const addError = ref('')
 const addSuccess = ref(false)
+const emailInvalid = ref(false)
 
 async function addLoyalUser() {
-  if (!addEmail.value.trim()) return
+  emailInvalid.value = !addEmail.value.trim()
+  if (emailInvalid.value) return
   adding.value = true
   addError.value = ''
   addSuccess.value = false
@@ -65,13 +67,13 @@ async function addLoyalUser() {
 
     <div v-if="showAdd" class="add-form">
       <div class="form-row">
-        <InputText v-model="addEmail" type="email" :placeholder="t('fields.emailPersonalPlaceholder')" fluid />
+        <InputText v-model="addEmail" type="email" :placeholder="t('fields.emailPersonalPlaceholder')" :invalid="emailInvalid" @input="emailInvalid = false" fluid />
         <InputText v-model="addName" :placeholder="t('loyalUsers.name')" fluid />
         <InputText v-model="addPhone" :placeholder="t('loyalUsers.phone')" fluid />
       </div>
       <div class="form-row">
-        <PButton :label="adding ? t('common.loading') : t('loyalUsers.new')" icon="pi pi-plus" :loading="adding" @click="addLoyalUser" />
         <PButton :label="t('common.cancel')" severity="secondary" outlined icon="pi pi-times" @click="showAdd = false" />
+        <PButton :label="adding ? t('common.loading') : t('loyalUsers.new')" icon="pi pi-plus" :loading="adding" @click="addLoyalUser" />
       </div>
       <PMessage v-if="addError" severity="error" :closable="false" class="form-message">{{ addError }}</PMessage>
     </div>

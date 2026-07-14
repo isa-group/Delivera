@@ -1,13 +1,13 @@
 package com.delivera.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.dto.settings.ApiKeyCreateRequest;
-import com.delivera.dto.settings.ApiKeyCreatedResponse;
 import com.delivera.exception.ApiKeyNotFoundException;
 import com.delivera.model.ApiKey;
-import com.delivera.model.Company;
+import com.delivera.org.dto.ApiKeyCreateRequest;
+import com.delivera.org.dto.ApiKeyCreatedResponse;
+import com.delivera.org.model.Company;
+import com.delivera.org.repository.CompanyRepository;
 import com.delivera.repository.ApiKeyRepository;
-import com.delivera.repository.CompanyRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
