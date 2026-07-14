@@ -20,8 +20,8 @@ import com.delivera.org.model.Organization;
 import com.delivera.org.repository.CompanyRepository;
 import com.delivera.org.repository.OrganizationRepository;
 import com.delivera.repository.*;
-import com.delivera.vehicle.model.Vehicle;
-import com.delivera.vehicle.repository.VehicleRepository;
+import com.delivera.vehicle.dto.VehicleRequest;
+import com.delivera.vehicle.service.VehicleClient;
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.model.WorkerRole;
 import com.delivera.worker.repository.WorkerRepository;
@@ -94,7 +94,7 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final OrderEventRepository orderEvents;
     private final ActivityTypeRepository activityTypes;
     private final SubscriptionPlanRepository plans;
-    private final VehicleRepository vehicles;
+    private final VehicleClient vehicleClient;
     private final AuthClient authClient;
     private final UnitClient unitClient;
 
@@ -111,7 +111,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                            OrderEventRepository orderEvents,
                            ActivityTypeRepository activityTypes,
                            SubscriptionPlanRepository plans,
-                           VehicleRepository vehicles,
+                           VehicleClient vehicleClient,
                            UnitClient unitClient,
                            AuthClient authClient) {
         this.users = users;
@@ -124,11 +124,12 @@ public class DemoDataSeeder implements CommandLineRunner {
         this.orderEvents = orderEvents;
         this.activityTypes = activityTypes;
         this.plans = plans;
-        this.vehicles = vehicles;
+        this.vehicleClient = vehicleClient;
         this.unitClient = unitClient;
         this.authClient = authClient;
     }
 
+    //TODO: DLETE /internal/vehicles/seed/companies/*/units/*
     @Override
     @Transactional
     public void run(String... args) {
@@ -296,7 +297,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         assignWorker(dsFactory,  elenaWInd);
         assignWorker(dsCadizWh,  javierWInd);
 
- /*     // --- 8. Vehículos ---
+        // --- 8. Vehículos ---
         // RapidLog Central
         createVehicle(rlCentral, rlMadridCd, "RC-001", 1200);
         createVehicle(rlCentral, rlMadridWh, "RC-002", 800);
@@ -315,7 +316,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         // DistriSur Industrial
         createVehicle(dsInd,     dsFactory,   "DI-001", 2500);
         createVehicle(dsInd,     dsCadizWh,   "DI-002", 1200);
-*/
+
         // --- 9. Fidelizados ---
         LoyalUser luClara   = createLoyalUser(clara.getEmail(), clara, List.of(rlRetail, dsFood),
                 null, null, null);
@@ -484,13 +485,12 @@ public class DemoDataSeeder implements CommandLineRunner {
         unitClient.assignSeed(request, url);
     }
 
-    private void createVehicle(Company company, OperationalUnit depot, String plate, int capacity) {
-        Vehicle v = new Vehicle();
-        v.setCompany(company);
-        v.setDepot(depot);
-        v.setPlate(plate);
-        v.setCapacity(capacity);
-        vehicles.save(v);
+    private void createVehicle(Company company, UUID depotId, String plate, int capacity) {
+
+        VehicleRequest vehicleRequest = new VehicleRequest(plate, capacity, depotId);
+        String url = dataHost+dataPrefix+"/internal/vehicles/seed/companies/"+company.getId();
+        vehicleClient.createSeed(vehicleRequest, url);
+       
     }
 
     private LoyalUser createLoyalUser(String email, User user, List<Company> cs,

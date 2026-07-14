@@ -10,8 +10,7 @@ import com.delivera.fms.dto.VehicleDto;
 import com.delivera.order.model.Order;
 import com.delivera.order.model.OrderStatus;
 import com.delivera.order.repository.OrderRepository;
-import com.delivera.vehicle.model.Vehicle;
-import com.delivera.vehicle.repository.VehicleRepository;
+import com.delivera.vehicle.service.VehicleClient;
 
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -27,16 +26,16 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
     private final RestClient fmsRoutingClient;
     private final OperationalUnitRepository unitRepository;
     private final OrderRepository orderRepository;
-    private final VehicleRepository vehicleRepository;
+    private final VehicleClient vehicleClient;
 
     public FmsRoutingServiceImpl(RestClient fmsRoutingClient,
                                   OperationalUnitRepository unitRepository,
                                   OrderRepository orderRepository,
-                                  VehicleRepository vehicleRepository) {
+                                  VehicleClient vehicleClient) {
         this.fmsRoutingClient = fmsRoutingClient;
         this.unitRepository = unitRepository;
         this.orderRepository = orderRepository;
-        this.vehicleRepository = vehicleRepository;
+        this.vehicleClient = vehicleClient;
     }
 
     @Override
@@ -92,15 +91,9 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
                 })
                 .toList();
 
-        List<Vehicle> vehicles = vehicleRepository.findAllByCompanyId(companyId);
-        List<VehicleDto> vehicleDtos = vehicles.stream()
-                .map(v -> new VehicleDto(
-                        v.getId().toString(),
-                        v.getCapacity(),
-                        v.getDepot().getId().toString()
-                ))
-                .toList();
 
+        List<VehicleDto> vehicleDtos = vehicleClient.getAllByCompanyId(companyId);
+                
         int totalNodes = depotDtos.size() + customerDtos.size();
         double[][] distanceMatrix = buildMockDistanceMatrix(totalNodes);
 

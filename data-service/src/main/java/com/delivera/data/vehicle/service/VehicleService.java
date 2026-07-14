@@ -1,18 +1,15 @@
-package com.delivera.vehicle.service;
+package com.delivera.data.vehicle.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.depot.model.OperationalUnit;
-import com.delivera.depot.repository.OperationalUnitRepository;
-import com.delivera.exception.CompanyContextException;
-import com.delivera.exception.UnitNotFoundException;
-import com.delivera.exception.VehicleNotFoundException;
-import com.delivera.exception.VehiclePlateConflictException;
-import com.delivera.org.model.Company;
-import com.delivera.org.repository.CompanyRepository;
-import com.delivera.vehicle.dto.VehicleRequest;
-import com.delivera.vehicle.dto.VehicleResponse;
-import com.delivera.vehicle.model.Vehicle;
-import com.delivera.vehicle.repository.VehicleRepository;
+import com.delivera.data.depot.model.OperationalUnit;
+import com.delivera.data.depot.repository.OperationalUnitRepository;
+import com.delivera.data.exception.UnitNotFoundException;
+import com.delivera.data.exception.VehicleNotFoundException;
+import com.delivera.data.exception.VehiclePlateConflictException;
+import com.delivera.data.vehicle.dto.VehicleRequest;
+import com.delivera.data.vehicle.dto.VehicleResponse;
+import com.delivera.data.vehicle.model.Vehicle;
+import com.delivera.data.vehicle.repository.VehicleRepository;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -26,24 +23,20 @@ public class VehicleService {
 
     private final VehicleRepository vehicleRepository;
     private final OperationalUnitRepository unitRepository;
-    private final CompanyRepository companyRepository;
     private final SecurityUtils securityUtils;
 
     public VehicleService(VehicleRepository vehicleRepository,
                           OperationalUnitRepository unitRepository,
-                          CompanyRepository companyRepository,
                           SecurityUtils securityUtils) {
         this.vehicleRepository = vehicleRepository;
         this.unitRepository = unitRepository;
-        this.companyRepository = companyRepository;
         this.securityUtils = securityUtils;
     }
 
     @Transactional
     public VehicleResponse create(VehicleRequest request) {
         UUID companyId = securityUtils.getCurrentCompanyId();
-        Company company = companyRepository.findById(companyId)
-                .orElseThrow(CompanyContextException::new);
+        // WE ASUME THAT company exists if a company's unit exists
 
         if (vehicleRepository.existsByCompanyIdAndPlate(companyId, request.plate())) {
             throw new VehiclePlateConflictException();
@@ -53,7 +46,30 @@ public class VehicleService {
                 .orElseThrow(() -> new UnitNotFoundException(request.depotId()));
 
         Vehicle vehicle = new Vehicle();
-        vehicle.setCompany(company);
+        vehicle.setCompanyId(depot.getCompanyId());
+        vehicle.setDepot(depot);
+        vehicle.setPlate(request.plate());
+        vehicle.setCapacity(request.capacity());
+
+        try {
+            return VehicleResponse.from(vehicleRepository.save(vehicle));
+        } catch (DataIntegrityViolationException e) {
+            throw new VehiclePlateConflictException();
+        }
+    }
+
+    @Transactional
+    public VehicleResponse createSeed(UUID companyId,VehicleRequest request) {
+        if (vehicleRepository.existsByCompanyIdAndPlate(companyId, request.plate())) {
+            throw new VehiclePlateConflictException();
+        }
+        OperationalUnit depot = unitRepository.findByIdAndCompanyId(request.depotId(), companyId)
+                .orElseThrow(() -> new UnitNotFoundException(request.depotId()));
+        
+
+      
+        Vehicle vehicle = new Vehicle();
+        vehicle.setCompanyId(depot.getCompanyId());
         vehicle.setDepot(depot);
         vehicle.setPlate(request.plate());
         vehicle.setCapacity(request.capacity());
@@ -92,10 +108,16 @@ public class VehicleService {
     @Transactional(readOnly = true)
     public List<VehicleResponse> getByCompany() {
         UUID companyId = securityUtils.getCurrentCompanyId();
+        return getByCompany(companyId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<VehicleResponse> getByCompany(UUID companyId) {
         return vehicleRepository.findAllByCompanyId(companyId).stream()
                 .map(VehicleResponse::from)
                 .toList();
     }
+
 
     @Transactional(readOnly = true)
     public VehicleResponse getDetail(UUID id) {

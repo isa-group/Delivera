@@ -1,8 +1,6 @@
-package com.delivera.vehicle.controller;
+package com.delivera.data.vehicle.controller;
 
-import com.delivera.vehicle.dto.VehicleRequest;
-import com.delivera.vehicle.dto.VehicleResponse;
-import com.delivera.vehicle.service.VehicleService;
+
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,6 +9,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import com.delivera.data.vehicle.dto.VehicleRequest;
+import com.delivera.data.vehicle.dto.VehicleResponse;
+import com.delivera.data.vehicle.service.VehicleService;
 
 import java.util.List;
 import java.util.UUID;
