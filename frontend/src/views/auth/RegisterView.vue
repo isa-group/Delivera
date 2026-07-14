@@ -8,6 +8,7 @@ import { useValidation } from '@/composables/useValidation'
 import { useAvailabilityCheck } from '@/composables/useAvailabilityCheck'
 import BaseLayout from '@/components/BaseLayout.vue'
 import AvailabilityBadge from '@/components/AvailabilityBadge.vue'
+import { startAuthRefresh } from '@/composables/useRefreshToken'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -88,6 +89,7 @@ async function handleRegister() {
     if (response.ok) {
       auth.setToken(data.token)
       auth.setRole(data.role ?? null)
+      startAuthRefresh()
       router.push(data.role === 'LOYAL_USER' ? '/my-orders' : '/profile')
     } else {
       error.value = api.translateError(data, 'error.registerFailed')

@@ -1,6 +1,7 @@
 package com.delivera.service;
 
-import com.delivera.security.SecurityUtils;
+
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.loyaluser.LoyalUserRequest;
 import com.delivera.dto.loyaluser.LoyalUserResponse;
 import com.delivera.dto.order.OrderResponse;

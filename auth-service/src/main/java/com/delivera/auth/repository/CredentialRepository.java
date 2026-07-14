@@ -24,4 +24,5 @@ public interface CredentialRepository extends CrudRepository<Credential,UUID> {
     Optional<Credential> findByEmailIgnoreCaseOrUsernameIgnoreCase(String email, String username);
 
 
+
 }

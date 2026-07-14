@@ -1,5 +1,6 @@
 package com.delivera.service;
 
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.vehicle.VehicleRequest;
 import com.delivera.dto.vehicle.VehicleResponse;
 import com.delivera.exception.CompanyContextException;
@@ -12,7 +13,7 @@ import com.delivera.model.Vehicle;
 import com.delivera.repository.CompanyRepository;
 import com.delivera.repository.OperationalUnitRepository;
 import com.delivera.repository.VehicleRepository;
-import com.delivera.security.SecurityUtils;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

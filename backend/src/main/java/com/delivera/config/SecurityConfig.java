@@ -9,10 +9,11 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import com.delivera.client.core.SecurityConfigurer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -39,8 +40,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   JwtAuthenticationFilter jwtAuthenticationFilter,
+                                                   SecurityConfigurer securityConfigurer,
                                                    ApiKeyAuthenticationFilter apiKeyAuthenticationFilter) throws Exception {
+        securityConfigurer.applyResourceServer(http);
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
@@ -48,6 +50,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers(SWAGGER_PATHS).permitAll();
                 auth.requestMatchers(api + "/auth/**").permitAll();
+                auth.requestMatchers(api + "/internal/auth/**").permitAll();
                 auth.requestMatchers(HttpMethod.GET, api + "/organizations/**").permitAll();
                 auth.requestMatchers(HttpMethod.GET, api + "/activity-types", api + "/activity-types/**").permitAll();
                 auth.requestMatchers(HttpMethod.GET, api + "/app-config/**").permitAll();
@@ -94,9 +97,7 @@ public class SecurityConfig {
                 auth.requestMatchers(api + "/activity/**").hasAnyRole(ADMIN, ANALYST);
 
                 auth.anyRequest().denyAll();
-            })
-            .addFilterBefore(apiKeyAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            });
 
         return http.build();
     }

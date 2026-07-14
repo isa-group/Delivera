@@ -1,0 +1,15 @@
+   █████╗ ██╗   ██╗████████╗██╗  ██╗
+  ██╔══██╗██║   ██║╚══██╔══╝██║  ██║
+  ███████║██║   ██║   ██║   ███████║
+  ██╔══██║██║   ██║   ██║   ██╔══██║
+  ██║  ██║╚██████╔╝   ██║   ██║  ██║
+  ╚═╝  ╚═╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝
+
+        AUTH SERVICE (Delivera)
+
+   :: Version :: v${application.version}
+   :: Stack ::  Spring Boot ${spring-boot.version} | Java ${java.version}
+
+   :: JWT :: RS256 + JWKS
+   :: Mode :: Stateless Auth
+   :: Context :: Multi-tenant ready

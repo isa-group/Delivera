@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { WORKER_ROLES, ORDER_CREATOR_ROLES } from '@/constants/roles'
+import { useServices } from '@/composables/useServices'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
@@ -11,7 +12,6 @@ export const useAuthStore = defineStore('auth', () => {
   const role = ref(localStorage.getItem('role') || null)
   const companyId = ref(localStorage.getItem('companyId') || null)
   const planCode = ref(localStorage.getItem('planCode') || null)
-
   // Empresas del usuario en la misma org (en memoria, se recarga cuando es necesario)
   const companies = ref([])
 

@@ -53,7 +53,19 @@ cd docker
 docker compose up -d
 ```
 
-**2. Backend**
+**2. Microservice-starter**
+```bash
+cd microservice-client-starter/
+mvn clean install
+```
+
+**3. Auth service**
+```bash
+cd auth-service
+mvn spring-boot:run -D spring-boot.run.profiles=dev
+```
+
+**4. Backend**
 
 ```bash
 cd backend
@@ -61,12 +73,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 ```
 
-**3. Auth service**
-```bash
-cd auth-service
-mvn spring-boot:run -D spring-boot.run.profiles=dev
 
-```
 
 **4. Frontend**
 

@@ -1,22 +1,24 @@
 package com.delivera.controller;
 
+import com.delivera.auth.service.AuthService;
 import com.delivera.dto.auth.ClaimRegisterRequest;
 import com.delivera.dto.auth.LoginResponse;
 import com.delivera.dto.order.*;
 import com.delivera.model.OrderStatus;
 import com.delivera.model.OrderType;
-import com.delivera.service.AuthService;
 import com.delivera.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseCookie;
 
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -114,9 +116,11 @@ class OrderControllerTest {
         // ClaimRegisterRequest(firstName, lastName, email, password)
         ClaimRegisterRequest req = new ClaimRegisterRequest("First", "Last", "a@b.com", "Pass1a2B");
         // LoginResponse(token, email, companyId, role, companyName, orgHandle, orgName)
-        LoginResponse expected = new LoginResponse("jwt-token", "a@b.com", null, "LOYAL_USER", null, null, null);
-        when(authService.claimRegister("tok", req)).thenReturn(expected);
-        var resp = controller.claimRegister("tok", req);
+        LoginResponse expected = new LoginResponse("jwt-token", "a@b.com", null, "LOYAL_USER", null, null, null,null);
+        when(authService.claimRegister(eq("tok"), eq(req),any())).thenReturn(expected);
+        when(authService.refreshCookie(any())).thenReturn(ResponseCookie.from("saasa").build());
+        var resp = controller.claimRegister(any(),"tok", req);
+           
         assertThat(resp.getStatusCode().value()).isEqualTo(201);
         assertThat(resp.getBody()).isSameAs(expected);
     }

@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { getDeviceId } from './useRefreshToken'
 
 export function useApi() {
   const auth = useAuthStore()
@@ -19,7 +20,8 @@ export function useApi() {
 
 
   async function request(endpoint, options = {}) {
-    const headers = { 'Content-Type': 'application/json', ...options.headers }
+    const headers = { 'Content-Type': 'application/json','X-Device-Id': getDeviceId() ,...options.headers }
+    
 
     if (auth.token) {
       headers.Authorization = `Bearer ${auth.token}`
@@ -28,6 +30,7 @@ export function useApi() {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v2${endpoint}`, {
       ...options,
       headers,
+      credentials: "include"
     })
 
     // Sólo forzamos logout si el usuario estaba autenticado y la llamada no es de auth.

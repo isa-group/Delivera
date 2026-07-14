@@ -1,6 +1,7 @@
 package com.delivera.service;
 
-import com.delivera.security.SecurityUtils;
+
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.settings.*;
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.CompanyHasActiveOrdersException;
@@ -121,6 +122,7 @@ public class SettingsService {
             if (lu.getCompanies().isEmpty()) loyalUserRepository.delete(lu);
             else loyalUserRepository.save(lu);
         }
+        // TODO: WORKER REPOSITORY DOESN'T DELETE USER ACCOUNT IF IT'S THE WORKER ASSOCIATE TO THAT ACCOUNT.
         operationalUnitRepository.deleteAll(operationalUnitRepository.findAllByCompanyId(companyId));
         workerRepository.deleteAll(workerRepository.findByCompanyId(companyId));
         companyRepository.delete(target);

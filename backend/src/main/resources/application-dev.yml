@@ -14,10 +14,74 @@ management:
     health:
       show-details: always
 
-app:
+
+
+delivera:
   jwt:
-    secret: ${JWT_SECRET:delivera-jwt-secret-key-para-desarrollo}
-    expiration: 86400
+    jwks-uri: http://localhost:9090/api/v2/.well-known/jwks.json
+
+  client: 
+    service-name: delivera-service
+    internal-hosts: 
+      - auth-service
+    
+    service-hosts:
+      auth-service: https://localhost:9091
+    
+    
+    service-base-paths:
+      auth-service: /api/v2
+
+
+    internal-auth:
+      enabled: true
+      filter-enabled: true
+      header-name: X-Internal-Key
+      service-header-name: X-Service-Name
+  
+  security:
+    default-deny: false
+    services:
+      auth-service: 
+        api-internal-key: auth-internal-key
+        allowed-paths:
+      delivera-service: 
+        api-internal-key: delivera-internal-key
+        allowed-paths:
+      
+  mtls:
+    enabled: true
+    key-store: ${DELIVERA_KEY_STORE:classpath:certs/delivera-keystore.p12}
+    key-store-password: ${DELIVERA_KEYSTORE_PASSWORD:delivera_password}
+    key-store-type: ${DELIVERA_KEY_STORE_TYPE:PKCS12}
+    trust-store: ${DELIVERA_TRUST_STORE:classpath:certs/delivera-truststore.p12}
+    trust-store-password: ${DELIVERA_TRUSTSTORE_PASSWORD:delivera_password}
+    trust-store-type: ${DELIVERA_TRUST_STORE_TYPE:PKCS12}
+    server:
+      enabled: true
+      port: 8081
+
+      key-store: ${delivera.mtls.key-store}
+      key-store-password: ${delivera.mtls.key-store-password}
+      key-store-type: ${delivera.mtls.key-store-type}
+
+      trust-store: ${delivera.mtls.trust-store}
+      trust-store-password: ${delivera.mtls.trust-store-password}
+      trust-store-type: ${delivera.mtls.trust-store-type}
+
+      use-temp-file: false
+server:
+  ssl:
+    enabled: false
+    key-store: ${delivera.mtls.key-store}
+    key-store-password: ${delivera.mtls.key-store-password}
+    key-store-type: ${delivera.mtls.key-store-type}
+    # client-auth --> required = mTLS  | want --> check in backend if u required certificate
+    client-auth: none
+
+app:
+  gateway: 
+    enabled: false
   cors:
     allowed-origins: http://localhost:3000
   mail:
@@ -28,7 +92,9 @@ app:
   contact-email: contact@delivera.com
   file:
     max-upload-bytes: 2097152
-  auth:
-    rate-limit:
-      max-attempts: 5
-      window-ms: 60000
+  demo:
+    seed:
+      auth:
+        prefix: /api/v2 
+        host: http://localhost:9090
+        path: /internal/auth/seed/register

@@ -1,6 +1,7 @@
 package com.delivera.service;
 
-import com.delivera.security.SecurityUtils;
+
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.settings.CompanyCreateRequest;
 import com.delivera.dto.settings.CompanyUpdateRequest;
 import com.delivera.dto.settings.OrgUpdateRequest;

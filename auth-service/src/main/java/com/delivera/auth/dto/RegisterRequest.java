@@ -2,6 +2,9 @@ package com.delivera.auth.dto;
 
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -32,4 +35,10 @@ public class RegisterRequest {
         @Size(min = 8)
         @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$")
         String password;
+
+        @Valid
+        DeliveraOrgContext context;
+        
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        RequestClientData requestClientData;
 }

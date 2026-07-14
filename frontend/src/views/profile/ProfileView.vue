@@ -8,6 +8,7 @@ import { useValidation } from '@/composables/useValidation'
 import { useFormatDate } from '@/composables/useFormatDate'
 import { useGeolocation } from '@/composables/useGeolocation'
 import { useAppConfig } from '@/composables/useAppConfig'
+import { useServices } from '@/composables/useServices'
 
 const { t, locale } = useI18n()
 const { formatDate } = useFormatDate()
@@ -22,9 +23,11 @@ function setLocale(val) {
     localStorage.setItem(`locale_${auth.user.email}`, val)
   }
 }
+
 const router = useRouter()
 const auth = useAuthStore()
 const api = useApi()
+const authApi = useServices("auth-service")
 const { validate, required, minLength, maxLength, pattern, passwordStrength, usernameFormat, firstError, errors, invalids } = useValidation()
 
 const showAddressFields = computed(() => !auth.isWorker)
@@ -277,8 +280,13 @@ async function savePassword() {
   })
   if (!valid) { error.value = firstError(); return }
   try {
-    const response = await api.put('/user/password', { currentPassword: passwordForm.value.currentPassword, newPassword: passwordForm.value.newPassword })
-    if (response.ok) { changingPassword.value = false; success.value = 'profile.passwordChanged' }
+    const response = await authApi.put('/auth/password', { currentPassword: passwordForm.value.currentPassword, newPassword: passwordForm.value.newPassword })
+    if (response.ok) { 
+      changingPassword.value = false; 
+      success.value = 'profile.passwordChanged' 
+      const data = await response.json()
+      auth.applyLoginData(data)
+    }
     else { const data = await response.json(); error.value = api.translateError(data, 'error.passwordChangeFailed') }
   } catch {
     error.value = t('error.connection')

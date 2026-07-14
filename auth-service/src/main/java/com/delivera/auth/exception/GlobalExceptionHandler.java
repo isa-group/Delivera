@@ -1,10 +1,20 @@
 package com.delivera.auth.exception;
 
+import com.delivera.auth.controller.AuthController;
 import com.delivera.auth.dto.ErrorResponse;
 import com.delivera.auth.dto.ValidationErrorResponse;
+import com.delivera.client.exception.ApiException;
+import com.delivera.client.exception.ClientException;
+import com.delivera.client.exception.NetworkException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+
+import jakarta.persistence.OptimisticLockException;
 import lombok.extern.slf4j.Slf4j;
+
+import org.hibernate.service.spi.ServiceException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -25,12 +35,20 @@ import static org.springframework.http.HttpStatus.*;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private final AuthController authController;
+
+    @Autowired
+    public GlobalExceptionHandler(AuthController authController) {
+        this.authController = authController;
+    }
+
     private record Mapping(HttpStatus status, String code) {}
 
     private static final Map<Class<?>, Mapping> ERRORS = Map.ofEntries(
         Map.entry(InvalidCredentialsException.class,      new Mapping(UNAUTHORIZED,         "INVALID_CREDENTIALS")),
         Map.entry(UserNotFoundException.class,            new Mapping(NOT_FOUND,            "USER_NOT_FOUND")),
         Map.entry(EmailAlreadyExistsException.class,      new Mapping(CONFLICT,             "EMAIL_ALREADY_EXISTS")),
+        Map.entry(ForbiddenException.class,               new Mapping(FORBIDDEN,            "FORBIDDEN")),
         Map.entry(UsernameAlreadyExistsException.class,   new Mapping(CONFLICT,             "USERNAME_ALREADY_EXISTS")),
         Map.entry(RateLimitExceededException.class,       new Mapping(TOO_MANY_REQUESTS,    "RATE_LIMIT_EXCEEDED"))
     );
@@ -147,4 +165,42 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error: {}", ex.getMessage(), ex);
         return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ErrorResponse("INTERNAL_ERROR"));
     }
+
+    
+    @ExceptionHandler(NetworkException.class)
+    public ResponseEntity<?> handleNetwork(NetworkException ex) {
+        return ResponseEntity.status(503).body(new ErrorResponse("SERVICE_UNAVAILABLE"));
+    }
+
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<?> handleApiException(ApiException ex) {
+        return ResponseEntity.status(503).body(new ErrorResponse("SERVICE_UNAVAILABLE"));
+    }
+
+    @ExceptionHandler(ClientException.class)
+    public ResponseEntity<?> handleClientException(ClientException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(new ErrorResponse(HttpStatus.valueOf(ex.getStatus()).name()));
+    }
+
+    
+    @ExceptionHandler(ServiceException.class)
+    public ResponseEntity<?> handleServiceException(ServiceException ex) {
+        return ResponseEntity.status(503).body(new ErrorResponse("SERVICE_UNAVAILABLE"));
+    }
+
+    
+    @ExceptionHandler(OptimisticLockException.class)
+    public ResponseEntity<?> handleOptimisticLock() {
+        return ResponseEntity.status(409).body(new ErrorResponse("CONCURRENT_MODIFICATION"));
+    }
+
+ 
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<?> handleInvalidRefreshTokenException() {
+        return ResponseEntity.status(401)
+        .header(HttpHeaders.SET_COOKIE,authController.deleteRefreshToken().toString())
+        .body(new ErrorResponse("INVALID_REFRESH_TOKEN"));
+    }
+
 }

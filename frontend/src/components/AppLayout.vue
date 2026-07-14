@@ -4,14 +4,17 @@ import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useApi } from '@/composables/useApi'
+import { useServices } from '@/composables/useServices'
 import { useAppConfig } from '@/composables/useAppConfig'
 import { WORKER_ROLES } from '@/constants/roles'
+import { stopAuthRefresh } from '@/composables/useRefreshToken'
 
 const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const api = useApi()
+const authApi = useServices("auth-service")
 const { load: loadConfig } = useAppConfig()
 
 const collapsed = ref(false)
@@ -72,8 +75,12 @@ function applyUserLocale(email) {
 }
 
 function handleLogout() {
+  try {
+      authApi.get('/auth/logout')
+    } catch(e) {console.log(e)}
   profileOpen.value = false
   locale.value = navigator.language?.startsWith('en') ? 'en' : 'es'
+  stopAuthRefresh()
   auth.logout()
   router.push('/')
 }
@@ -103,7 +110,7 @@ async function switchCompany(companyId) {
   companySwitcherOpen.value = false
   switching.value = true
   try {
-    const res = await api.post('/auth/switch-company', { companyId })
+    const res = await authApi.post('/auth/switch-company', { companyId })
     if (res.ok) {
       const data = await res.json()
       auth.applyLoginData(data)
@@ -145,7 +152,8 @@ onMounted(async () => {
     applyUserLocale(auth.user.email)
   }
 
-  if (auth.isWorker && auth.isCompanyAdmin) {
+  //if (auth.isWorker && auth.isCompanyAdmin) {
+  if (auth.isWorker) {
     auth.loadCompanies()
     await loadSubscriptionIfNeeded()
   }

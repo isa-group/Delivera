@@ -349,6 +349,7 @@ workers:
   confirmRemoveDesc: "The worker will lose access to the company."
   removeWorker: Remove
   roles:
+    GLOBAL_ADMIN: Global Admin
     COMPANY_ADMIN: Admin
     ANALYST: Analyst
     OPERATOR: Operator
@@ -511,6 +512,17 @@ settings:
   noCompaniesFound: No companies found matching that criteria
   searchByName: Search by name
   filterAll: All
+  devices: 
+    name: Devices
+    message: Manage your active devices
+    empty: There aren't active devices
+    currentSession: Current
+    lastUsed: Last time used  
+    revokeOthers: Revoke others
+    logoutOthers: Delete others
+    revoked: REVOKED
+    passwordRequired: Password required to execute revoke or delete
+  
 
 vehicles:
   title: Vehicles

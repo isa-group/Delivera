@@ -2,13 +2,25 @@ package com.delivera.auth.dto;
 
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+@AllArgsConstructor
 public class LoginResponse {
-        String token;
-        String email;
-        UUID companyId;
-        String role;
-        String companyName;
-        String orgHandle;
-        String orgName;
+        private String token;
+        private String email;
+        private UUID companyId;
+        private String role;
+        private String companyName;
+        private String orgHandle;
+        private String orgName;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        private RefreshCookieData refreshCookie;
 }
+
         

@@ -1,6 +1,6 @@
 package com.delivera.service;
 
-import com.delivera.security.SecurityUtils;
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.order.*;
 import com.delivera.exception.*;
 import com.delivera.model.*;

@@ -1,9 +1,10 @@
 package com.delivera.service;
 
-import com.delivera.security.SecurityUtils;
+
 import com.delivera.dto.order.OrderRequest;
 import com.delivera.model.OrderType;
 import com.delivera.dto.order.OrderStatusRequest;
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.order.OrderLocationRequest;
 import com.delivera.exception.InvalidOrderUnitsException;
 import com.delivera.exception.OrderNotFoundException;

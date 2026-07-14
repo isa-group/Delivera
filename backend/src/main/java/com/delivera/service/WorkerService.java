@@ -1,13 +1,14 @@
 package com.delivera.service;
 
+import com.delivera.auth.service.AuthClient;
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.worker.ChangeRoleRequest;
 import com.delivera.dto.worker.WorkerInviteRequest;
 import com.delivera.dto.worker.WorkerResponse;
 import com.delivera.exception.*;
 import com.delivera.model.*;
 import com.delivera.repository.*;
-import com.delivera.security.SecurityUtils;
-import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,24 +22,24 @@ public class WorkerService {
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
     private final LoyalUserRepository loyalUserRepository;
-    private final PasswordEncoder passwordEncoder;
     private final SecurityUtils securityUtils;
     private final SubscriptionService subscriptionService;
+    private final AuthClient client;
 
     public WorkerService(WorkerRepository workerRepository,
                          UserRepository userRepository,
                          CompanyRepository companyRepository,
                          LoyalUserRepository loyalUserRepository,
-                         PasswordEncoder passwordEncoder,
                          SecurityUtils securityUtils,
+                         AuthClient client,
                          SubscriptionService subscriptionService) {
         this.workerRepository = workerRepository;
         this.userRepository = userRepository;
         this.companyRepository = companyRepository;
         this.loyalUserRepository = loyalUserRepository;
-        this.passwordEncoder = passwordEncoder;
         this.securityUtils = securityUtils;
         this.subscriptionService = subscriptionService;
+        this.client = client;
     }
 
     @Transactional(readOnly = true)
@@ -68,6 +69,7 @@ public class WorkerService {
         Company company = companyRepository.findById(companyId).orElseThrow(CompanyContextException::new);
 
         String tempPassword = null;
+        User savedUser = null;
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
             tempPassword = UUID.randomUUID().toString().replace("-", "").substring(0, 12) + "A1";
@@ -75,9 +77,9 @@ public class WorkerService {
             user.setEmail(email);
             user.setFirstName(email.split("@")[0]);
             user.setLastName("");
-            user.setPasswordHash(passwordEncoder.encode(tempPassword));
             user.setInvited(true);
-            userRepository.save(user);
+            savedUser = userRepository.save(user);
+         
         }
 
         Worker worker = new Worker();
@@ -85,7 +87,9 @@ public class WorkerService {
         worker.setCompany(company);
         worker.setRole(role);
         worker = workerRepository.save(worker);
-
+        if (savedUser != null) {
+            client.register(savedUser.getId(), email, null, tempPassword).block();
+        }
         return tempPassword != null ? WorkerResponse.withTemp(worker, tempPassword) : WorkerResponse.from(worker);
     }
 
@@ -125,6 +129,8 @@ public class WorkerService {
         workerRepository.delete(worker);
         if (user.isInvited() && workerRepository.countByUser_Id(user.getId()) == 0) {
             userRepository.delete(user);
+            client.deleteUser(user.getId()).block();
+            
         }
     }
 }

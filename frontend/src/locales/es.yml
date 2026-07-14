@@ -349,6 +349,7 @@ workers:
   confirmRemoveDesc: "El trabajador perderá el acceso a la empresa."
   removeWorker: Eliminar
   roles:
+    GLOBAL_ADMIN: Administrador Global 
     COMPANY_ADMIN: Administrador
     ANALYST: Analista
     OPERATOR: Operador
@@ -511,6 +512,16 @@ settings:
   noCompaniesFound: No se encontraron empresas con ese criterio
   searchByName: Buscar por nombre
   filterAll: Todos
+  devices: 
+    name: Dispositivos
+    message: Gestiona tus dispositivos activos
+    empty: No hay dispositivos activos
+    currentSession:  Actual
+    lastUsed: Última vez usado
+    revokeOthers: Revocar los otros
+    logoutOthers: Borrar los otros
+    revoked: REVOCADA
+    passwordRequired: Contraseña requerida para revocar o borrar 
 
 vehicles:
   title: Vehículos

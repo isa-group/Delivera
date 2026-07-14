@@ -1,5 +1,6 @@
 package com.delivera.config;
 
+import com.delivera.auth.service.AuthClient;
 import com.delivera.model.*;
 import com.delivera.repository.*;
 import jakarta.persistence.EntityManager;
@@ -9,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +44,13 @@ public class DemoDataSeeder implements CommandLineRunner {
     @Value("${app.demo.seed-password:demo1234}")
     private String seedPassword;
 
+    @Value("${app.demo.seed.auth.host}")
+    private String authHost;
+    @Value("${app.demo.seed.auth.prefix}")
+    private String authPrefix;
+    @Value("${app.demo.seed.auth.path}")
+    private String authPath;
+
     private final UserRepository users;
     private final OrganizationRepository organizations;
     private final CompanyRepository companies;
@@ -55,7 +62,7 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final ActivityTypeRepository activityTypes;
     private final SubscriptionPlanRepository plans;
     private final VehicleRepository vehicles;
-    private final PasswordEncoder passwordEncoder;
+    private final AuthClient authClient;
 
     @PersistenceContext
     private EntityManager em;
@@ -71,7 +78,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                            ActivityTypeRepository activityTypes,
                            SubscriptionPlanRepository plans,
                            VehicleRepository vehicles,
-                           PasswordEncoder passwordEncoder) {
+                           AuthClient authClient) {
         this.users = users;
         this.organizations = organizations;
         this.companies = companies;
@@ -83,7 +90,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         this.activityTypes = activityTypes;
         this.plans = plans;
         this.vehicles = vehicles;
-        this.passwordEncoder = passwordEncoder;
+        this.authClient = authClient;
     }
 
     @Override
@@ -376,8 +383,15 @@ public class DemoDataSeeder implements CommandLineRunner {
         if (address != null) u.setAddress(address);
         if (lat != null) u.setLatitude(BigDecimal.valueOf(lat));
         if (lon != null) u.setLongitude(BigDecimal.valueOf(lon));
-        u.setPasswordHash(passwordEncoder.encode(seedPassword));
-        return users.save(u);
+        var savedUser = users.save(u);
+        authClient.registerSeed( 
+                u.getId() , 
+                email,  
+                username,  
+                seedPassword,
+                authHost+authPrefix+authPath
+        ).block();
+        return savedUser; 
     }
 
     private Organization createOrg(String name, String handle) {

@@ -1,3 +1,5 @@
+name: Delivera
+
 services:
   postgres:
     image: postgres:16

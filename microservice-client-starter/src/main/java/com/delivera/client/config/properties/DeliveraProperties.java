@@ -1,0 +1,78 @@
+package com.delivera.client.config.properties;
+
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+@ConfigurationProperties(prefix = "delivera")
+public class DeliveraProperties {
+
+    private Client client = new Client();
+    private Security security = new Security();
+    private JwtProperties jwt = new JwtProperties();;
+
+    @Getter
+    @Setter
+    public static class Client {
+
+        private String serviceName;
+
+        private List<String> internalHosts;
+
+        private Map<String, String> serviceHosts;
+
+        private Map<String, String> serviceBasePaths;
+
+        private InternalAuth internalAuth = new InternalAuth();
+    }
+
+    @Getter
+    @Setter
+    public static class InternalAuth {
+
+        private boolean enabled = true;
+
+        private String headerName = "X-Internal-Key";
+
+        private String serviceHeaderName = "X-Service-Name";
+    }
+
+    @Getter
+    @Setter
+    public static class Security {
+
+        private boolean defaultDeny = false;
+        
+        private Map<String, ServiceConfig> services;
+    }
+
+    
+    @Getter
+    @Setter
+    public static class ServiceConfig {
+
+        private String apiInternalKey;
+
+        private boolean enabled = true;
+        private List<String> allowedPaths;
+    }
+
+    
+   
+
+    @Getter
+    @Setter
+    public static class JwtProperties {
+        private boolean enabled = true;
+        private String jwksUri;
+    }
+
+
+}
