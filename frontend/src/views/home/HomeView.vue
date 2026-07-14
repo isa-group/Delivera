@@ -11,10 +11,12 @@ import {
   attachRouteVisibilityHandler, currentLocationOf,
 } from '@/composables/useDeliveraMap'
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM_COUNTRY } from '@/constants/map'
+import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const router = useRouter()
 const api = useApi()
+const dataApi = useServices("data-service")
 const auth = useAuthStore()
 
 const units = ref([])
@@ -216,7 +218,7 @@ async function loadData() {
   loadingStats.value = true
   try {
     const [unitsRes, ordersRes] = await Promise.all([
-      api.get('/units'),
+      dataApi.get('/units'),
       api.get('/orders'),
     ])
     if (unitsRes.ok) units.value = await unitsRes.json()
