@@ -1,0 +1,15 @@
+  ██████╗  █████╗ ████████╗ █████╗
+  ██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗
+  ██║  ██║███████║   ██║   ███████║
+  ██║  ██║██╔══██║   ██║   ██╔══██║
+  ██████╔╝██║  ██║   ██║   ██║  ██║
+  ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝
+
+          DATA SERVICE (Delivera)
+
+   :: Version :: v${application.version}
+   :: Stack :: Spring Boot ${spring-boot.version} | Java ${java.version}
+
+   :: Fleet :: Vehicles & Tracking
+   :: Operations :: Units & Worker Assignments
+   :: Context :: Multi-tenant ready
