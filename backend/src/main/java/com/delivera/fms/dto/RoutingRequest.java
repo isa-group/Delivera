@@ -23,6 +23,9 @@ public record RoutingRequest(
         List<VehicleDto> vehicles,
 
         @NotNull
-        double[][] distanceMatrix
+        double[][] distanceMatrix,
+
+        @NotNull
+        TypeSolver solverType
 ) {
 }

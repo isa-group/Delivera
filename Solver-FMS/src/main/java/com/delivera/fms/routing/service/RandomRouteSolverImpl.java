@@ -4,25 +4,26 @@ import com.delivera.fms.routing.dto.CustomerDto;
 import com.delivera.fms.routing.dto.DepotDto;
 import com.delivera.fms.routing.dto.RouteDto;
 import com.delivera.fms.routing.dto.RoutingRequest;
-import com.delivera.fms.routing.dto.RoutingResponse;
 import com.delivera.fms.routing.dto.TypeSolver;
 import com.delivera.fms.routing.dto.VehicleDto;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Service("randomRouteSolver")
-public class RandomRouteSolverImpl implements RouteSolver {
+public class RandomRouteSolverImpl extends BaseRouteSolver {
 
     @Override
-    public RoutingResponse solve(RoutingRequest request) {
-        long startTime = System.currentTimeMillis();
+    protected TypeSolver getType() {
+        return TypeSolver.RANDOM;
+    }
 
+    @Override
+    protected List<RouteDto> performRouting(RoutingRequest request) {
         List<CustomerDto> customers = new ArrayList<>(request.customers());
         Collections.shuffle(customers);
 
@@ -33,30 +34,9 @@ public class RandomRouteSolverImpl implements RouteSolver {
 
         List<VehicleDto> vehicles = request.vehicles();
         boolean hasVehicles = vehicles != null && !vehicles.isEmpty();
-        List<RouteDto> routes = hasVehicles
+        return hasVehicles
                 ? routesFromVehicles(vehicles, grouped, dist)
                 : routesFromDepots(depots, grouped, dist);
-
-        double totalCost = routes.stream().mapToDouble(RouteDto::totalDistance).sum();
-        long computationTime = System.currentTimeMillis() - startTime;
-
-        return new RoutingResponse(
-                request.problemId(), "COMPLETED", TypeSolver.RANDOM,
-                totalCost, computationTime, routes
-        );
-    }
-
-    private Map<DepotDto, List<CustomerDto>> groupByNearestDepot(
-            List<CustomerDto> customers, List<DepotDto> depots, double[][] dist) {
-        Map<DepotDto, List<CustomerDto>> result = new HashMap<>();
-        for (DepotDto d : depots) result.put(d, new ArrayList<>());
-        for (CustomerDto c : customers) {
-            DepotDto nearest = depots.stream()
-                    .min(Comparator.comparingDouble(d -> dist[d.matrixIndex()][c.matrixIndex()]))
-                    .orElse(depots.get(0));
-            result.get(nearest).add(c);
-        }
-        return result;
     }
 
     private List<RouteDto> routesFromVehicles(List<VehicleDto> vehicles,
@@ -102,10 +82,5 @@ public class RandomRouteSolverImpl implements RouteSolver {
         totalDistance += dist[currentIndex][depot.matrixIndex()];
 
         return new RouteDto(vehicleId, depot.id(), stops, totalDistance, totalLoad);
-    }
-
-    @Override
-    public String getSolverId() {
-        return "random";
     }
 }
