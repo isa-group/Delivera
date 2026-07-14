@@ -2,13 +2,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useApi } from '@/composables/useApi'
 import { useVehicleForm } from '@/composables/useVehicleForm'
+import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
-const api = useApi()
+const api = useServices("data-service")
 
 const vehicleId = computed(() => route.params.id || null)
 const isEdit = computed(() => !!vehicleId.value)

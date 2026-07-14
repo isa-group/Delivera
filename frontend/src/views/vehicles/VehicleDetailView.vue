@@ -2,15 +2,15 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useApi } from '@/composables/useApi'
 import { useAuthStore } from '@/stores/auth'
 import { useFormatDate } from '@/composables/useFormatDate'
+import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const { formatDate } = useFormatDate()
 const route = useRoute()
 const router = useRouter()
-const api = useApi()
+const api = useServices("data-service")
 const auth = useAuthStore()
 
 const vehicle = ref(null)
