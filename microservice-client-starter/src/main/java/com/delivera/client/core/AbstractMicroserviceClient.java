@@ -3,6 +3,7 @@ package com.delivera.client.core;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -165,6 +166,75 @@ public abstract class AbstractMicroserviceClient implements MicroserviceClient {
 
             });
     }
+
+    public <R> Mono<ClientResponse<R>> exchange(
+        String url,
+        HttpMethod method,
+        Object body,
+        Map<String, String> headers,
+        ParameterizedTypeReference<R> responseType, 
+        Boolean isFailOn4xx,
+        Boolean isFailOn5xx
+    ) {
+        
+        var request = webClient.method(method)
+        .uri(url)
+        .headers(h -> {
+            h.setAll(headers);
+            h.setContentType(MediaType.APPLICATION_JSON);
+        });
+
+
+        WebClient.RequestHeadersSpec<?> finalRequest;
+
+        
+        if (body != null) {
+            finalRequest = request.bodyValue(body);
+        } else {
+            finalRequest = request;
+        }
+        return finalRequest.exchangeToMono(response -> {
+
+                int status = response.statusCode().value();
+
+                
+               
+
+                if (status >= 400 && status < 500 && isFailOn4xx) {
+                    Mono<String> errorBody = response.bodyToMono(String.class)
+                    .defaultIfEmpty("");
+                    return errorBody.flatMap(bodyText ->
+                        Mono.error(new ClientException(status, bodyText))
+                    );
+                }
+
+                if (status >= 500 && isFailOn5xx) {
+                    Mono<String> errorBody = response.bodyToMono(String.class)
+                    .defaultIfEmpty("");
+                    return errorBody.flatMap(bodyText ->
+                        Mono.error(new ServerException(status, bodyText))
+                    );
+                }
+
+
+                Map<String, String> responseHeaders = new HashMap<>();
+                response.headers().asHttpHeaders().forEach(
+                    (k, v) -> responseHeaders.put(k, v.get(0))
+                );
+
+                
+                return response.bodyToMono(responseType)
+                .map(bodyResp ->
+                    new ClientResponse<>(status, responseHeaders, bodyResp)
+                )
+                .switchIfEmpty(Mono.just(
+                    new ClientResponse<>(status, responseHeaders, null)
+                ));
+
+            });
+    }
+
+
 
 
 }
