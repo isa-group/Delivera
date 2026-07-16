@@ -33,16 +33,17 @@ public class StandardInstanceController {
     }
 
     @Operation(summary = "Enviar instancia de benchmark al solver",
-            description = "Carga un archivo de instancia MD-CVRP desde el directorio de instancias, " +
+            description = "Carga un archivo de instancia MD-CVRP (JSON) desde el directorio de instancias, " +
                     "lo parsea y lo envia al motor de ruteo correspondiente para su resolucion.")
     @PostMapping("/send")
     public ResponseEntity<RoutingResponse> sendInstance(
-            @Parameter(description = "Nombre del archivo de instancia (ej. p01)", required = true)
+            @Parameter(description = "Nombre del archivo de instancia sin extension (ej. p01)", required = true)
             @RequestParam String fileName,
-            @Parameter(description = "Tipo de solver a utilizar (RANDOM o GREEDY)")
+            @Parameter(description = "Tipo de solver a utilizar (RANDOM, GREEDY o GENETIC)")
             @RequestParam(defaultValue = "GREEDY") TypeSolver solverType) throws IOException {
+        String jsonFileName = fileName.endsWith(".json") ? fileName : fileName + ".json";
         Path basePath = Paths.get(instancesDir).toAbsolutePath().normalize();
-        Path filePath = basePath.resolve(fileName).normalize();
+        Path filePath = basePath.resolve(jsonFileName).normalize();
         if (!filePath.startsWith(basePath)) {
             throw new IllegalArgumentException("Invalid file name: " + fileName);
         }

@@ -16,7 +16,7 @@ management:
 
 fms:
   instances:
-    dir: instances-MD-CVRP
+    dir: instances-MD-CVRP-JSON
   engines:
     greedy:
       url: http://greedy-engine:8091

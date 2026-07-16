@@ -1,0 +1,1267 @@
+{
+  "filename": "p03",
+  "problem_type": "MDVRP",
+  "problem_type_code": 2,
+  "vehicles_per_depot": 3,
+  "num_customers": 75,
+  "num_depots": 5,
+  "depots": [
+    {
+      "depot_id": 1,
+      "max_duration": 0,
+      "vehicle_capacity": 140,
+      "id": 76,
+      "x": 40.0,
+      "y": 40.0,
+      "service_duration": 0,
+      "demand": 0,
+      "visit_frequency": 0
+    },
+    {
+      "depot_id": 2,
+      "max_duration": 0,
+      "vehicle_capacity": 140,
+      "id": 77,
+      "x": 50.0,
+      "y": 22.0,
+      "service_duration": 0,
+      "demand": 0,
+      "visit_frequency": 0
+    },
+    {
+      "depot_id": 3,
+      "max_duration": 0,
+      "vehicle_capacity": 140,
+      "id": 78,
+      "x": 55.0,
+      "y": 55.0,
+      "service_duration": 0,
+      "demand": 0,
+      "visit_frequency": 0
+    },
+    {
+      "depot_id": 4,
+      "max_duration": 0,
+      "vehicle_capacity": 140,
+      "id": 79,
+      "x": 25.0,
+      "y": 45.0,
+      "service_duration": 0,
+      "demand": 0,
+      "visit_frequency": 0
+    },
+    {
+      "depot_id": 5,
+      "max_duration": 0,
+      "vehicle_capacity": 140,
+      "id": 80,
+      "x": 20.0,
+      "y": 20.0,
+      "service_duration": 0,
+      "demand": 0,
+      "visit_frequency": 0
+    }
+  ],
+  "customers": [
+    {
+      "id": 1,
+      "x": 22.0,
+      "y": 22.0,
+      "service_duration": 0,
+      "demand": 18,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 2,
+      "x": 36.0,
+      "y": 26.0,
+      "service_duration": 0,
+      "demand": 26,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 3,
+      "x": 21.0,
+      "y": 45.0,
+      "service_duration": 0,
+      "demand": 11,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 4,
+      "x": 45.0,
+      "y": 35.0,
+      "service_duration": 0,
+      "demand": 30,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 5,
+      "x": 55.0,
+      "y": 20.0,
+      "service_duration": 0,
+      "demand": 21,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 6,
+      "x": 33.0,
+      "y": 34.0,
+      "service_duration": 0,
+      "demand": 19,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 7,
+      "x": 50.0,
+      "y": 50.0,
+      "service_duration": 0,
+      "demand": 15,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 8,
+      "x": 55.0,
+      "y": 45.0,
+      "service_duration": 0,
+      "demand": 16,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 9,
+      "x": 26.0,
+      "y": 59.0,
+      "service_duration": 0,
+      "demand": 29,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 10,
+      "x": 40.0,
+      "y": 66.0,
+      "service_duration": 0,
+      "demand": 26,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 11,
+      "x": 55.0,
+      "y": 65.0,
+      "service_duration": 0,
+      "demand": 37,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 12,
+      "x": 35.0,
+      "y": 51.0,
+      "service_duration": 0,
+      "demand": 16,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 13,
+      "x": 62.0,
+      "y": 35.0,
+      "service_duration": 0,
+      "demand": 12,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 14,
+      "x": 62.0,
+      "y": 57.0,
+      "service_duration": 0,
+      "demand": 31,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 15,
+      "x": 62.0,
+      "y": 24.0,
+      "service_duration": 0,
+      "demand": 8,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 16,
+      "x": 21.0,
+      "y": 36.0,
+      "service_duration": 0,
+      "demand": 19,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 17,
+      "x": 33.0,
+      "y": 44.0,
+      "service_duration": 0,
+      "demand": 20,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 18,
+      "x": 9.0,
+      "y": 56.0,
+      "service_duration": 0,
+      "demand": 13,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 19,
+      "x": 62.0,
+      "y": 48.0,
+      "service_duration": 0,
+      "demand": 15,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 20,
+      "x": 66.0,
+      "y": 14.0,
+      "service_duration": 0,
+      "demand": 22,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 21,
+      "x": 44.0,
+      "y": 13.0,
+      "service_duration": 0,
+      "demand": 28,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 22,
+      "x": 26.0,
+      "y": 13.0,
+      "service_duration": 0,
+      "demand": 12,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 23,
+      "x": 11.0,
+      "y": 28.0,
+      "service_duration": 0,
+      "demand": 6,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 24,
+      "x": 7.0,
+      "y": 43.0,
+      "service_duration": 0,
+      "demand": 27,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 25,
+      "x": 17.0,
+      "y": 64.0,
+      "service_duration": 0,
+      "demand": 14,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 26,
+      "x": 41.0,
+      "y": 46.0,
+      "service_duration": 0,
+      "demand": 18,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 27,
+      "x": 55.0,
+      "y": 34.0,
+      "service_duration": 0,
+      "demand": 17,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 28,
+      "x": 35.0,
+      "y": 16.0,
+      "service_duration": 0,
+      "demand": 29,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 29,
+      "x": 52.0,
+      "y": 26.0,
+      "service_duration": 0,
+      "demand": 13,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 30,
+      "x": 43.0,
+      "y": 26.0,
+      "service_duration": 0,
+      "demand": 22,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 31,
+      "x": 31.0,
+      "y": 76.0,
+      "service_duration": 0,
+      "demand": 25,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 32,
+      "x": 22.0,
+      "y": 53.0,
+      "service_duration": 0,
+      "demand": 28,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 33,
+      "x": 26.0,
+      "y": 29.0,
+      "service_duration": 0,
+      "demand": 27,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 34,
+      "x": 50.0,
+      "y": 40.0,
+      "service_duration": 0,
+      "demand": 19,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 35,
+      "x": 55.0,
+      "y": 50.0,
+      "service_duration": 0,
+      "demand": 10,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 36,
+      "x": 54.0,
+      "y": 10.0,
+      "service_duration": 0,
+      "demand": 12,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 37,
+      "x": 60.0,
+      "y": 15.0,
+      "service_duration": 0,
+      "demand": 14,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 38,
+      "x": 47.0,
+      "y": 66.0,
+      "service_duration": 0,
+      "demand": 24,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 39,
+      "x": 30.0,
+      "y": 60.0,
+      "service_duration": 0,
+      "demand": 16,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 40,
+      "x": 30.0,
+      "y": 50.0,
+      "service_duration": 0,
+      "demand": 33,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 41,
+      "x": 12.0,
+      "y": 17.0,
+      "service_duration": 0,
+      "demand": 15,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 42,
+      "x": 15.0,
+      "y": 14.0,
+      "service_duration": 0,
+      "demand": 11,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 43,
+      "x": 16.0,
+      "y": 19.0,
+      "service_duration": 0,
+      "demand": 18,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 44,
+      "x": 21.0,
+      "y": 48.0,
+      "service_duration": 0,
+      "demand": 17,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 45,
+      "x": 50.0,
+      "y": 30.0,
+      "service_duration": 0,
+      "demand": 21,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 46,
+      "x": 51.0,
+      "y": 42.0,
+      "service_duration": 0,
+      "demand": 27,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 47,
+      "x": 50.0,
+      "y": 15.0,
+      "service_duration": 0,
+      "demand": 19,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 48,
+      "x": 48.0,
+      "y": 21.0,
+      "service_duration": 0,
+      "demand": 20,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 49,
+      "x": 12.0,
+      "y": 38.0,
+      "service_duration": 0,
+      "demand": 5,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 50,
+      "x": 15.0,
+      "y": 56.0,
+      "service_duration": 0,
+      "demand": 22,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 51,
+      "x": 29.0,
+      "y": 39.0,
+      "service_duration": 0,
+      "demand": 12,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 52,
+      "x": 54.0,
+      "y": 38.0,
+      "service_duration": 0,
+      "demand": 19,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 53,
+      "x": 55.0,
+      "y": 57.0,
+      "service_duration": 0,
+      "demand": 22,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 54,
+      "x": 67.0,
+      "y": 41.0,
+      "service_duration": 0,
+      "demand": 16,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 55,
+      "x": 10.0,
+      "y": 70.0,
+      "service_duration": 0,
+      "demand": 7,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 56,
+      "x": 6.0,
+      "y": 25.0,
+      "service_duration": 0,
+      "demand": 26,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 57,
+      "x": 65.0,
+      "y": 27.0,
+      "service_duration": 0,
+      "demand": 14,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 58,
+      "x": 40.0,
+      "y": 60.0,
+      "service_duration": 0,
+      "demand": 21,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 59,
+      "x": 70.0,
+      "y": 64.0,
+      "service_duration": 0,
+      "demand": 24,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 60,
+      "x": 64.0,
+      "y": 4.0,
+      "service_duration": 0,
+      "demand": 13,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 61,
+      "x": 36.0,
+      "y": 6.0,
+      "service_duration": 0,
+      "demand": 15,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 62,
+      "x": 30.0,
+      "y": 20.0,
+      "service_duration": 0,
+      "demand": 18,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 63,
+      "x": 20.0,
+      "y": 30.0,
+      "service_duration": 0,
+      "demand": 11,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 64,
+      "x": 15.0,
+      "y": 5.0,
+      "service_duration": 0,
+      "demand": 28,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 65,
+      "x": 50.0,
+      "y": 70.0,
+      "service_duration": 0,
+      "demand": 9,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 66,
+      "x": 57.0,
+      "y": 72.0,
+      "service_duration": 0,
+      "demand": 37,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 67,
+      "x": 45.0,
+      "y": 42.0,
+      "service_duration": 0,
+      "demand": 30,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 68,
+      "x": 38.0,
+      "y": 33.0,
+      "service_duration": 0,
+      "demand": 10,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 69,
+      "x": 50.0,
+      "y": 4.0,
+      "service_duration": 0,
+      "demand": 8,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 70,
+      "x": 66.0,
+      "y": 8.0,
+      "service_duration": 0,
+      "demand": 11,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 71,
+      "x": 59.0,
+      "y": 5.0,
+      "service_duration": 0,
+      "demand": 3,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 72,
+      "x": 35.0,
+      "y": 60.0,
+      "service_duration": 0,
+      "demand": 1,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 73,
+      "x": 27.0,
+      "y": 24.0,
+      "service_duration": 0,
+      "demand": 6,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 74,
+      "x": 40.0,
+      "y": 20.0,
+      "service_duration": 0,
+      "demand": 10,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    {
+      "id": 75,
+      "x": 40.0,
+      "y": 37.0,
+      "service_duration": 0,
+      "demand": 20,
+      "visit_frequency": 1,
+      "num_combinations": 5,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    }
+  ]
+}

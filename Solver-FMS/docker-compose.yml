@@ -12,9 +12,9 @@ services:
       - FMS_ENGINES_GREEDY_URL=http://greedy-engine:8091
       - FMS_ENGINES_RANDOM_URL=http://random-engine:8092
       - FMS_ENGINES_GENETIC_URL=http://genetic-engine:8093
-      - FMS_INSTANCES_DIR=/app/instances-MD-CVRP
+      - FMS_INSTANCES_DIR=/app/instances-MD-CVRP-JSON
     volumes:
-      - ./instances-MD-CVRP:/app/instances-MD-CVRP:ro
+      - ./instances-MD-CVRP-JSON:/app/instances-MD-CVRP-JSON:ro
     depends_on:
       greedy-engine:
         condition: service_healthy

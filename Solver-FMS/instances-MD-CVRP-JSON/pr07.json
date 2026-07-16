@@ -1,0 +1,1302 @@
+{
+  "filename": "pr07",
+  "problem_type": "MDVRP",
+  "problem_type_code": 2,
+  "vehicles_per_depot": 1,
+  "num_customers": 72,
+  "num_depots": 6,
+  "depots": [
+    {
+      "depot_id": 1,
+      "max_duration": 500,
+      "vehicle_capacity": 200,
+      "id": 73,
+      "x": 42.395,
+      "y": -8.344,
+      "service_duration": 0,
+      "demand": 0,
+      "visit_frequency": 0
+    },
+    {
+      "depot_id": 2,
+      "max_duration": 500,
+      "vehicle_capacity": 200,
+      "id": 74,
+      "x": -42.175,
+      "y": -14.554,
+      "service_duration": 0,
+      "demand": 0,
+      "visit_frequency": 0
+    },
+    {
+      "depot_id": 3,
+      "max_duration": 500,
+      "vehicle_capacity": 200,
+      "id": 75,
+      "x": 16.034,
+      "y": 40.726,
+      "service_duration": 0,
+      "demand": 0,
+      "visit_frequency": 0
+    },
+    {
+      "depot_id": 4,
+      "max_duration": 500,
+      "vehicle_capacity": 200,
+      "id": 76,
+      "x": -14.639,
+      "y": 29.633,
+      "service_duration": 0,
+      "demand": 0,
+      "visit_frequency": 0
+    },
+    {
+      "depot_id": 5,
+      "max_duration": 500,
+      "vehicle_capacity": 200,
+      "id": 77,
+      "x": 16.049,
+      "y": -3.934,
+      "service_duration": 0,
+      "demand": 0,
+      "visit_frequency": 0
+    },
+    {
+      "depot_id": 6,
+      "max_duration": 500,
+      "vehicle_capacity": 200,
+      "id": 78,
+      "x": 46.112,
+      "y": 12.43,
+      "service_duration": 0,
+      "demand": 0,
+      "visit_frequency": 0
+    }
+  ],
+  "customers": [
+    {
+      "id": 1,
+      "x": -92.7,
+      "y": -59.18,
+      "service_duration": 8,
+      "demand": 20,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 2,
+      "x": 71.179,
+      "y": 12.543,
+      "service_duration": 15,
+      "demand": 6,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 3,
+      "x": 31.537,
+      "y": 66.638,
+      "service_duration": 20,
+      "demand": 19,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 4,
+      "x": -4.694,
+      "y": 25.537,
+      "service_duration": 7,
+      "demand": 10,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 5,
+      "x": -30.194,
+      "y": 67.773,
+      "service_duration": 13,
+      "demand": 18,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 6,
+      "x": 12.677,
+      "y": -57.471,
+      "service_duration": 6,
+      "demand": 1,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 7,
+      "x": -32.355,
+      "y": -20.966,
+      "service_duration": 5,
+      "demand": 15,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 8,
+      "x": 19.91,
+      "y": 48.975,
+      "service_duration": 1,
+      "demand": 23,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 9,
+      "x": 13.202,
+      "y": -19.135,
+      "service_duration": 12,
+      "demand": 13,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 10,
+      "x": 54.877,
+      "y": -41.168,
+      "service_duration": 18,
+      "demand": 12,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 11,
+      "x": 15.063,
+      "y": -25.171,
+      "service_duration": 25,
+      "demand": 7,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 12,
+      "x": -50.598,
+      "y": -16.418,
+      "service_duration": 14,
+      "demand": 25,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 13,
+      "x": -29.73,
+      "y": 17.078,
+      "service_duration": 18,
+      "demand": 5,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 14,
+      "x": 17.542,
+      "y": 1.575,
+      "service_duration": 13,
+      "demand": 1,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 15,
+      "x": 11.127,
+      "y": 77.216,
+      "service_duration": 6,
+      "demand": 25,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 16,
+      "x": 33.752,
+      "y": 71.259,
+      "service_duration": 14,
+      "demand": 10,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 17,
+      "x": -56.012,
+      "y": -10.394,
+      "service_duration": 10,
+      "demand": 2,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 18,
+      "x": 57.874,
+      "y": -16.29,
+      "service_duration": 18,
+      "demand": 7,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 19,
+      "x": 10.718,
+      "y": -18.787,
+      "service_duration": 8,
+      "demand": 11,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 20,
+      "x": 53.088,
+      "y": -18.75,
+      "service_duration": 6,
+      "demand": 4,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 21,
+      "x": 1.569,
+      "y": 7.532,
+      "service_duration": 2,
+      "demand": 6,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 22,
+      "x": 31.531,
+      "y": 48.944,
+      "service_duration": 4,
+      "demand": 15,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 23,
+      "x": -66.833,
+      "y": -37.854,
+      "service_duration": 4,
+      "demand": 7,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 24,
+      "x": -70.74,
+      "y": 62.244,
+      "service_duration": 23,
+      "demand": 8,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 25,
+      "x": 32.538,
+      "y": 23.096,
+      "service_duration": 12,
+      "demand": 10,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 26,
+      "x": -51.453,
+      "y": -36.444,
+      "service_duration": 24,
+      "demand": 9,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 27,
+      "x": 36.456,
+      "y": -22.638,
+      "service_duration": 17,
+      "demand": 4,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 28,
+      "x": -31.207,
+      "y": 43.494,
+      "service_duration": 18,
+      "demand": 6,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 29,
+      "x": -10.388,
+      "y": 34.491,
+      "service_duration": 25,
+      "demand": 22,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 30,
+      "x": 14.722,
+      "y": -10.834,
+      "service_duration": 22,
+      "demand": 17,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 31,
+      "x": 47.095,
+      "y": -21.387,
+      "service_duration": 10,
+      "demand": 9,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 32,
+      "x": 43.781,
+      "y": 34.766,
+      "service_duration": 25,
+      "demand": 25,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 33,
+      "x": 53.546,
+      "y": -67.487,
+      "service_duration": 21,
+      "demand": 10,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 34,
+      "x": 26.801,
+      "y": 46.515,
+      "service_duration": 21,
+      "demand": 18,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 35,
+      "x": 63.385,
+      "y": 11.981,
+      "service_duration": 16,
+      "demand": 21,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 36,
+      "x": 47.192,
+      "y": -5.475,
+      "service_duration": 23,
+      "demand": 10,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 37,
+      "x": -16.315,
+      "y": -11.267,
+      "service_duration": 21,
+      "demand": 23,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 38,
+      "x": 78.9,
+      "y": 17.651,
+      "service_duration": 15,
+      "demand": 23,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 39,
+      "x": 79.822,
+      "y": 22.272,
+      "service_duration": 7,
+      "demand": 11,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 40,
+      "x": 12.878,
+      "y": 16.919,
+      "service_duration": 20,
+      "demand": 1,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 41,
+      "x": -67.981,
+      "y": -3.754,
+      "service_duration": 6,
+      "demand": 23,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 42,
+      "x": 9.198,
+      "y": -18.597,
+      "service_duration": 16,
+      "demand": 16,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 43,
+      "x": -35.95,
+      "y": -19.141,
+      "service_duration": 10,
+      "demand": 10,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 44,
+      "x": 28.766,
+      "y": 45.276,
+      "service_duration": 7,
+      "demand": 12,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 45,
+      "x": 11.469,
+      "y": 68.231,
+      "service_duration": 20,
+      "demand": 12,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 46,
+      "x": -22.76,
+      "y": 45.496,
+      "service_duration": 9,
+      "demand": 3,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 47,
+      "x": -65.674,
+      "y": -23.12,
+      "service_duration": 12,
+      "demand": 22,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 48,
+      "x": 7.239,
+      "y": 1.599,
+      "service_duration": 10,
+      "demand": 21,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 49,
+      "x": -29.785,
+      "y": -11.285,
+      "service_duration": 19,
+      "demand": 13,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 50,
+      "x": -89.05,
+      "y": 16.211,
+      "service_duration": 6,
+      "demand": 15,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 51,
+      "x": -46.887,
+      "y": -3.363,
+      "service_duration": 14,
+      "demand": 13,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 52,
+      "x": -14.972,
+      "y": 30.621,
+      "service_duration": 23,
+      "demand": 20,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 53,
+      "x": -17.035,
+      "y": 49.774,
+      "service_duration": 8,
+      "demand": 10,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 54,
+      "x": 31.635,
+      "y": 53.619,
+      "service_duration": 10,
+      "demand": 25,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 55,
+      "x": -3.577,
+      "y": 13.342,
+      "service_duration": 14,
+      "demand": 7,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 56,
+      "x": 33.008,
+      "y": 58.96,
+      "service_duration": 3,
+      "demand": 15,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 57,
+      "x": -92.95,
+      "y": 63.263,
+      "service_duration": 25,
+      "demand": 2,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 58,
+      "x": -9.137,
+      "y": -22.931,
+      "service_duration": 21,
+      "demand": 23,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 59,
+      "x": -39.96,
+      "y": 6.195,
+      "service_duration": 5,
+      "demand": 5,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 60,
+      "x": 28.43,
+      "y": -19.214,
+      "service_duration": 2,
+      "demand": 25,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 61,
+      "x": -28.54,
+      "y": -3.485,
+      "service_duration": 3,
+      "demand": 9,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 62,
+      "x": 31.415,
+      "y": 36.859,
+      "service_duration": 21,
+      "demand": 2,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 63,
+      "x": -49.426,
+      "y": 60.602,
+      "service_duration": 1,
+      "demand": 24,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 64,
+      "x": -72.827,
+      "y": -27.765,
+      "service_duration": 25,
+      "demand": 13,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 65,
+      "x": 60.083,
+      "y": -45.905,
+      "service_duration": 21,
+      "demand": 20,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 66,
+      "x": 10.87,
+      "y": -3.9,
+      "service_duration": 21,
+      "demand": 13,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 67,
+      "x": 25.122,
+      "y": 7.672,
+      "service_duration": 25,
+      "demand": 15,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 68,
+      "x": -46.997,
+      "y": -17.474,
+      "service_duration": 14,
+      "demand": 4,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 69,
+      "x": 16.058,
+      "y": 33.02,
+      "service_duration": 20,
+      "demand": 20,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 70,
+      "x": 25.409,
+      "y": -11.7,
+      "service_duration": 14,
+      "demand": 8,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 71,
+      "x": 68.323,
+      "y": -5.145,
+      "service_duration": 11,
+      "demand": 19,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    },
+    {
+      "id": 72,
+      "x": -13.104,
+      "y": 62.158,
+      "service_duration": 25,
+      "demand": 20,
+      "visit_frequency": 1,
+      "num_combinations": 6,
+      "visit_combinations": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    }
+  ]
+}
