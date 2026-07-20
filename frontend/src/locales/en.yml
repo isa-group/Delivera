@@ -224,10 +224,12 @@ orders:
   orderType: Order type
   type:
     INTERNAL: Internal transfer
-    B2C: B2C — Individual
-    B2B: B2B — Business
+    B2C: Individual (B2C)
+    B2B: Business (B2B)
   destinationCompany: Destination company
   destinationCompanyPlaceholder: Select destination company
+  destinationOrg: Destination organization
+  destinationOrgPlaceholder: Select destination organization
   destinationUnit: Destination unit
   destinationUnitPlaceholder: Select destination unit
   trackingUrl: Tracking URL
@@ -239,6 +241,7 @@ orders:
   notesPlaceholder: Additional instructions (optional)
   noDestinationOptions: No units available as destination
   noB2bCompanies: No B2B companies available
+  noB2bOrgs: No B2B organizations available
   noUnits: Not enough units. Create at least two operational units first.
   sameUnit: Origin and destination must be different units
   timeline: Status history
@@ -261,9 +264,9 @@ orders:
   details: Details
   priority:
     label: Priority
-    HIGH: HIGH
-    NORMAL: NORMAL
-    LOW: LOW
+    HIGH: High
+    NORMAL: Normal
+    LOW: Low
   status:
     PENDING: Pending
     IN_TRANSIT: In transit
@@ -349,6 +352,7 @@ workers:
   confirmRemoveDesc: "The worker will lose access to the company."
   removeWorker: Remove
   roles:
+    GLOBAL_ADMIN: Global Admin
     COMPANY_ADMIN: Admin
     ANALYST: Analyst
     OPERATOR: Operator
@@ -379,13 +383,54 @@ admin:
   companies: Companies
   workers: Workers
   orders: Orders
+  users: Users
   createdAt: Created
   empty: No organizations registered.
+  emptyCompanies: No companies registered.
+  emptyOrders: No orders registered.
+  emptyUsers: No users registered.
+  emptyWorkers: No workers registered.
+  tab:
+    home: Home
+    activity: Activity
+    administration: Administration
+    settings: Settings
+  entity:
+    organizations: Organizations
+    companies: Companies
+    orders: Orders
+    users: Users
+    workers: Workers
   metric:
     totalOrganizations: Organizations
     totalCompanies: Companies
     totalOrdersThisMonth: Orders this month
     totalActiveUsers: Active users
+  deleteOrg: Delete organization?
+  deleteCompany: Delete company?
+  deleteOrder: Delete order?
+  deleteUser: Delete user?
+  deleteWorker: Delete worker?
+  deleteOrgHint: This will permanently delete the organization, all its companies, orders, workers, and units.
+  deleteCompanyHint: This will permanently delete the company, all its orders, workers, and units.
+  resetTitle: Reset database
+  resetHint: This action will delete all data stored in the application. This cannot be undone.
+  home:
+    chart: Orders (last 30 days)
+    map: Global units map
+  ranking:
+    title: Company ranking
+    company: Company
+    org: Organization
+    orders: Orders
+    empty: No data for this period
+  resetConfirm: Reset database
+  resetSuccess: Database reset successfully
+  orgId: Organization
+  companyName: Company
+  role: Role
+  email: Email
+  isWorker: Worker
 
 common:
   back: Back
@@ -408,6 +453,8 @@ validation:
   passwordStrength: Password must include uppercase, lowercase and a number
   phoneFormat: "Only digits, spaces and the symbols + - ( )"
   addressNeedsCoords: If you enter an address you must also capture the location
+  unitLocationRequired: Provide at least an address or coordinates to locate the unit on the map
+  recipientLocationRequired: Provide at least an address or coordinates for the recipient
   coordinatesIncomplete: Latitude and longitude must both be provided together
   coordinatesInvalid: Coordinates out of range (lat -90–90, lon -180–180)
   orgCodeRequired: Enter an organization code
@@ -432,6 +479,9 @@ error:
   INTERNAL_ERROR: Internal server error
   HANDLE_CONFLICT: This organization code is already in use
   handleInvalid: "Only lowercase letters, numbers and hyphens (cannot start or end with a hyphen)"
+  MISSING_UNIT_LOCATION: Provide at least an address or coordinates to locate the unit on the map
+  MISSING_RECIPIENT_LOCATION: Provide at least an address or coordinates for the recipient
+  MISSING_USER_LOCATION: Provide your address or use your current location
   UNIT_NAME_CONFLICT: A unit with that name already exists in this company
   UNIT_NOT_FOUND: Unit not found
   ORDER_NOT_FOUND: Order not found
@@ -450,6 +500,7 @@ error:
   SUBSCRIPTION_LIMIT_COMPANIES: You have more companies than the target plan allows
   WORKER_ALREADY_EXISTS: This worker already belongs to the company
   LOYAL_USER_CANNOT_BE_WORKER: This email belongs to a loyal user and cannot be invited as a worker
+  WORKER_CANNOT_BE_LOYAL_USER: This email belongs to a worker and cannot be used as a B2C recipient
   WORKER_NOT_FOUND: Worker not found
   LAST_ADMIN: You cannot change the role of the only company administrator
   VEHICLE_NOT_FOUND: Vehicle not found
@@ -511,6 +562,17 @@ settings:
   noCompaniesFound: No companies found matching that criteria
   searchByName: Search by name
   filterAll: All
+  devices: 
+    name: Devices
+    message: Manage your active devices
+    empty: There aren't active devices
+    currentSession: Current
+    lastUsed: Last time used  
+    revokeOthers: Revoke others
+    logoutOthers: Delete others
+    revoked: REVOKED
+    passwordRequired: Password required to execute revoke or delete
+  
 
 vehicles:
   title: Vehicles

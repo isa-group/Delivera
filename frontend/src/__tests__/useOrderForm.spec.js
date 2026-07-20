@@ -55,14 +55,14 @@ function mountComposable() {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe('useOrderForm — computed: b2bCompanies', () => {
+describe('useOrderForm — computed: b2bOrganizations', () => {
   afterEach(() => vi.clearAllMocks())
 
-  it('deduplicates external units by companyId', async () => {
+  it('deduplicates external units by orgId', async () => {
     const external = [
-      { id: '1', companyId: 'c1', companyName: 'CompA' },
-      { id: '2', companyId: 'c1', companyName: 'CompA' },
-      { id: '3', companyId: 'c2', companyName: 'CompB' },
+      { id: '1', orgId: 'o1', orgName: 'OrgA', companyId: 'c1', companyName: 'CompA' },
+      { id: '2', orgId: 'o1', orgName: 'OrgA', companyId: 'c1', companyName: 'CompA' },
+      { id: '3', orgId: 'o2', orgName: 'OrgB', companyId: 'c2', companyName: 'CompB' },
     ]
     mockGet
       .mockResolvedValueOnce(makeOkResponse([]))
@@ -70,8 +70,8 @@ describe('useOrderForm — computed: b2bCompanies', () => {
       .mockResolvedValueOnce(makeOkResponse([]))
     mountComposable()
     await flushPromises()
-    expect(composable.b2bCompanies.value).toHaveLength(2)
-    expect(composable.b2bCompanies.value[0]).toEqual({ id: 'c1', name: 'CompA' })
+    expect(composable.b2bOrganizations.value).toHaveLength(2)
+    expect(composable.b2bOrganizations.value[0]).toEqual({ id: 'o1', name: 'OrgA' })
   })
 })
 

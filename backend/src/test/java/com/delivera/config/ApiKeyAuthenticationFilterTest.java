@@ -1,7 +1,7 @@
 package com.delivera.config;
 
 import com.delivera.model.ApiKey;
-import com.delivera.model.Company;
+import com.delivera.org.model.Company;
 import com.delivera.repository.ApiKeyRepository;
 import com.delivera.service.ApiKeyService;
 import jakarta.servlet.FilterChain;

@@ -3,10 +3,10 @@ package com.delivera.dto.auth;
 import jakarta.validation.constraints.*;
 
 public record CompanyRegisterRequest(
-        @NotBlank @Email
+        @NotBlank @Email @Size(max = 255)
         String email,
 
-        @NotBlank @Size(min = 8)
+        @NotBlank @Size(min = 8, max = 128)
         @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$")
         String password,
 

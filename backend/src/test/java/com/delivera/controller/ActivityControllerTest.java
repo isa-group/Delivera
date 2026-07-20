@@ -1,8 +1,9 @@
 package com.delivera.controller;
 
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.activity.ActivityMetricsResponse;
 import com.delivera.dto.activity.UnitRankingEntry;
-import com.delivera.security.SecurityUtils;
+
 import com.delivera.service.ActivityService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

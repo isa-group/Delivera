@@ -1,15 +1,26 @@
 package com.delivera.service;
 
-import com.delivera.security.SecurityUtils;
-import com.delivera.dto.settings.CompanyCreateRequest;
-import com.delivera.dto.settings.CompanyUpdateRequest;
-import com.delivera.dto.settings.OrgUpdateRequest;
+
+import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.exception.CompanyHasActiveOrdersException;
 import com.delivera.exception.ForbiddenException;
 import com.delivera.exception.HandleConflictException;
 import com.delivera.model.*;
+import com.delivera.order.repository.OrderRepository;
+import com.delivera.org.dto.CompanyCreateRequest;
+import com.delivera.org.dto.CompanyUpdateRequest;
+import com.delivera.org.dto.OrgUpdateRequest;
+import com.delivera.org.model.Company;
+import com.delivera.org.model.Organization;
+import com.delivera.org.repository.CompanyRepository;
+import com.delivera.org.repository.OrganizationRepository;
+import com.delivera.org.service.SettingsService;
 import com.delivera.repository.*;
 import com.delivera.repository.ActivityTypeRepository;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.repository.WorkerRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -129,7 +140,7 @@ class SettingsServiceTest {
 
         when(companyRepository.findById(target.getId())).thenReturn(Optional.of(target));
         when(orderRepository.existsByCompanyIdAndStatusIn(any(), any())).thenReturn(false);
-        when(loyalUserRepository.findByCompaniesIdOrderByCreatedAtDesc(any())).thenReturn(List.of());
+        when(loyalUserRepository.findByCompanyIdOrderByLinkCreatedAtDesc(any())).thenReturn(List.of());
         when(operationalUnitRepository.findAllByCompanyId(any())).thenReturn(List.of());
         when(workerRepository.findByCompanyId(any())).thenReturn(List.of());
 

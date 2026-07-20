@@ -1,14 +1,28 @@
 package com.delivera.service;
 
-import com.delivera.security.SecurityUtils;
-import com.delivera.dto.order.OrderRequest;
-import com.delivera.model.OrderType;
-import com.delivera.dto.order.OrderStatusRequest;
-import com.delivera.dto.order.OrderLocationRequest;
+
+import com.delivera.order.dto.OrderLocationRequest;
+import com.delivera.order.dto.OrderRequest;
+import com.delivera.order.dto.OrderStatusRequest;
+import com.delivera.order.model.Order;
+import com.delivera.order.model.OrderPriority;
+import com.delivera.order.model.OrderStatus;
+import com.delivera.order.model.OrderType;
+import com.delivera.order.repository.OrderRepository;
+import com.delivera.order.service.OrderService;
+import com.delivera.org.model.Company;
+import com.delivera.org.model.Organization;
+import com.delivera.org.repository.CompanyRepository;
+import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.depot.model.OperationalUnit;
+import com.delivera.depot.model.UnitType;
+import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.exception.InvalidOrderUnitsException;
 import com.delivera.exception.OrderNotFoundException;
 import com.delivera.model.*;
 import com.delivera.repository.*;
+import com.delivera.worker.repository.WorkerRepository;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +53,8 @@ class OrderServiceTest {
     private CompanyRepository companyRepository;
     @Mock
     private LoyalUserRepository loyalUserRepository;
+    @Mock
+    private WorkerRepository workerRepository;
     @Mock
     private SecurityUtils securityUtils;
     @Mock
@@ -156,7 +172,7 @@ class OrderServiceTest {
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
         when(securityUtils.getCurrentEmail()).thenReturn("admin@test.com");
         when(unitRepository.findByIdAndCompanyId(origin.getId(), companyId)).thenReturn(Optional.of(origin));
-        when(unitRepository.findByIdAndOrganizationId(destination.getId(), organization.getId())).thenReturn(Optional.of(destination));
+        when(unitRepository.findById(destination.getId())).thenReturn(Optional.of(destination));
         when(companyRepository.findById(companyId)).thenReturn(Optional.of(company));
         when(orderRepository.nextReferenceSeq()).thenReturn(1L);
         when(orderRepository.save(any())).thenReturn(order);
@@ -240,7 +256,9 @@ class OrderServiceTest {
         when(securityUtils.getCurrentEmail()).thenReturn("admin@test.com");
         when(unitRepository.findByIdAndCompanyId(origin.getId(), companyId)).thenReturn(Optional.of(origin));
         when(companyRepository.findById(companyId)).thenReturn(Optional.of(company));
-        when(loyalUserRepository.findByCompaniesIdAndEmail(companyId, "c@t.com")).thenReturn(Optional.empty());
+        when(workerRepository.findByUserEmailOrderByCreatedAtAsc("c@t.com")).thenReturn(List.of());
+        when(loyalUserRepository.findByEmail("c@t.com")).thenReturn(List.of());
+        when(loyalUserRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(orderRepository.nextReferenceSeq()).thenReturn(1L);
         when(orderRepository.save(any())).thenReturn(order);
 
@@ -260,16 +278,20 @@ class OrderServiceTest {
     void create_b2c_usesLoyalUserAddress_andFiresAfterCommit() {
         TransactionSynchronizationManager.initSynchronization();
         com.delivera.model.LoyalUser lu = new com.delivera.model.LoyalUser();
+        lu.setId(java.util.UUID.randomUUID());
         lu.setEmail("c@t.com");
-        lu.setAddress("Loyal St");
-        lu.setLatitude(new java.math.BigDecimal("1.0"));
-        lu.setLongitude(new java.math.BigDecimal("2.0"));
+        com.delivera.model.LoyalUserCompany link = lu.linkFor(company);
+        link.setAddress("Loyal St");
+        link.setLatitude(new java.math.BigDecimal("1.0"));
+        link.setLongitude(new java.math.BigDecimal("2.0"));
         OrderRequest req = new OrderRequest(origin.getId(), null, "c@t.com", null, null, null, null, OrderType.B2C, null, null);
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
         when(securityUtils.getCurrentEmail()).thenReturn("admin@test.com");
         when(unitRepository.findByIdAndCompanyId(origin.getId(), companyId)).thenReturn(Optional.of(origin));
         when(companyRepository.findById(companyId)).thenReturn(Optional.of(company));
-        when(loyalUserRepository.findByCompaniesIdAndEmail(companyId, "c@t.com")).thenReturn(Optional.of(lu));
+        when(workerRepository.findByUserEmailOrderByCreatedAtAsc("c@t.com")).thenReturn(List.of());
+        when(loyalUserRepository.findByEmail("c@t.com")).thenReturn(List.of(lu));
+        when(loyalUserRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(orderRepository.nextReferenceSeq()).thenReturn(1L);
         order.setTrackingToken("tok123");
         order.setReference("DEL-REF");
@@ -285,7 +307,7 @@ class OrderServiceTest {
         OrderRequest req = new OrderRequest(origin.getId(), destination.getId(), null, null, null, null, null, OrderType.B2B, null, null);
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
         when(unitRepository.findByIdAndCompanyId(origin.getId(), companyId)).thenReturn(Optional.of(origin));
-        when(unitRepository.findByIdAndOrganizationId(destination.getId(), organization.getId())).thenReturn(Optional.of(destination));
+        when(unitRepository.findById(destination.getId())).thenReturn(Optional.of(destination));
         when(companyRepository.findById(companyId)).thenReturn(Optional.of(company));
 
         assertThatThrownBy(() -> orderService.create(req)).isInstanceOf(InvalidOrderUnitsException.class);

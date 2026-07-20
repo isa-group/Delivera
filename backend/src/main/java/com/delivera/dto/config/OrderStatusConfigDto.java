@@ -1,7 +1,8 @@
 package com.delivera.dto.config;
 
-import com.delivera.model.OrderStatusConfig;
 import java.util.List;
+
+import com.delivera.order.model.OrderStatusConfig;
 
 public record OrderStatusConfigDto(
         String status,

@@ -102,3 +102,9 @@
   font-weight: 600;
   text-transform: uppercase;
 }
+
+.buttons-section {
+  display: flex;
+  flex-direction: column;
+  justify-items: center;
+}

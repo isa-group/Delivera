@@ -1,9 +1,10 @@
 package com.delivera.service;
 
-import com.delivera.model.OrderStatus;
-import com.delivera.model.UnitType;
+import com.delivera.depot.model.UnitType;
+import com.delivera.order.model.OrderStatus;
+import com.delivera.order.repository.OrderRepository;
 import com.delivera.repository.LoyalUserRepository;
-import com.delivera.repository.OrderRepository;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,7 +39,7 @@ class ActivityServiceTest {
         when(orderRepository.countByCompanyIdAndStatusAndCreatedAtAfter(eq(companyId), eq(OrderStatus.DELIVERED), any(Instant.class))).thenReturn(6L);
         when(orderRepository.countByCompanyIdAndStatusAndCreatedAtAfter(eq(companyId), eq(OrderStatus.CANCELLED), any(Instant.class))).thenReturn(1L);
         when(orderRepository.countByCompanyIdAndStatusNotIn(eq(companyId), any(Collection.class))).thenReturn(3L);
-        when(loyalUserRepository.countByCompaniesIdAndCreatedAtAfter(eq(companyId), any(Instant.class))).thenReturn(2L);
+        when(loyalUserRepository.countByCompanyIdAndLinkCreatedAfter(eq(companyId), any(Instant.class))).thenReturn(2L);
 
         var result = activityService.getMetrics(companyId, period);
 

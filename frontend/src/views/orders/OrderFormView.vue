@@ -8,11 +8,11 @@ const { t } = useI18n()
 const router = useRouter()
 const {
   units, loyalUserMatch, loadError,
-  orderType, originId, destinationId, b2bCompanyId, b2bDestinationId,
+  orderType, originId, destinationId, b2bOrgId, b2bDestinationId,
   recipientEmail, recipientName,
   recipientAddress, recipientLatitude, recipientLongitude, locating, captureLocation,
   priority, notes, loading, error, errors, invalids,
-  destinationOptions, b2bCompanies, b2bUnitOptions, handleSubmit,
+  destinationOptions, b2bOrganizations, b2bUnitOptions, handleSubmit,
 } = useOrderForm()
 
 const typeOptions = computed(() => [
@@ -128,19 +128,19 @@ const priorityOptions = computed(() => [
         </div>
       </template>
 
-      <!-- B2B: empresa destino + unidad destino -->
+      <!-- B2B: organización destino + unidad destino -->
       <template v-else>
         <div class="form-field">
-          <label for="order-b2b-company">{{ t('orders.destinationCompany') }}</label>
+          <label for="order-b2b-org">{{ t('orders.destinationOrg') }}</label>
           <PSelect
-            id="order-b2b-company"
-            v-model="b2bCompanyId"
-            :options="b2bCompanies"
+            id="order-b2b-org"
+            v-model="b2bOrgId"
+            :options="b2bOrganizations"
             option-label="name"
             option-value="id"
-            :placeholder="t('orders.destinationCompanyPlaceholder')"
-            :empty-message="t('orders.noB2bCompanies')"
-            :invalid="!!invalids.b2bCompanyId"
+            :placeholder="t('orders.destinationOrgPlaceholder')"
+            :empty-message="t('orders.noB2bOrgs')"
+            :invalid="!!invalids.b2bOrgId"
             fluid
           />
         </div>
@@ -150,12 +150,12 @@ const priorityOptions = computed(() => [
             id="order-b2b-unit"
             v-model="b2bDestinationId"
             :options="b2bUnitOptions"
-            option-label="name"
+            option-label="displayName"
             option-value="id"
             :placeholder="t('orders.destinationUnitPlaceholder')"
             :empty-message="t('orders.noDestinationOptions')"
             :invalid="!!invalids.b2bDestinationId"
-            :disabled="!b2bCompanyId"
+            :disabled="!b2bOrgId"
             fluid
           />
         </div>

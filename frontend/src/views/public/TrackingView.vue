@@ -5,6 +5,8 @@ import { useI18n } from 'vue-i18n'
 import { useAppConfig } from '@/composables/useAppConfig'
 import { useAuthStore } from '@/stores/auth'
 import TimelineList from '@/components/TimelineList.vue'
+import { startAuthRefresh } from '@/composables/useRefreshToken'
+import { getDeviceId } from '../../composables/useRefreshToken'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -21,6 +23,7 @@ const searchRef = ref('')
 const claimFirstName = ref('')
 const claimLastName = ref('')
 const claimEmail = ref('')
+const claimUsername = ref('')
 const claimPassword = ref('')
 const claimLoading = ref(false)
 const claimError = ref('')
@@ -29,19 +32,24 @@ async function submitClaim() {
   claimError.value = ''
   claimLoading.value = true
   try {
+    // useApi uses TOKEN automatically
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v2/orders/public/track/${route.params.token}/register`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json','X-Device-Id': getDeviceId() },
+      credentials: 'include',
       body: JSON.stringify({
         firstName: claimFirstName.value.trim(),
         lastName: claimLastName.value.trim(),
         email: claimEmail.value.trim(),
+        username: claimUsername.value.trim(),
         password: claimPassword.value,
       }),
     })
+
     const data = await res.json()
     if (res.ok) {
       auth.applyLoginData(data)
+      startAuthRefresh()
       router.push('/my-orders')
     } else {
       const code = data?.code
@@ -186,6 +194,10 @@ onMounted(() => {
               <div class="claim-field">
                 <label for="claim-email">{{ t('tracking.claim.email') }}</label>
                 <PInputText id="claim-email" v-model="claimEmail" type="email" required fluid />
+              </div>
+              <div class="claim-field">
+                <label for="claim-username">{{ t('fields.username') }}</label>
+                <PInputText id="claim-username" v-model="claimUsername" required fluid />
               </div>
               <div class="claim-field">
                 <label for="claim-password">{{ t('tracking.claim.password') }}</label>

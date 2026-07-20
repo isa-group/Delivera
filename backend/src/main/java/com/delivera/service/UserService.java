@@ -1,16 +1,14 @@
 package com.delivera.service;
 
-import com.delivera.dto.user.ChangePasswordRequest;
+import com.delivera.auth.service.AuthClient;
 import com.delivera.dto.user.ProfileResponse;
 import com.delivera.dto.user.UpdateProfileRequest;
-import com.delivera.exception.InvalidPasswordException;
 import com.delivera.exception.UsernameAlreadyExistsException;
 import com.delivera.exception.UserNotFoundException;
 import com.delivera.model.User;
 import com.delivera.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,8 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
     private final AppConfigService appConfigService;
+    private final AuthClient client;
 
     @Transactional(readOnly = true)
     public ProfileResponse getProfile(String email) {
@@ -33,7 +31,7 @@ public class UserService {
     public ProfileResponse updateProfile(String email, UpdateProfileRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(UserNotFoundException::new);
-
+        String originalUsername = user.getUsername();
         if (request.username() != null && !request.username().isBlank()) {
             if (!request.username().equals(user.getUsername()) && userRepository.existsByUsername(request.username())) {
                 throw new UsernameAlreadyExistsException();
@@ -46,9 +44,12 @@ public class UserService {
         user.setAddress(StringUtils.hasText(request.address()) ? request.address() : null);
         user.setLatitude(request.latitude());
         user.setLongitude(request.longitude());
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        if (!request.username().equals(originalUsername)) {
+            client.changeUsername(savedUser.getId(),savedUser.getUsername()).block();
+        }
 
-        return ProfileResponse.from(user);
+        return ProfileResponse.from(savedUser);
     }
 
     @Transactional
@@ -61,6 +62,7 @@ public class UserService {
         return ProfileResponse.from(user);
     }
 
+    /* 
     @Transactional
     public void changePassword(String email, ChangePasswordRequest request) {
         User user = userRepository.findByEmail(email)
@@ -76,6 +78,6 @@ public class UserService {
 
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
-    }
+    }*/
 
 }

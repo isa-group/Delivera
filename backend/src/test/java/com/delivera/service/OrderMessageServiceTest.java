@@ -1,14 +1,18 @@
 package com.delivera.service;
 
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.chat.OrderMessageRequest;
 import com.delivera.dto.chat.OrderMessageResponse;
 import com.delivera.exception.ForbiddenException;
 import com.delivera.exception.OrderNotFoundException;
 import com.delivera.model.*;
-import com.delivera.repository.OrderMessageRepository;
-import com.delivera.repository.OrderRepository;
+import com.delivera.order.model.Order;
+import com.delivera.order.model.OrderMessage;
+import com.delivera.order.repository.OrderMessageRepository;
+import com.delivera.order.repository.OrderRepository;
+import com.delivera.order.service.OrderMessageService;
+import com.delivera.org.model.Company;
 import com.delivera.repository.UserRepository;
-import com.delivera.security.SecurityUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

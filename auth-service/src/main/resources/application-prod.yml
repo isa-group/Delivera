@@ -1,0 +1,149 @@
+logging:
+  level:
+    com.delivera: INFO
+    org.springframework.web: WARN
+spring:
+  datasource:
+    url: ${DATABASE_AUTH_URL}
+    username: ${DATABASE_AUTH_USER}
+    password: ${DATABASE_AUTH_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+delivera:
+  client: 
+    service-name: auth-service
+    internal-hosts: 
+      - delivera-service
+    
+    service-hosts:
+      delivera-service: ${DELIVERA_SERVICE_HOSTS}
+    
+    
+    service-base-paths:
+      delivera-service: ${DELIVERA_SERVICE_BASE_PATH}
+
+
+    internal-auth:
+      enabled: true
+      filter-enabled: true
+      header-name: X-Internal-Key
+      service-header-name: X-Service-Name
+  
+  security:
+    default-deny: false
+    services:
+      auth-service: 
+        api-internal-key: ${AUTH_INTERNAL_KEY}
+        allowed-paths:
+      delivera-service: 
+        api-internal-key: ${DELIVERA_INTERNAL_KEY}
+        allowed-paths: 
+          - /internal/auth/register
+          - /internal/auth/user/**
+          - /internal/auth/username
+          - /internal/auth/seed/register
+          - /internal/auth/seed/register
+
+
+  mtls:
+    enabled: true
+    key-store: ${AUTH_KEY_STORE}
+    key-store-password: ${AUTH_KEYSTORE_PASSWORD}
+    key-store-type: ${AUTH_KEY_STORE_TYPE:PKCS12}
+    trust-store: ${AUTH_TRUST_STORE}
+    trust-store-password: ${AUTH_TRUSTSTORE_PASSWORD}
+    trust-store-type: ${AUTH_TRUST_STORE_TYPE}
+    server:
+      enabled: ${mTLS_AUTH_enabled}
+      port: ${mTLS_AUTH_PORT:}
+
+      key-store: ${delivera.mtls.key-store}
+      key-store-password: ${delivera.mtls.key-store-password}
+      key-store-type: ${delivera.mtls.key-store-type}
+
+      trust-store: ${delivera.mtls.trust-store}
+      trust-store-password: ${delivera.mtls.trust-store-password}
+      trust-store-type: ${delivera.mtls.trust-store-type}
+
+      use-temp-file: false
+server:
+  port: ${AUTH_PORT:9090}
+  ssl:
+    enabled: ${ssl_Auth_enabled}
+    key-store: ${delivera.mtls.key-store}
+    key-store-password: ${delivera.mtls.key-store-password}
+    key-store-type: ${delivera.mtls.key-store-type}
+    client-auth: none
+
+
+app:
+  gateway: 
+    enabled: ${GATEWAY_ENABLED:false}
+  
+  refresh-token:
+    daysToRefresh: ${DAYS_TO_REFRESH}
+    maxDaysToRefresh: ${MAX_DAYS_TO_REFRESH}
+    periodicDeletionMs: ${PERIODIC_REFRESH_DELETION_MS}
+    # 3600000
+    secure: ${REFRESH_COOKIE_SECURE_ENABLED}
+    domain: ${REFRESH_COOKIE_DOMAIN}
+    path: ${REFRESH_COOKIE_PATH}
+
+  jwt:
+    # in miliseconds
+    expiration: ${JWT_EXPIRATION}
+    issuer: ${JWT_ISSUER:delivera-auth-service}
+    audience: ${JWT_AUDIENCE:delivera-api}
+    rotation:
+      enabled: ${JWT_ROTATION_ENABLED}
+      period: ${JWT_ROTATION_PERIOD}
+    keys:
+      key-2026-06:
+        private-key: keys/private_key_2026_06.pem
+        public-key: keys/public_key_2026_06.pem
+      key-2026-07:
+        private-key: keys/private_key_2026_07.pem
+        public-key: keys/public_key_2026_07.pem
+      key-2026-08:
+        private-key: keys/private_key_2026_08.pem
+        public-key: keys/public_key_2026_08.pem
+      key-2026-09:
+        private-key: keys/private_key_2026_09.pem
+        public-key: keys/public_key_2026_09.pem
+    active-key-id: ${JWT_ACTIVE_KEY:key-2026-06}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  auth:
+    rate-limit:
+      rules:
+        IP:
+          max-attempts: ${IP_MAX_ATTEMPTS}
+          window-ms: ${IP_WINDOW_MS}
+        USER_IP:
+          max-attempts: ${USER_IP_MAX_ATTEMPTS}
+          window-ms: ${USER_IP_WINDOW_MS}
+        FAIL_USER:
+          max-attempts: ${USER_MAX_ATTEMPTS}
+          window-ms: ${USER_WINDOW_MS}
+        FAIL_IP:
+          max-attempts: ${FAIL_USER_MAX_ATTEMPTS}
+          window-ms: ${FAIL_USER_WINDOW_MS}
+        USER:
+          max-attempts: ${USER_MAX_ATTEMPTS}
+          window-ms: ${USER_WINDOW_MS}
+        REFRESH:
+          max-attempts: ${REFRESH_MAX_ATTEMPTS}
+          window-ms: ${REFRESH_WINDOW_MS}
+        DEVICE:
+          max-attempts: ${DEVICE_MAX_ATTEMPTS}
+          window-ms: ${DEVICE_WINDOW_MS}
+
+
+
+
+
+

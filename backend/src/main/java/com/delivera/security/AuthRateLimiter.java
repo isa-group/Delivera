@@ -1,6 +1,7 @@
 package com.delivera.security;
 
 import com.delivera.exception.RateLimitExceededException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,12 @@ public class AuthRateLimiter {
                            @Value("${app.auth.rate-limit.window-ms:60000}") long windowMs) {
         this.maxAttempts = maxAttempts;
         this.windowMs = windowMs;
+    }
+
+    public static String clientIp(HttpServletRequest req) {
+        String xff = req.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) return xff.split(",")[0].trim();
+        return req.getRemoteAddr();
     }
 
     public void check(String ip, String action) {

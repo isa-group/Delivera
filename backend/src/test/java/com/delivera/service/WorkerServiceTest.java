@@ -1,23 +1,32 @@
 package com.delivera.service;
 
-import com.delivera.dto.worker.ChangeRoleRequest;
-import com.delivera.dto.worker.WorkerInviteRequest;
-import com.delivera.dto.worker.WorkerResponse;
+import com.delivera.auth.service.AuthClient;
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.exception.ForbiddenException;
 import com.delivera.exception.LastAdminException;
 import com.delivera.exception.LoyalUserCannotBeWorkerException;
 import com.delivera.exception.WorkerAlreadyExistsException;
 import com.delivera.exception.WorkerNotFoundException;
 import com.delivera.model.*;
+import com.delivera.org.model.Company;
+import com.delivera.org.repository.CompanyRepository;
 import com.delivera.repository.*;
-import com.delivera.security.SecurityUtils;
+import com.delivera.worker.dto.ChangeRoleRequest;
+import com.delivera.worker.dto.WorkerInviteRequest;
+import com.delivera.worker.dto.WorkerResponse;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.model.WorkerRole;
+import com.delivera.worker.repository.WorkerRepository;
+import com.delivera.worker.service.WorkerService;
+
+import reactor.core.publisher.Mono;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,9 +44,9 @@ class WorkerServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private CompanyRepository companyRepository;
     @Mock private LoyalUserRepository loyalUserRepository;
-    @Mock private PasswordEncoder passwordEncoder;
     @Mock private SecurityUtils securityUtils;
     @Mock private SubscriptionService subscriptionService;
+    @Mock private AuthClient client;
     @InjectMocks private WorkerService workerService;
 
     private UUID companyId;
@@ -80,16 +89,19 @@ class WorkerServiceTest {
 
     @Test
     void invite_newUser_createsUserAndReturnsTempPassword() {
+        when(client.register(any(), any(), any(), any()))
+        .thenReturn(Mono.empty());
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
         when(workerRepository.findByUserEmailAndCompanyId("new@test.com", companyId)).thenReturn(Optional.empty());
         when(loyalUserRepository.findByEmail("new@test.com")).thenReturn(List.of());
         when(companyRepository.findById(companyId)).thenReturn(Optional.of(company));
-        when(passwordEncoder.encode(any())).thenReturn("hashed");
 
         User newUser = new User();
         newUser.setEmail("new@test.com");
         newUser.setFirstName("new");
         newUser.setLastName("");
+
+        when(userRepository.save(any())).thenReturn(newUser);
 
         Worker savedWorker = new Worker();
         savedWorker.setUser(newUser);
@@ -175,7 +187,7 @@ class WorkerServiceTest {
 
     @Test
     void getByCompany_returnsMappedList() {
-        when(workerRepository.findByCompanyIdOrderByCreatedAtAsc(companyId)).thenReturn(List.of(worker));
+        when(workerRepository.findByCompanyIdAndRoleNotOrderByCreatedAtAsc(companyId, WorkerRole.GLOBAL_ADMIN)).thenReturn(List.of(worker));
         assertThat(workerService.getByCompany()).hasSize(1);
     }
 
@@ -193,6 +205,8 @@ class WorkerServiceTest {
         UUID workerId = UUID.randomUUID();
         user.setId(UUID.randomUUID());
         user.setInvited(true);
+        when(client.deleteUser(any()))
+        .thenReturn(Mono.empty());
         when(workerRepository.findByIdAndCompanyId(workerId, companyId)).thenReturn(Optional.of(worker));
         when(workerRepository.countByUser_Id(user.getId())).thenReturn(0L);
         workerService.remove(workerId);

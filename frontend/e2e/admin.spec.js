@@ -46,17 +46,21 @@ test('admin dashboard shows metrics and organizations', { tag: '@admin' }, async
       ],
     })
   )
+  await page.route('**/api/v2/admin/units', route => route.fulfill({ json: [] }))
+  await page.route('**/api/v2/admin/routes', route => route.fulfill({ json: [] }))
+  await page.route('**/api/v2/admin/activity/orders-by-day**', route => route.fulfill({ json: [] }))
 
   await page.goto('/admin')
 
   // Metrics chips
-  const statsInline = page.locator('.stats-inline')
-  await expect(statsInline.getByText('3')).toBeVisible()
-  await expect(statsInline.getByText('7')).toBeVisible()
-  await expect(statsInline.getByText('42')).toBeVisible()
-  await expect(statsInline.getByText('15')).toBeVisible()
+  const statsGrid = page.locator('.stats-grid')
+  await expect(statsGrid.getByText('3')).toBeVisible()
+  await expect(statsGrid.getByText('7')).toBeVisible()
+  await expect(statsGrid.getByText('42')).toBeVisible()
+  await expect(statsGrid.getByText('15')).toBeVisible()
 
-  // Organizations table
+  // Organizations table (in the Administration tab)
+  await page.getByRole('button', { name: 'Administración' }).click()
   await expect(page.getByText('Org Alpha')).toBeVisible()
   await expect(page.getByText('Org Beta')).toBeVisible()
   await expect(page.getByText('org-alpha')).toBeVisible()

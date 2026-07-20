@@ -1,9 +1,16 @@
 package com.delivera.controller;
 
-import com.delivera.dto.settings.*;
-import com.delivera.model.OrderPriority;
-import com.delivera.security.SecurityUtils;
-import com.delivera.service.SettingsService;
+import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.order.model.OrderPriority;
+import com.delivera.org.controller.SettingsController;
+import com.delivera.org.dto.ChangePlanRequest;
+import com.delivera.org.dto.CompanyCreateRequest;
+import com.delivera.org.dto.CompanySummary;
+import com.delivera.org.dto.CompanyUpdateRequest;
+import com.delivera.org.dto.OrgUpdateRequest;
+import com.delivera.org.dto.SettingsResponse;
+import com.delivera.org.dto.SubscriptionUsageResponse;
+import com.delivera.org.service.SettingsService;
 import com.delivera.service.SubscriptionService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

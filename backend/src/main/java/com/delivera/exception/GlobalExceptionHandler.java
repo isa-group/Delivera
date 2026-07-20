@@ -1,9 +1,14 @@
 package com.delivera.exception;
 
+import com.delivera.client.exception.ApiException;
+import com.delivera.client.exception.ClientException;
+import com.delivera.client.exception.NetworkException;
 import com.delivera.dto.common.ErrorResponse;
 import com.delivera.dto.common.ValidationErrorResponse;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import lombok.extern.slf4j.Slf4j;
+
+import org.hibernate.service.spi.ServiceException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +60,7 @@ public class GlobalExceptionHandler {
         Map.entry(WorkerNotFoundException.class,            new Mapping(NOT_FOUND,            "WORKER_NOT_FOUND")),
         Map.entry(LastAdminException.class,                 new Mapping(CONFLICT,             "LAST_ADMIN")),
         Map.entry(LoyalUserCannotBeWorkerException.class,   new Mapping(CONFLICT,             "LOYAL_USER_CANNOT_BE_WORKER")),
+        Map.entry(WorkerCannotBeLoyalUserException.class,   new Mapping(CONFLICT,             "WORKER_CANNOT_BE_LOYAL_USER")),
         Map.entry(MissingRecipientAddressException.class, new Mapping(UNPROCESSABLE_ENTITY, "MISSING_RECIPIENT_ADDRESS")),
         Map.entry(RateLimitExceededException.class,       new Mapping(TOO_MANY_REQUESTS,    "RATE_LIMIT_EXCEEDED")),
         Map.entry(ApiKeyNotFoundException.class,          new Mapping(NOT_FOUND,            "API_KEY_NOT_FOUND")),
@@ -194,5 +200,26 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex) {
         log.error("Unexpected error: {}", ex.getMessage(), ex);
         return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ErrorResponse("INTERNAL_ERROR"));
+    }
+
+    @ExceptionHandler(NetworkException.class)
+    public ResponseEntity<?> handleNetwork(NetworkException ex) {
+        return ResponseEntity.status(503).body(new ErrorResponse("SERVICE_UNAVAILABLE"));
+    }
+
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<?> handleApiException(ApiException ex) {
+        return ResponseEntity.status(503).body(new ErrorResponse("SERVICE_UNAVAILABLE"));
+    }
+
+    @ExceptionHandler(ClientException.class)
+    public ResponseEntity<?> handleClientException(ClientException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(new ErrorResponse(HttpStatus.valueOf(ex.getStatus()).name()));
+    }
+
+    
+    @ExceptionHandler(ServiceException.class)
+    public ResponseEntity<?> handleServiceException(ServiceException ex) {
+        return ResponseEntity.status(503).body(new ErrorResponse("SERVICE_UNAVAILABLE"));
     }
 }

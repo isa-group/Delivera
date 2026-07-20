@@ -1,22 +1,32 @@
 package com.delivera.controller;
 
+import com.delivera.auth.service.AuthService;
 import com.delivera.dto.auth.ClaimRegisterRequest;
 import com.delivera.dto.auth.LoginResponse;
-import com.delivera.dto.order.*;
-import com.delivera.model.OrderStatus;
-import com.delivera.model.OrderType;
-import com.delivera.service.AuthService;
-import com.delivera.service.OrderService;
+import com.delivera.order.controller.OrderController;
+import com.delivera.order.dto.OrderDetailResponse;
+import com.delivera.order.dto.OrderRequest;
+import com.delivera.order.dto.OrderResponse;
+import com.delivera.security.AuthRateLimiter;
+import com.delivera.order.dto.OrderStatusRequest;
+import com.delivera.order.dto.PublicOrderResponse;
+import com.delivera.order.model.OrderStatus;
+import com.delivera.order.model.OrderType;
+import com.delivera.order.service.OrderService;
+
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseCookie;
 
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,6 +34,8 @@ class OrderControllerTest {
 
     @Mock private OrderService orderService;
     @Mock private AuthService authService;
+    @Mock private AuthRateLimiter authRateLimiter;
+    @Mock private HttpServletRequest httpRequest;
     @InjectMocks private OrderController controller;
 
     private static OrderResponse sampleResponse() {
@@ -102,21 +114,24 @@ class OrderControllerTest {
 
     @Test
     void trackByReference_delegatesAndReturns200() {
+        when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
         PublicOrderResponse pub = new PublicOrderResponse(UUID.randomUUID(), "REF-2", null, null, null,
                 null, null, "DELIVERED", null, null, null, false, null, null, null, null, null);
         when(orderService.getPublicByReference("REF-2")).thenReturn(pub);
-        var resp = controller.trackByReference("REF-2");
+        var resp = controller.trackByReference(httpRequest, "REF-2");
         assertThat(resp.getStatusCode().value()).isEqualTo(200);
     }
 
     @Test
     void claimRegister_delegatesAndReturns201() {
-        // ClaimRegisterRequest(firstName, lastName, email, password)
-        ClaimRegisterRequest req = new ClaimRegisterRequest("First", "Last", "a@b.com", "Pass1a2B");
+        // ClaimRegisterRequest(firstName, lastName, email, username, password)
+        ClaimRegisterRequest req = new ClaimRegisterRequest("First", "Last", "a@b.com", "firstlast", "Pass1a2B");
         // LoginResponse(token, email, companyId, role, companyName, orgHandle, orgName)
-        LoginResponse expected = new LoginResponse("jwt-token", "a@b.com", null, "LOYAL_USER", null, null, null);
-        when(authService.claimRegister("tok", req)).thenReturn(expected);
-        var resp = controller.claimRegister("tok", req);
+        LoginResponse expected = new LoginResponse("jwt-token", "a@b.com", null, "LOYAL_USER", null, null, null,null);
+        when(authService.claimRegister(eq("tok"), eq(req),any())).thenReturn(expected);
+        when(authService.refreshCookie(any())).thenReturn(ResponseCookie.from("saasa").build());
+        var resp = controller.claimRegister(any(),"tok", req);
+           
         assertThat(resp.getStatusCode().value()).isEqualTo(201);
         assertThat(resp.getBody()).isSameAs(expected);
     }

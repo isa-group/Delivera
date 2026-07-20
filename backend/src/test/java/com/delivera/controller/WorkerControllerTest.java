@@ -1,10 +1,12 @@
 package com.delivera.controller;
 
-import com.delivera.dto.worker.ChangeRoleRequest;
-import com.delivera.dto.worker.WorkerInviteRequest;
-import com.delivera.dto.worker.WorkerResponse;
-import com.delivera.model.WorkerRole;
-import com.delivera.service.WorkerService;
+import com.delivera.worker.controller.WorkerController;
+import com.delivera.worker.dto.ChangeRoleRequest;
+import com.delivera.worker.dto.WorkerInviteRequest;
+import com.delivera.worker.dto.WorkerResponse;
+import com.delivera.worker.model.WorkerRole;
+import com.delivera.worker.service.WorkerService;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,7 +26,7 @@ class WorkerControllerTest {
     @InjectMocks private WorkerController controller;
 
     private static WorkerResponse sampleWorker() {
-        return new WorkerResponse(UUID.randomUUID(), "w@e.com", "First", "Last", "OPERATOR", null, null);
+        return new WorkerResponse(UUID.randomUUID(),null ,"w@e.com", "First", "Last", "OPERATOR", null, null);
     }
 
     @Test

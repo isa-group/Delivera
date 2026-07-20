@@ -1,18 +1,20 @@
 package com.delivera.service;
 
-import com.delivera.security.SecurityUtils;
+
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.loyaluser.LoyalUserRequest;
 import com.delivera.dto.loyaluser.LoyalUserResponse;
-import com.delivera.dto.order.OrderResponse;
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.LoyalUserConflictException;
 import com.delivera.exception.LoyalUserNotFoundException;
 import com.delivera.exception.UserNotFoundException;
-import com.delivera.model.Company;
 import com.delivera.model.LoyalUser;
-import com.delivera.repository.CompanyRepository;
+import com.delivera.order.dto.OrderResponse;
+import com.delivera.order.repository.OrderRepository;
+import com.delivera.org.model.Company;
+import com.delivera.org.repository.CompanyRepository;
+import com.delivera.model.LoyalUserCompany;
 import com.delivera.repository.LoyalUserRepository;
-import com.delivera.repository.OrderRepository;
 import com.delivera.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,7 +50,10 @@ public class LoyalUserService {
     public List<LoyalUserResponse> getByCompany() {
         UUID companyId = securityUtils.getCurrentCompanyId();
         return loyalUserRepository.findWithOrderCountByCompanyId(companyId).stream()
-                .map(row -> LoyalUserResponse.from((LoyalUser) row[0], (Long) row[1]))
+                .map(row -> {
+                    LoyalUser lu = (LoyalUser) row[0];
+                    return LoyalUserResponse.from(lu, lu.findLink(companyId).orElse(null), (Long) row[1]);
+                })
                 .toList();
     }
 
@@ -58,7 +63,7 @@ public class LoyalUserService {
         subscriptionService.checkLoyalUserLimit(companyId);
         String email = request.email().toLowerCase().trim();
 
-        if (loyalUserRepository.findByCompaniesIdAndEmail(companyId, email).isPresent()) {
+        if (loyalUserRepository.findByCompanyIdAndEmail(companyId, email).isPresent()) {
             throw new LoyalUserConflictException();
         }
 
@@ -72,44 +77,51 @@ public class LoyalUserService {
                     userRepository.findByEmail(email).ifPresent(newLu::setUser);
                     return newLu;
                 });
-        lu.getCompanies().add(company);
-        if (request.name() != null && !request.name().isBlank()) lu.setName(request.name().trim());
-        if (request.phone() != null && !request.phone().isBlank()) lu.setPhone(request.phone().trim());
+
+        LoyalUserCompany link = lu.linkFor(company);
+        if (request.name() != null && !request.name().isBlank()) link.setName(request.name().trim());
+        if (request.phone() != null && !request.phone().isBlank()) link.setPhone(request.phone().trim());
         if (request.address() != null && !request.address().isBlank()) {
-            lu.setAddress(request.address());
-            lu.setLatitude(request.latitude());
-            lu.setLongitude(request.longitude());
+            link.setAddress(request.address());
+            link.setLatitude(request.latitude());
+            link.setLongitude(request.longitude());
         }
 
-        return LoyalUserResponse.from(loyalUserRepository.save(lu));
+        LoyalUser saved = loyalUserRepository.save(lu);
+        return LoyalUserResponse.from(saved, saved.findLink(companyId).orElse(null));
     }
 
     @Transactional
     public LoyalUserResponse updateAddress(UUID loyalUserId, LoyalUserRequest request) {
         UUID companyId = securityUtils.getCurrentCompanyId();
-        LoyalUser lu = loyalUserRepository.findByIdAndCompaniesId(loyalUserId, companyId)
+        LoyalUser lu = loyalUserRepository.findByIdAndCompanyId(loyalUserId, companyId)
                 .orElseThrow(UserNotFoundException::new);
+        LoyalUserCompany link = lu.findLink(companyId).orElseThrow(UserNotFoundException::new);
         boolean hasAddress = request.address() != null && !request.address().isBlank();
-        lu.setAddress(hasAddress ? request.address() : null);
-        lu.setLatitude(hasAddress ? request.latitude() : null);
-        lu.setLongitude(hasAddress ? request.longitude() : null);
-        return LoyalUserResponse.from(loyalUserRepository.save(lu),
-                orderRepository.countByLoyalUserId(lu.getId()));
+        link.setAddress(hasAddress ? request.address() : null);
+        link.setLatitude(hasAddress ? request.latitude() : null);
+        link.setLongitude(hasAddress ? request.longitude() : null);
+        LoyalUser saved = loyalUserRepository.save(lu);
+        return LoyalUserResponse.from(saved, saved.findLink(companyId).orElse(null),
+                orderRepository.countByLoyalUserId(loyalUserId));
     }
 
     @Transactional(readOnly = true)
     public List<OrderResponse> getOrdersForLoyalUser(UUID loyalUserId) {
         UUID companyId = securityUtils.getCurrentCompanyId();
-        loyalUserRepository.findByIdAndCompaniesId(loyalUserId, companyId)
+        loyalUserRepository.findByIdAndCompanyId(loyalUserId, companyId)
                 .orElseThrow(LoyalUserNotFoundException::new);
-        return orderRepository.findByLoyalUserIdOrderByCreatedAtDesc(loyalUserId)
+        return orderRepository.findByLoyalUserIdAndCompanyIdOrderByCreatedAtDesc(loyalUserId, companyId)
                 .stream().map(OrderResponse::from).toList();
     }
 
     @Transactional(readOnly = true)
     public List<OrderResponse> getMyOrders() {
         String email = securityUtils.getCurrentEmail();
-        return orderRepository.findByRecipientEmailOrderByCreatedAtDesc(email)
+        return loyalUserRepository.findByEmail(email).stream()
+                .findFirst()
+                .map(lu -> orderRepository.findByLoyalUserIdOrderByCreatedAtDesc(lu.getId()))
+                .orElse(List.of())
                 .stream().map(OrderResponse::from).toList();
     }
 }

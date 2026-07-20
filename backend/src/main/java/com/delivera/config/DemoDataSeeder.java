@@ -1,7 +1,31 @@
 package com.delivera.config;
 
+import com.delivera.auth.service.AuthClient;
+import com.delivera.depot.dto.AssignRequest;
+import com.delivera.depot.dto.UnitRequest;
+import com.delivera.depot.model.OperationalUnit;
+import com.delivera.depot.model.UnitType;
+import com.delivera.depot.repository.OperationalUnitRepository;
+import com.delivera.depot.service.UnitClient;
 import com.delivera.model.*;
+import com.delivera.order.model.Order;
+import com.delivera.order.model.OrderEvent;
+import com.delivera.order.model.OrderPriority;
+import com.delivera.order.model.OrderStatus;
+import com.delivera.order.model.OrderType;
+import com.delivera.order.repository.OrderEventRepository;
+import com.delivera.order.repository.OrderRepository;
+import com.delivera.org.model.Company;
+import com.delivera.org.model.Organization;
+import com.delivera.org.repository.CompanyRepository;
+import com.delivera.org.repository.OrganizationRepository;
 import com.delivera.repository.*;
+import com.delivera.vehicle.model.Vehicle;
+import com.delivera.vehicle.repository.VehicleRepository;
+import com.delivera.worker.model.Worker;
+import com.delivera.worker.model.WorkerRole;
+import com.delivera.worker.repository.WorkerRepository;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
@@ -9,7 +33,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +58,7 @@ import java.util.*;
  *   clara@cliente.com   — usuario registrado con pedidos propios (/my-orders)
  */
 @Component
-@Profile("dev")
+@Profile({"dev", "prod"})
 public class DemoDataSeeder implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataSeeder.class);
@@ -43,6 +66,23 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     @Value("${app.demo.seed-password:demo1234}")
     private String seedPassword;
+
+    @Value("${app.demo.seed.auth.host}")
+    private String authHost;
+    @Value("${app.demo.seed.auth.prefix}")
+    private String authPrefix;
+    @Value("${app.demo.seed.auth.path}")
+    private String authPath;
+
+    @Value("${app.demo.seed.data.host}")
+    private String dataHost;
+    @Value("${app.demo.seed.data.prefix}")
+    private String dataPrefix;
+
+
+
+    @Value("${app.demo.reset-on-start:false}")
+    private boolean resetOnStart;
 
     private final UserRepository users;
     private final OrganizationRepository organizations;
@@ -55,7 +95,8 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final ActivityTypeRepository activityTypes;
     private final SubscriptionPlanRepository plans;
     private final VehicleRepository vehicles;
-    private final PasswordEncoder passwordEncoder;
+    private final AuthClient authClient;
+    private final UnitClient unitClient;
 
     @PersistenceContext
     private EntityManager em;
@@ -71,7 +112,8 @@ public class DemoDataSeeder implements CommandLineRunner {
                            ActivityTypeRepository activityTypes,
                            SubscriptionPlanRepository plans,
                            VehicleRepository vehicles,
-                           PasswordEncoder passwordEncoder) {
+                           UnitClient unitClient,
+                           AuthClient authClient) {
         this.users = users;
         this.organizations = organizations;
         this.companies = companies;
@@ -83,13 +125,17 @@ public class DemoDataSeeder implements CommandLineRunner {
         this.activityTypes = activityTypes;
         this.plans = plans;
         this.vehicles = vehicles;
-        this.passwordEncoder = passwordEncoder;
+        this.unitClient = unitClient;
+        this.authClient = authClient;
     }
 
     @Override
     @Transactional
     public void run(String... args) {
-        if (users.count() > 0) {
+        if (resetOnStart) {
+            log.warn("DemoDataSeeder: app.demo.reset-on-start=true -> vaciando tablas de datos antes de re-sembrar.");
+            wipeData();
+        } else if (users.count() > 0) {
             log.info("DemoDataSeeder: la BD ya tiene usuarios, se omite la carga de demo.");
             return;
         }
@@ -126,6 +172,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "Gran Vía 25, Madrid", 40.4200, -3.7060);
 
         // --- 2. Organizaciones ---
+        Organization delivera   = createOrg("Delivera",    "delivera");   // org de sistema
         Organization rapidlog   = createOrg("RapidLog",    "rapidlog");
         Organization transnorte = createOrg("TransNorte",  "transnorte");
         Organization distrisur  = createOrg("DistriSur",   "distrisur");
@@ -141,7 +188,8 @@ public class DemoDataSeeder implements CommandLineRunner {
         SubscriptionPlan basic = plans.findById("BASIC").orElseThrow();
         SubscriptionPlan pro   = plans.findById("PRO").orElseThrow();
 
-        // --- 4. Empresas (2 por organización mínimo) ---
+        // --- 4. Empresas ---
+        Company deliveraPlatform = createCompany(delivera,   "Delivera Platform",          distribution, free);
         Company rlCentral = createCompany(rapidlog,   "RapidLog Central",           distribution, pro);
         Company rlRetail  = createCompany(rapidlog,   "RapidLog Retail",            retail,       basic);
         Company tnLog     = createCompany(transnorte, "TransNorte Logística",       transport,    pro);
@@ -150,8 +198,8 @@ public class DemoDataSeeder implements CommandLineRunner {
         Company dsInd     = createCompany(distrisur,  "DistriSur Industrial",       industry,     free);
 
         // --- 5. Trabajadores ---
-        // GLOBAL_ADMIN (admin de plataforma, vinculado a la primera empresa)
-        createWorker(admin, rlCentral, WorkerRole.GLOBAL_ADMIN);
+        // GLOBAL_ADMIN — vinculado a la empresa de sistema, no a ninguna organización de cliente
+        createWorker(admin, deliveraPlatform, WorkerRole.GLOBAL_ADMIN);
 
         // RapidLog Central — admin, analista y operador
         Worker carlosW = createWorker(carlos, rlCentral, WorkerRole.COMPANY_ADMIN);
@@ -181,47 +229,47 @@ public class DemoDataSeeder implements CommandLineRunner {
 
         // --- 6. Unidades operativas ---
         // RapidLog Central (distribución, varias ciudades)
-        OperationalUnit rlMadridCd = createUnit(rlCentral, "Centro Madrid",   UnitType.LOGISTICS_CENTER,
+        UUID rlMadridCd = createUnit(rlCentral, "Centro Madrid",   UnitType.LOGISTICS_CENTER,
                 "Av. de la Logística 12, Madrid",        40.4168, -3.7038);
-        OperationalUnit rlMadridWh = createUnit(rlCentral, "Almacén Getafe",  UnitType.WAREHOUSE,
+        UUID rlMadridWh = createUnit(rlCentral, "Almacén Getafe",  UnitType.WAREHOUSE,
                 "Pol. Ind. Los Olivos, Getafe",          40.3057, -3.7327);
-        OperationalUnit rlValencia = createUnit(rlCentral, "Centro Valencia", UnitType.LOGISTICS_CENTER,
+        UUID rlValencia = createUnit(rlCentral, "Centro Valencia", UnitType.LOGISTICS_CENTER,
                 "Av. del Puerto 200, Valencia",          39.4699, -0.3763);
-        OperationalUnit rlSevilla  = createUnit(rlCentral, "Centro Sevilla",  UnitType.LOGISTICS_CENTER,
+        UUID rlSevilla  = createUnit(rlCentral, "Centro Sevilla",  UnitType.LOGISTICS_CENTER,
                 "Pol. Ind. Calonge, Sevilla",            37.3891, -5.9845);
 
         // RapidLog Retail (tiendas)
-        OperationalUnit rlTiendaMad = createUnit(rlRetail, "Tienda Madrid Sol", UnitType.STORE,
+        UUID rlTiendaMad = createUnit(rlRetail, "Tienda Madrid Sol", UnitType.STORE,
                 "Puerta del Sol 4, Madrid",              40.4167, -3.7037);
-        OperationalUnit rlTiendaBcn = createUnit(rlRetail, "Tienda Barcelona",  UnitType.STORE,
+        UUID rlTiendaBcn = createUnit(rlRetail, "Tienda Barcelona",  UnitType.STORE,
                 "Passeig de Gràcia 50, Barcelona",       41.3925,  2.1649);
 
         // TransNorte Logística (norte peninsular)
-        OperationalUnit tnBilbao = createUnit(tnLog, "Centro Bilbao",    UnitType.LOGISTICS_CENTER,
+        UUID tnBilbao = createUnit(tnLog, "Centro Bilbao",    UnitType.LOGISTICS_CENTER,
                 "Av. del Ferrocarril 22, Bilbao",        43.2630, -2.9350);
-        OperationalUnit tnZgz    = createUnit(tnLog, "Almacén Zaragoza", UnitType.WAREHOUSE,
+        UUID tnZgz    = createUnit(tnLog, "Almacén Zaragoza", UnitType.WAREHOUSE,
                 "Pol. Malpica, Zaragoza",                41.6488, -0.8891);
-        OperationalUnit tnVigo   = createUnit(tnLog, "Centro Vigo",      UnitType.LOGISTICS_CENTER,
+        UUID tnVigo   = createUnit(tnLog, "Centro Vigo",      UnitType.LOGISTICS_CENTER,
                 "Pol. As Gándaras, Vigo",                42.2406, -8.7207);
 
         // TransNorte Almacenamiento (Cantabria y Navarra)
-        OperationalUnit tnSantander = createUnit(tnStore, "Almacén Santander", UnitType.WAREHOUSE,
+        UUID tnSantander = createUnit(tnStore, "Almacén Santander", UnitType.WAREHOUSE,
                 "Pol. Ind. Nueva Montaña, Santander",    43.4580, -3.8150);
-        OperationalUnit tnPamplona  = createUnit(tnStore, "Tienda Pamplona",   UnitType.STORE,
+        UUID tnPamplona  = createUnit(tnStore, "Tienda Pamplona",   UnitType.STORE,
                 "Av. de Bayona 2, Pamplona",             42.8180, -1.6430);
 
         // DistriSur Alimentación (sur, alimentación)
-        OperationalUnit dsMalaga  = createUnit(dsFood, "Centro Málaga",   UnitType.LOGISTICS_CENTER,
+        UUID dsMalaga  = createUnit(dsFood, "Centro Málaga",   UnitType.LOGISTICS_CENTER,
                 "Av. Velázquez 180, Málaga",             36.7213, -4.4213);
-        OperationalUnit dsGranada = createUnit(dsFood, "Almacén Granada", UnitType.WAREHOUSE,
+        UUID dsGranada = createUnit(dsFood, "Almacén Granada", UnitType.WAREHOUSE,
                 "Pol. Juncaril, Granada",                37.1773, -3.5986);
-        OperationalUnit dsMurcia  = createUnit(dsFood, "Tienda Murcia",   UnitType.STORE,
+        UUID dsMurcia  = createUnit(dsFood, "Tienda Murcia",   UnitType.STORE,
                 "Gran Vía 18, Murcia",                   37.9922, -1.1307);
 
         // DistriSur Industrial (fábrica + almacén)
-        OperationalUnit dsFactory = createUnit(dsInd, "Fábrica Jerez",  UnitType.FACTORY,
+        UUID dsFactory = createUnit(dsInd, "Fábrica Jerez",  UnitType.FACTORY,
                 "Pol. El Portal, Jerez",                 36.6850, -6.1261);
-        OperationalUnit dsCadizWh = createUnit(dsInd, "Almacén Cádiz",  UnitType.WAREHOUSE,
+        UUID dsCadizWh = createUnit(dsInd, "Almacén Cádiz",  UnitType.WAREHOUSE,
                 "Zona Franca, Cádiz",                    36.5297, -6.2927);
 
         // --- 7. Asignación de trabajadores a unidades ---
@@ -248,7 +296,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         assignWorker(dsFactory,  elenaWInd);
         assignWorker(dsCadizWh,  javierWInd);
 
-        // --- 8. Vehículos ---
+ /*     // --- 8. Vehículos ---
         // RapidLog Central
         createVehicle(rlCentral, rlMadridCd, "RC-001", 1200);
         createVehicle(rlCentral, rlMadridWh, "RC-002", 800);
@@ -267,7 +315,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         // DistriSur Industrial
         createVehicle(dsInd,     dsFactory,   "DI-001", 2500);
         createVehicle(dsInd,     dsCadizWh,   "DI-002", 1200);
-
+*/
         // --- 9. Fidelizados ---
         LoyalUser luClara   = createLoyalUser(clara.getEmail(), clara, List.of(rlRetail, dsFood),
                 null, null, null);
@@ -285,7 +333,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "Calle Ercilla 14, Bilbao",       43.2590, -2.9260);
         LoyalUser luPablo   = createLoyalUser("pablo.castro@correo.com",    null, List.of(rlRetail, tnStore),
                 "Calle Pelayo 5, Barcelona",      41.3900,  2.1680);
-
+/* 
         // --- 10. Pedidos ---
         // Internos RapidLog Central
         createInternalOrder(rlCentral, rlMadridCd, rlValencia, OrderStatus.DELIVERED,  OrderPriority.NORMAL, 11, carlos);
@@ -360,6 +408,7 @@ public class DemoDataSeeder implements CommandLineRunner {
 
         log.info("DemoDataSeeder: demo cargada — {} usuarios, {} empresas, {} unidades, {} pedidos.",
                 users.count(), companies.count(), units.count(), orders.count());
+*/
     }
 
     // ----- helpers -----
@@ -376,8 +425,15 @@ public class DemoDataSeeder implements CommandLineRunner {
         if (address != null) u.setAddress(address);
         if (lat != null) u.setLatitude(BigDecimal.valueOf(lat));
         if (lon != null) u.setLongitude(BigDecimal.valueOf(lon));
-        u.setPasswordHash(passwordEncoder.encode(seedPassword));
-        return users.save(u);
+        var savedUser = users.save(u);
+        authClient.registerSeed( 
+                u.getId() , 
+                email,  
+                username,  
+                seedPassword,
+                authHost+authPrefix+authPath
+        ).block();
+        return savedUser; 
     }
 
     private Organization createOrg(String name, String handle) {
@@ -404,21 +460,28 @@ public class DemoDataSeeder implements CommandLineRunner {
         return workers.save(w);
     }
 
-    private OperationalUnit createUnit(Company c, String name, UnitType type, String address,
+    private UUID createUnit(Company c, String name, UnitType type, String address,
                                        double lat, double lon) {
-        OperationalUnit u = new OperationalUnit();
-        u.setCompany(c);
-        u.setName(name);
-        u.setType(type);
-        u.setAddress(address);
-        u.setLatitude(BigDecimal.valueOf(lat));
-        u.setLongitude(BigDecimal.valueOf(lon));
-        return units.save(u);
+        UnitRequest u = new UnitRequest(
+                name, 
+                type, 
+                address, 
+                BigDecimal.valueOf(lat),
+                BigDecimal.valueOf(lon),
+                OrderPriority.NORMAL
+        );
+        String url = dataHost+dataPrefix+"/internal/units/seed/organizations/"+c.getOrganization().getId()+"/companies/"+c.getId();
+        
+        return unitClient.createSeed(u, url);
     }
 
-    private void assignWorker(OperationalUnit unit, Worker worker) {
-        unit.getWorkers().add(worker);
-        units.save(unit);
+    private void assignWorker(UUID unitId, Worker worker) {
+        AssignRequest request = new AssignRequest();
+        request.setWorkerId(worker.getId());
+        request.setUserId(worker.getUser().getId());
+        request.setCompanyId(worker.getCompany().getId());
+        String url = dataHost+dataPrefix+"/internal/units/"+unitId+"/seed/assign";
+        unitClient.assignSeed(request, url);
     }
 
     private void createVehicle(Company company, OperationalUnit depot, String plate, int capacity) {
@@ -435,10 +498,12 @@ public class DemoDataSeeder implements CommandLineRunner {
         LoyalUser lu = new LoyalUser();
         lu.setEmail(email);
         lu.setUser(user);
-        lu.getCompanies().addAll(cs);
-        if (address != null) lu.setAddress(address);
-        if (lat != null) lu.setLatitude(BigDecimal.valueOf(lat));
-        if (lon != null) lu.setLongitude(BigDecimal.valueOf(lon));
+        for (Company c : cs) {
+            LoyalUserCompany link = lu.linkFor(c);
+            if (address != null) link.setAddress(address);
+            if (lat != null) link.setLatitude(BigDecimal.valueOf(lat));
+            if (lon != null) link.setLongitude(BigDecimal.valueOf(lon));
+        }
         return loyalUsers.save(lu);
     }
 
@@ -472,10 +537,11 @@ public class DemoDataSeeder implements CommandLineRunner {
         o.setRecipientName(loyal.getUser() != null
                 ? (loyal.getUser().getFirstName() + " " + loyal.getUser().getLastName())
                 : loyal.getEmail());
-        // Snapshot de dirección: prioridad loyal → user
-        String addr = loyal.getAddress();
-        BigDecimal lat = loyal.getLatitude();
-        BigDecimal lon = loyal.getLongitude();
+        // Snapshot de dirección: prioridad link de la empresa origen → user
+        LoyalUserCompany link = loyal.findLink(c.getId()).orElse(null);
+        String addr = link != null ? link.getAddress() : null;
+        BigDecimal lat = link != null ? link.getLatitude() : null;
+        BigDecimal lon = link != null ? link.getLongitude() : null;
         if (addr == null && loyal.getUser() != null) {
             addr = loyal.getUser().getAddress();
             lat  = loyal.getUser().getLatitude();
@@ -549,6 +615,20 @@ public class DemoDataSeeder implements CommandLineRunner {
             ev.setNote(null);
             orderEvents.save(ev);
         }
+    }
+
+    /**
+     * Vacía las tablas de datos preservando configuración (activity_types, order_status_config,
+     * order_priority_config, worker_role_config, subscription_plans) y el historial de Flyway.
+     * Reinicia la secuencia de referencias de pedido.
+     */
+    private void wipeData() {
+        em.createNativeQuery("TRUNCATE TABLE " +
+                "order_events, order_messages, api_keys, orders, unit_workers, " +
+                "loyal_user_companies, workers, operational_units, loyal_users, " +
+                "companies, organizations, users " +
+                "RESTART IDENTITY CASCADE").executeUpdate();
+        em.createNativeQuery("ALTER SEQUENCE IF EXISTS order_ref_seq RESTART WITH 1").executeUpdate();
     }
 
     private String randomToken() {
