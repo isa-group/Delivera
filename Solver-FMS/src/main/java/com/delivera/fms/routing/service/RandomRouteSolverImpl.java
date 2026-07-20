@@ -6,20 +6,18 @@ import com.delivera.fms.routing.dto.RouteDto;
 import com.delivera.fms.routing.dto.RoutingRequest;
 import com.delivera.fms.routing.dto.TypeSolver;
 import com.delivera.fms.routing.dto.VehicleDto;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service("randomRouteSolver")
 public class RandomRouteSolverImpl extends BaseRouteSolver {
-
-    private static final Logger log = LoggerFactory.getLogger(RandomRouteSolverImpl.class);
 
     @Override
     protected TypeSolver getType() {
@@ -28,7 +26,6 @@ public class RandomRouteSolverImpl extends BaseRouteSolver {
 
     @Override
     protected List<RouteDto> performRouting(RoutingRequest request) {
-        log.debug("Starting RANDOM solver for problem: {}", request.problemId());
         List<CustomerDto> customers = new ArrayList<>(request.customers());
         Collections.shuffle(customers);
 
@@ -50,7 +47,7 @@ public class RandomRouteSolverImpl extends BaseRouteSolver {
         Map<String, DepotDto> depotById = new HashMap<>();
         for (DepotDto d : grouped.keySet()) depotById.put(d.id(), d);
 
-        boolean[] visited = new boolean[dist.length];
+        Set<String> visited = new HashSet<>();
         List<RouteDto> routes = new ArrayList<>();
         for (VehicleDto v : vehicles) {
             DepotDto depot = depotById.get(v.startDepotId());
@@ -63,7 +60,7 @@ public class RandomRouteSolverImpl extends BaseRouteSolver {
     private List<RouteDto> routesFromDepots(List<DepotDto> depots,
                                              Map<DepotDto, List<CustomerDto>> grouped,
                                              double[][] dist) {
-        boolean[] visited = new boolean[dist.length];
+        Set<String> visited = new HashSet<>();
         List<RouteDto> routes = new ArrayList<>();
         for (DepotDto d : depots) {
             routes.addAll(buildMultiTripRoutes("V-" + d.id(), d, grouped.get(d), dist, Integer.MAX_VALUE, visited));
@@ -73,13 +70,13 @@ public class RandomRouteSolverImpl extends BaseRouteSolver {
 
     private List<RouteDto> buildMultiTripRoutes(String vehicleId, DepotDto depot,
                                                  List<CustomerDto> customers, double[][] dist,
-                                                 int maxCapacity, boolean[] visited) {
+                                                 int maxCapacity, Set<String> visited) {
         List<RouteDto> routes = new ArrayList<>();
         if (customers == null || customers.isEmpty()) return routes;
 
         List<CustomerDto> remaining = new ArrayList<>();
         for (CustomerDto c : customers) {
-            if (!visited[c.matrixIndex()]) remaining.add(c);
+            if (!visited.contains(c.id())) remaining.add(c);
         }
 
         while (!remaining.isEmpty()) {
@@ -89,12 +86,8 @@ public class RandomRouteSolverImpl extends BaseRouteSolver {
             int currentIndex = depot.matrixIndex();
 
             List<CustomerDto> tripCustomers = new ArrayList<>();
-            List<CustomerDto> skipped = new ArrayList<>();
             for (CustomerDto c : remaining) {
-                if (totalLoad + c.demand() > maxCapacity) {
-                    skipped.add(c);
-                    continue;
-                }
+                if (totalLoad + c.demand() > maxCapacity) break;
                 totalDistance += dist[currentIndex][c.matrixIndex()];
                 stops.add(c.id());
                 totalLoad += c.demand();
@@ -108,9 +101,9 @@ public class RandomRouteSolverImpl extends BaseRouteSolver {
             routes.add(new RouteDto(vehicleId, depot.id(), stops, totalDistance, totalLoad));
 
             for (CustomerDto c : tripCustomers) {
-                visited[c.matrixIndex()] = true;
+                visited.add(c.id());
             }
-            remaining = skipped;
+            remaining.removeAll(tripCustomers);
         }
 
         return routes;

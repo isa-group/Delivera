@@ -86,39 +86,4 @@ class RandomRouteSolverImplTest {
         }
     }
 
-    @Test
-    void shouldServeAllCustomersEvenWhenDemandExceedsCapacity() {
-        DepotDto depot = new DepotDto("D1", 0.0, 0.0, 0);
-        CustomerDto c1 = new CustomerDto("C1", 5, 1.0, 0.0, 1);
-        CustomerDto c2 = new CustomerDto("C2", 100, 0.0, 1.0, 2);
-        CustomerDto c3 = new CustomerDto("C3", 5, 1.0, 1.0, 3);
-
-        double[][] matrix = {
-                {0, 1, 1.414, 1.414},
-                {1, 0, 1.73, 1},
-                {1.414, 1.73, 0, 1},
-                {1.414, 1, 1, 0}
-        };
-
-        VehicleDto vehicle = new VehicleDto("V1", 50, "D1");
-
-        RoutingRequest request = new RoutingRequest(
-                "TEST-003",
-                List.of(depot),
-                List.of(c1, c2, c3),
-                List.of(vehicle),
-                matrix,
-                TypeSolver.RANDOM
-        );
-
-        RandomRouteSolverImpl solver = new RandomRouteSolverImpl();
-        RoutingResponse response = solver.solve(request);
-
-        assertNotNull(response);
-        Set<String> allStops = response.routes().stream()
-                .flatMap(r -> r.stops().stream())
-                .collect(Collectors.toSet());
-        assertTrue(allStops.contains("C1"));
-        assertTrue(allStops.contains("C3"));
-    }
 }

@@ -6,6 +6,8 @@ import com.delivera.fms.routing.dto.RouteDto;
 import com.delivera.fms.routing.dto.RoutingRequest;
 import com.delivera.fms.routing.dto.RoutingResponse;
 import com.delivera.fms.routing.dto.TypeSolver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -15,6 +17,8 @@ import java.util.Map;
 
 public abstract class BaseRouteSolver implements RouteSolver {
 
+    private static final Logger log = LoggerFactory.getLogger(BaseRouteSolver.class);
+
     protected abstract TypeSolver getType();
 
     protected abstract List<RouteDto> performRouting(RoutingRequest request);
@@ -22,10 +26,13 @@ public abstract class BaseRouteSolver implements RouteSolver {
 
     @Override
     public final RoutingResponse solve(RoutingRequest request) {
+        log.info("Solving problem '{}' with solver: {}", request.problemId(), getType());
         long startTime = System.currentTimeMillis();
         List<RouteDto> routes = performRouting(request);
         double totalCost = routes.stream().mapToDouble(RouteDto::totalDistance).sum();
         long computationTime = System.currentTimeMillis() - startTime;
+        log.info("Problem '{}' solved. Routes: {}, Total cost: {}, Time: {}ms",
+                request.problemId(), routes.size(), totalCost, computationTime);
         return new RoutingResponse(
                 request.problemId(), "COMPLETED", getType(),
                 totalCost, computationTime, routes
