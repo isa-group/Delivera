@@ -6,18 +6,20 @@ import com.delivera.fms.routing.dto.RouteDto;
 import com.delivera.fms.routing.dto.RoutingRequest;
 import com.delivera.fms.routing.dto.TypeSolver;
 import com.delivera.fms.routing.dto.VehicleDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service("greedyRouteSolver")
 public class GreedyRouteSolverImpl extends BaseRouteSolver {
+
+    private static final Logger log = LoggerFactory.getLogger(GreedyRouteSolverImpl.class);
 
     @Override
     protected TypeSolver getType() {
@@ -26,6 +28,7 @@ public class GreedyRouteSolverImpl extends BaseRouteSolver {
 
     @Override
     protected List<RouteDto> performRouting(RoutingRequest request) {
+        log.debug("Starting GREEDY solver for problem: {}", request.problemId());
         List<DepotDto> depots = request.depots();
         List<CustomerDto> customers = request.customers();
         double[][] dist = request.distanceMatrix();
@@ -37,7 +40,7 @@ public class GreedyRouteSolverImpl extends BaseRouteSolver {
         List<VehicleDto> vehicles = request.vehicles();
         boolean hasVehicles = vehicles != null && !vehicles.isEmpty();
 
-        Set<String> visited = new HashSet<>();
+        boolean[] visited = new boolean[dist.length];
         List<RouteDto> routes = new ArrayList<>();
 
         if (hasVehicles) {
@@ -61,56 +64,80 @@ public class GreedyRouteSolverImpl extends BaseRouteSolver {
                     int maxStops = i == depotVehicles.size() - 1
                             ? Integer.MAX_VALUE
                             : baseStops;
-                    addRoute(routes, buildGreedyRoute(v.id(), depot, depotCustomers,
-                            dist, maxStops, visited));
+                    routes.addAll(buildGreedyMultiTripRoutes(v.id(), depot, depotCustomers,
+                            dist, maxStops, v.capacity(), visited));
                 }
             }
         } else {
             for (DepotDto d : depots) {
-                addRoute(routes, buildGreedyRoute("V-" + d.id(), d, groupedByDepot.get(d),
-                        dist, Integer.MAX_VALUE, visited));
+                routes.addAll(buildGreedyMultiTripRoutes("V-" + d.id(), d, groupedByDepot.get(d),
+                        dist, Integer.MAX_VALUE, Integer.MAX_VALUE, visited));
             }
         }
 
         return routes;
     }
 
-    private RouteDto buildGreedyRoute(String vehicleId, DepotDto depot,
-                                       List<CustomerDto> customers, double[][] dist,
-                                       int maxStops, Set<String> visited) {
-        if (depot == null || customers == null) return null;
-
-        List<String> stops = new ArrayList<>();
-        double totalDistance = 0.0;
-        int totalLoad = 0;
-        int currentIndex = depot.matrixIndex();
+    private List<RouteDto> buildGreedyMultiTripRoutes(String vehicleId, DepotDto depot,
+                                                       List<CustomerDto> customers, double[][] dist,
+                                                       int maxStops, int maxCapacity,
+                                                       boolean[] visited) {
+        List<RouteDto> routes = new ArrayList<>();
+        if (depot == null || customers == null) return routes;
 
         List<CustomerDto> unvisited = new ArrayList<>(customers);
-        unvisited.removeIf(c -> visited.contains(c.id()));
+        unvisited.removeIf(c -> visited[c.matrixIndex()]);
 
-        while (!unvisited.isEmpty() && stops.size() < maxStops) {
-            CustomerDto best = null;
-            double bestDist = Double.MAX_VALUE;
+        int totalStopsAssigned = 0;
 
-            for (CustomerDto c : unvisited) {
-                double d = dist[currentIndex][c.matrixIndex()];
-                if (d < bestDist) {
-                    bestDist = d;
-                    best = c;
+        while (!unvisited.isEmpty() && totalStopsAssigned < maxStops) {
+            List<String> stops = new ArrayList<>();
+            double totalDistance = 0.0;
+            int totalLoad = 0;
+            int currentIndex = depot.matrixIndex();
+
+            List<CustomerDto> tripCustomers = new ArrayList<>();
+            List<CustomerDto> currentUnvisited = new ArrayList<>(unvisited);
+
+            while (!currentUnvisited.isEmpty() && totalStopsAssigned + stops.size() < maxStops) {
+                CustomerDto best = null;
+                double bestDist = Double.MAX_VALUE;
+
+                for (CustomerDto c : currentUnvisited) {
+                    double d = dist[currentIndex][c.matrixIndex()];
+                    if (d < bestDist) {
+                        bestDist = d;
+                        best = c;
+                    }
                 }
+
+                if (best == null) break;
+
+                if (totalLoad + best.demand() > maxCapacity) {
+                    currentUnvisited.remove(best);
+                    continue;
+                }
+
+                totalDistance += bestDist;
+                stops.add(best.id());
+                totalLoad += best.demand();
+                currentIndex = best.matrixIndex();
+                tripCustomers.add(best);
+                currentUnvisited.remove(best);
             }
 
-            if (best == null) break;
+            if (tripCustomers.isEmpty()) break;
 
-            totalDistance += bestDist;
-            stops.add(best.id());
-            totalLoad += best.demand();
-            currentIndex = best.matrixIndex();
-            visited.add(best.id());
-            unvisited.remove(best);
+            totalDistance += dist[currentIndex][depot.matrixIndex()];
+            routes.add(new RouteDto(vehicleId, depot.id(), stops, totalDistance, totalLoad));
+
+            for (CustomerDto c : tripCustomers) {
+                visited[c.matrixIndex()] = true;
+            }
+            unvisited = currentUnvisited;
+            totalStopsAssigned += stops.size();
         }
 
-        totalDistance += dist[currentIndex][depot.matrixIndex()];
-        return new RouteDto(vehicleId, depot.id(), stops, totalDistance, totalLoad);
+        return routes;
     }
 }
