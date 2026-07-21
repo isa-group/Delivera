@@ -4,7 +4,6 @@ import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.fms.dto.RoutingResponse;
 import com.delivera.fms.dto.TypeSolver;
 import com.delivera.fms.service.FmsRoutingService;
-import com.delivera.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
