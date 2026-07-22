@@ -65,7 +65,7 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.DELETE, api+"/internal/units/companies/*").permitAll();
                 auth.requestMatchers(HttpMethod.GET, api+"/internal/vehicles/companies/*").permitAll();
                 auth.requestMatchers(HttpMethod.POST, api+"/internal/orders/B2C").permitAll();
-                auth.requestMatchers(api + "/internal/orders/public/track/*/register/*").permitAll();
+
 
 
                 auth.requestMatchers(HttpMethod.GET, api+"/units" ).hasRole(ADMIN);
@@ -94,6 +94,7 @@ public class SecurityConfig {
                 auth.requestMatchers(api + "/orders/*/messages/**").hasAnyRole(ADMIN, ANALYST, OPERATOR, LOYAL_USER);
                 auth.requestMatchers(HttpMethod.POST, api + "/orders/*/messages").hasAnyRole(ADMIN, ANALYST, OPERATOR, LOYAL_USER);
                 auth.requestMatchers(api + "/orders/public/track/*").permitAll();
+                auth.requestMatchers(HttpMethod.POST,api + "/orders/public/track/*/register").permitAll();
                 auth.requestMatchers(api + "/orders/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
    
                 auth.anyRequest().denyAll();

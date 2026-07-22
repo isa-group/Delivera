@@ -75,7 +75,7 @@ async function submitClaim() {
   claimLoading.value = true
   try {
     // useApi uses TOKEN automatically
-    const res = await fetch(`${deliveraService}/api/v2/orders/public/track/${route.params.token}/register`, {
+    const res = await fetch(`${dataService}/api/v2/orders/public/track/${route.params.token}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json','X-Device-Id': getDeviceId() },
       credentials: 'include',

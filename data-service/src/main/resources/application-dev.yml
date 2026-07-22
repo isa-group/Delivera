@@ -54,7 +54,6 @@ delivera:
           - /internal/orders/B2C
           - /internal/orders/seed
           - /internal/orders/*/seed/events
-          - /internal/orders/public/track/*/register/*
       data-service: 
         api-internal-key: data-internal-key
         allowed-paths: 

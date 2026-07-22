@@ -35,7 +35,7 @@ class AuthControllerTest {
     @InjectMocks private AuthController controller;
 
     private static LoginResponse loginResp() {
-        return new LoginResponse("tok", "u@e.com", null, "COMPANY_ADMIN", "Acme", "acme", "Acme Org",null);
+        return new LoginResponse("tok", "u@e.com", null, "COMPANY_ADMIN", "Acme", "acme", "Acme Org",null,null);
     }
 
     /* 

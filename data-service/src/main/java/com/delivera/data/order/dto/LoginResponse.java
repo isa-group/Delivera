@@ -21,5 +21,7 @@ public class LoginResponse {
         private String orgHandle;
         private String orgName;
         @JsonInclude(JsonInclude.Include.NON_NULL)
+        private UUID LoyalUserId; 
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         private RefreshCookieData refreshCookie;
 }

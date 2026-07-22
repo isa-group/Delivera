@@ -101,7 +101,6 @@ public class OrderController {
     }
 
     /* TODO:P001-LoyalUser */
-    /* 
     @Operation(summary = "Registro de destinatario a través del token de seguimiento")
     @PostMapping("/public/track/{token}/register")
     public ResponseEntity<LoginResponse> claimRegister(
@@ -114,7 +113,7 @@ public class OrderController {
         String userAgent = authService.getUserAgent(httpRequest);
         RequestClientData requestClientData = new RequestClientData(ip, deviceId, userAgent);
 
-        LoginResponse response =  authService.claimRegister(token, request,requestClientData);
+        LoginResponse response =  orderService.claimOrder(request,requestClientData, token);
         RefreshCookieData refreshCookieData = response.getRefreshCookie();
         response.setRefreshCookie(null);
         ResponseCookie refreshCookie = authService.refreshCookie(refreshCookieData);
@@ -124,6 +123,6 @@ public class OrderController {
         .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
         .body(response);
 
-    }*/
+    }
 
 }

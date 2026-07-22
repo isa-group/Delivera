@@ -92,6 +92,7 @@ public class OrderController {
         @Valid @RequestBody ClaimRegisterRequest request
     ) {
         // TODO: P001-LoyalUser
+        /* 
         String ip = authService.getIp(httpRequest);
         String deviceId = authService.getDeviceId(httpRequest);
         String userAgent = authService.getUserAgent(httpRequest);
@@ -101,11 +102,10 @@ public class OrderController {
         RefreshCookieData refreshCookieData = response.getRefreshCookie();
         response.setRefreshCookie(null);
         ResponseCookie refreshCookie = authService.refreshCookie(refreshCookieData);
-
+*/
         return ResponseEntity
         .status(HttpStatus.CREATED)
-        .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-        .body(response);
+        .body(null);
 
     }
 }

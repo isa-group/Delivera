@@ -1,11 +1,11 @@
 package com.delivera.auth.controller;
 
 
+import com.delivera.auth.dto.ClaimData;
 import com.delivera.auth.dto.DeliveraOrgContext;
 import com.delivera.auth.service.AuthInternalService;
-
-
-
+import com.delivera.auth.service.AuthService;
+import com.delivera.dto.auth.LoginResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -26,7 +26,8 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Autenticación", description = "Endpoints para registro e inicio de sesión")
 public class AuthInternalController {
 
-    private final AuthInternalService authService;
+    private final AuthInternalService authInternalService;
+    private final AuthService authService;
 
     @Operation(summary = "", description = "")
     @ApiResponses(value = {
@@ -36,13 +37,22 @@ public class AuthInternalController {
     })
     @GetMapping("/context/{userId}")
     public ResponseEntity<DeliveraOrgContext> getContext(@PathVariable UUID userId ) {
-        DeliveraOrgContext response = authService.getContextByUserId(userId);
+        DeliveraOrgContext response = authInternalService.getContextByUserId(userId);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/switch-company/{companyId}/user/{userId}")
     public ResponseEntity<DeliveraOrgContext> getContext(@PathVariable UUID companyId ,@PathVariable UUID userId ) {
-        DeliveraOrgContext response = authService.getContextByUserIdAndByCompanyId(userId,companyId);
+        DeliveraOrgContext response = authInternalService.getContextByUserIdAndByCompanyId(userId,companyId);
         return ResponseEntity.ok(response);
+    }
+
+
+    @PostMapping("/claim/register")
+    public ResponseEntity<LoginResponse> claimRegister(@RequestBody ClaimData claimData) {
+        return ResponseEntity.status(201).body(
+            authService.claimRegister(claimData)
+        );
+
     }
 }

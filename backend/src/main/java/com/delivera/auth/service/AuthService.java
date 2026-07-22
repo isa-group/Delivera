@@ -1,6 +1,7 @@
 package com.delivera.auth.service;
 
 
+import com.delivera.auth.dto.ClaimData;
 import com.delivera.auth.dto.DeliveraOrgContext;
 import com.delivera.auth.dto.RefreshCookieData;
 import com.delivera.auth.dto.RequestClientData;
@@ -32,6 +33,8 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 
 import java.time.Duration;
 import java.util.List;
@@ -216,34 +219,23 @@ public class AuthService {
     }
 
     @Transactional
-    public LoginResponse claimRegister(String token, ClaimRegisterRequest request, RequestClientData requestClientData) {
-        
-        Order order = orderRepository.findByTrackingToken(token)
-                .orElseThrow(OrderNotFoundException::new);
-
-       
-        if (order.getLoyalUser() != null && order.getLoyalUser().getUser() != null) {
-            throw new OrderAlreadyClaimedException();
-        }
-
+    public LoginResponse claimRegister(ClaimData claimData) {
+        ClaimRegisterRequest request = claimData.getRequest();
         String email = request.email().toLowerCase().trim();
-        if (!email.equals(order.getRecipientEmail())) {
-            throw new OrderClaimEmailMismatchException();
-        } 
-        if (userRepository.findByEmail(email).isPresent()) {
-            throw new EmailAlreadyExistsException();
-        }
+        RequestClientData requestClientData = claimData.getClientData();
 
 
         User user = buildUser(email, request.username(), request.firstName(), request.lastName(), null);
 
-        if (order.getRecipientAddress() != null) user.setAddress(order.getRecipientAddress());
+        if (claimData.getAddress() != null) user.setAddress(claimData.getAddress());
         User savedUser = userRepository.save(user);
 
+        Company company = companyRepository.findById(claimData.getCompanyId())
+        .orElseThrow(() -> new ForbiddenException("COMPANY NOT FOUND EXCEPTION"));
           
 
         LoyalUser loyalUser = loyalUserRepository
-                .findByCompanyIdAndEmail(order.getCompany().getId(), email)
+                .findByCompanyIdAndEmail(claimData.getCompanyId(), email)
                 .orElseGet(() -> {
                     LoyalUser lu = loyalUserRepository.findByEmail(email).stream().findFirst()
                             .orElseGet(() -> {
@@ -251,15 +243,11 @@ public class AuthService {
                                 fresh.setEmail(email);
                                 return fresh;
                             });
-                    lu.linkFor(order.getCompany());
+                    lu.linkFor(company);
                     return lu;
                 });
         loyalUser.setUser(user);
-        loyalUserRepository.save(loyalUser);
-
-        order.setLoyalUser(loyalUser);
-        order.setTrackingToken(null);
-        orderRepository.save(order);
+        LoyalUser lu = loyalUserRepository.save(loyalUser);
 
         LoginResponse loginResponse =  authClient.register(
             savedUser.getId(), email, null, request.password(), 
@@ -268,11 +256,8 @@ public class AuthService {
                 LOYAL_USER_ROLE, null, null,null
             ),
             requestClientData
-        ).block(); 
-        // TODO:  orderClient.claimOrder(token,request.email(), loyalUser.getId());
-   
-
-        
+        ).block();
+        loginResponse.setLoyalUserId(lu.getId());
 
         return loginResponse;
 

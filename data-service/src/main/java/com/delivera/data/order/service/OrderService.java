@@ -300,9 +300,8 @@ public class OrderService {
         return PublicOrderResponse.from(order);
     }
 
-    /* 
     @Transactional
-    public String claimOrder(
+    public LoginResponse claimOrder(
         ClaimRegisterRequest request, 
         RequestClientData clientData, 
         String trackingToken
@@ -313,22 +312,25 @@ public class OrderService {
         if (order.getClaimed()) {
             throw new OrderAlreadyClaimedException();
         }
+        String email = request.email().toLowerCase().trim();
         if (!order.getRecipientEmail().equalsIgnoreCase(email.trim())) {
             throw new OrderClaimEmailMismatchException();
         } 
         
 
         LoginResponse loginResponse = orgClient.claimRegister(
-            new ClaimData(email, loyalUserId, email, null)
+            new ClaimData(
+                email, order.getCompanyId(), 
+                order.getRecipientAddress(), 
+                request, clientData
+            )
         );
-
-
-
         order.setClaimed(true);
-        order.setLoyalUserId(loyalUserId);
+        order.setLoyalUserId(loginResponse.getLoyalUserId());
         orderRepository.save(order);
-        return order.getRecipientAddress();
-    }*/
+        loginResponse.setLoyalUserId(null);
+        return loginResponse;
+    }
 
     private void validateTransition(OrderStatus current, OrderStatus next) {
        /*TODO:P003-States
