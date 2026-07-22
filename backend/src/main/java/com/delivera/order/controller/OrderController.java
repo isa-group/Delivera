@@ -51,9 +51,9 @@ public class OrderController {
     }
 
     @Operation(summary = "Crear pedido")
-    @PostMapping
-    public ResponseEntity<OrderResponse> create(@Valid @RequestBody OrderRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.create(request));
+    @PostMapping("/B2C")
+    public ResponseEntity<OrderResponse> createB2C(@Valid @RequestBody OrderRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createB2C(request));
     }
 
     @Operation(summary = "Actualizar estado del pedido")
@@ -91,6 +91,7 @@ public class OrderController {
         @PathVariable String token,
         @Valid @RequestBody ClaimRegisterRequest request
     ) {
+        // TODO: P001-LoyalUser
         String ip = authService.getIp(httpRequest);
         String deviceId = authService.getDeviceId(httpRequest);
         String userAgent = authService.getUserAgent(httpRequest);

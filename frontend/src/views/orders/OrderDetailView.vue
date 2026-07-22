@@ -2,19 +2,19 @@
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useApi } from '@/composables/useApi'
 import { useAuthStore } from '@/stores/auth'
 import { useAppConfig } from '@/composables/useAppConfig'
 import { useFormatDate } from '@/composables/useFormatDate'
 import TimelineList from '@/components/TimelineList.vue'
 import { createMap, addMarker, addRoute, fitBounds, currentLocationOf } from '@/composables/useDeliveraMap'
 import { WORKER_ROLES } from '@/constants/roles'
+import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const { formatDateTime } = useFormatDate()
 const route = useRoute()
 const router = useRouter()
-const api = useApi()
+const dataApi = useServices("data-service")
 const auth = useAuthStore()
 const { load: loadConfig, statusSeverity, prioritySeverity, getNextStatuses } = useAppConfig()
 
@@ -128,7 +128,7 @@ async function initOrderMap() {
 async function loadMessages(orderId) {
   chatLoading.value = true
   try {
-    const res = await api.get(`/orders/${orderId}/messages`)
+    const res = await dataApi.get(`/orders/${orderId}/messages`)
     if (res.ok) messages.value = await res.json()
   } catch { /* silent */ } finally {
     chatLoading.value = false
@@ -140,7 +140,7 @@ async function sendMessage() {
   if (!text) return
   sendingMessage.value = true
   try {
-    const res = await api.post(`/orders/${order.value.id}/messages`, { content: text })
+    const res = await dataApi.post(`/orders/${order.value.id}/messages`, { content: text })
     if (res.ok) {
       messages.value.push(await res.json())
       newMessage.value = ''
@@ -166,10 +166,11 @@ const canUpdateStatus = computed(() => WORKER_ROLES.includes(auth.role))
 async function loadOrder() {
   loading.value = true
   try {
-    const res = await api.get(`/orders/${route.params.id}`)
+    const res = await dataApi.get(`/orders/${route.params.id}`)
     if (res.ok) {
       order.value = await res.json()
       loadMessages(order.value.id)
+      console.log(order.value)
     } else error.value = t('error.ORDER_NOT_FOUND')
   } catch {
     error.value = t('error.connection')
@@ -201,7 +202,7 @@ async function submitStatusUpdate() {
   updateError.value = ''
   updateSuccess.value = ''
   try {
-    const res = await api.patch(`/orders/${order.value.id}/status`, {
+    const res = await dataApi.patch(`/orders/${order.value.id}/status`, {
       status: newStatus.value,
       note: statusNote.value || null,
     })
@@ -212,7 +213,7 @@ async function submitStatusUpdate() {
       statusNote.value = ''
     } else {
       const data = await res.json()
-      updateError.value = api.translateError(data, 'error.saveFailed')
+      updateError.value = dataApi.translateError(data, 'error.saveFailed')
     }
   } catch {
     updateError.value = t('error.connection')

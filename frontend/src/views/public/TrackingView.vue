@@ -7,12 +7,26 @@ import { useAuthStore } from '@/stores/auth'
 import TimelineList from '@/components/TimelineList.vue'
 import { startAuthRefresh } from '@/composables/useRefreshToken'
 import { getDeviceId } from '../../composables/useRefreshToken'
+import { useValidation } from '@/composables/useValidation'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const { load: loadConfig, statusSeverity } = useAppConfig()
+const dataService = import.meta.env.VITE_DATA_API_URL
+const deliveraService = import.meta.env.VITE_API_URL
+const {
+  validate,
+  required,
+  email: emailRule,
+  minLength,
+  maxLength,
+  usernameFormat,
+  passwordStrength,
+  errors,
+  invalids
+} = useValidation()
 
 const order = ref(null)
 const loading = ref(false)
@@ -29,11 +43,39 @@ const claimLoading = ref(false)
 const claimError = ref('')
 
 async function submitClaim() {
+  const valid = validate({
+    firstName: [
+      required(claimFirstName.value, 'firstName'),
+      maxLength(claimFirstName.value, 100, 'firstName'),
+    ],
+    lastName: [
+      maxLength(claimLastName.value, 100, 'lastName'),
+    ],
+    email: [
+      required(claimEmail.value, 'email'),
+      emailRule(claimEmail.value),
+    ],
+    username: [
+      required(claimUsername.value, 'username'),
+      minLength(claimUsername.value, 3, 'username'),
+      maxLength(claimUsername.value, 50, 'username'),
+      usernameFormat(claimUsername.value),
+    ],
+    password: [
+      required(claimPassword.value, 'password'),
+      minLength(claimPassword.value, 8, 'password'),
+      passwordStrength(claimPassword.value),
+  ],
+  })
+
+  if (!valid) {
+    return
+  }
   claimError.value = ''
   claimLoading.value = true
   try {
     // useApi uses TOKEN automatically
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v2/orders/public/track/${route.params.token}/register`, {
+    const res = await fetch(`${deliveraService}/api/v2/orders/public/track/${route.params.token}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json','X-Device-Id': getDeviceId() },
       credentials: 'include',
@@ -70,7 +112,7 @@ async function fetchByToken(token) {
   error.value = ''
   order.value = null
   try {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v2/orders/public/track/${token}`)
+    const res = await fetch(`${dataService}/api/v2/orders/public/track/${token}`)
     if (res.ok) order.value = await res.json()
     else error.value = t('tracking.notFound')
   } catch {
@@ -86,7 +128,7 @@ async function fetchByReference() {
   error.value = ''
   order.value = null
   try {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v2/orders/public/search?reference=${encodeURIComponent(searchRef.value.trim())}`)
+    const res = await fetch(`${dataService}/api/v2/orders/public/search?reference=${encodeURIComponent(searchRef.value.trim())}`)
     if (res.ok) order.value = await res.json()
     else error.value = t('tracking.notFound')
   } catch {
@@ -185,23 +227,30 @@ onMounted(() => {
                 <div class="claim-field">
                   <label for="claim-first-name">{{ t('tracking.claim.firstName') }}</label>
                   <PInputText id="claim-first-name" v-model="claimFirstName" required fluid />
+                  <small v-if="errors.firstName" class="field-error">{{ errors.firstName }}</small>
                 </div>
                 <div class="claim-field">
                   <label for="claim-last-name">{{ t('tracking.claim.lastName') }}</label>
                   <PInputText id="claim-last-name" v-model="claimLastName" required fluid />
+                  <small v-if="errors.lastName" class="field-error">{{ errors.lastName }}</small>
                 </div>
               </div>
               <div class="claim-field">
                 <label for="claim-email">{{ t('tracking.claim.email') }}</label>
                 <PInputText id="claim-email" v-model="claimEmail" type="email" required fluid />
+                <small v-if="errors.email" class="field-error">{{ errors.email }}</small>
               </div>
               <div class="claim-field">
                 <label for="claim-username">{{ t('fields.username') }}</label>
                 <PInputText id="claim-username" v-model="claimUsername" required fluid />
+                <small v-if="errors.username" class="field-error">{{ errors.username }}</small>
+                <small v-else-if="usernameState === 'taken'" class="field-error">{{ t('error.USERNAME_ALREADY_EXISTS') }}</small>
+                <small v-else class="field-hint">{{ t('fields.usernameHint') }}</small>
               </div>
               <div class="claim-field">
                 <label for="claim-password">{{ t('tracking.claim.password') }}</label>
                 <PPassword id="claim-password" v-model="claimPassword" :feedback="false" toggle-mask required fluid />
+                <small v-if="errors.password" class="field-error">{{ errors.password }}</small>
               </div>
               <PMessage v-if="claimError" severity="error" :closable="false" class="claim-msg">{{ claimError }}</PMessage>
               <PButton

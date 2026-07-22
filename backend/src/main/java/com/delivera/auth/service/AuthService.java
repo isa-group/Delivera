@@ -14,6 +14,7 @@ import com.delivera.exception.*;
 import com.delivera.model.*;
 import com.delivera.order.model.Order;
 import com.delivera.order.repository.OrderRepository;
+import com.delivera.order.service.OrderClient;
 import com.delivera.org.model.Company;
 import com.delivera.org.model.Organization;
 import com.delivera.org.repository.CompanyRepository;
@@ -50,7 +51,8 @@ public class AuthService {
     private final LoyalUserRepository loyalUserRepository;
     private final ActivityTypeRepository activityTypeRepository;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
-    private final AuthClient client;
+    private final AuthClient authClient;
+    private final OrderClient orderClient;
 
     
     @Value("${app.gateway.enabled}")
@@ -65,7 +67,8 @@ public class AuthService {
                        ActivityTypeRepository activityTypeRepository,
                        SubscriptionPlanRepository subscriptionPlanRepository,
                        PasswordEncoder passwordEncoder,
-                       AuthClient client) {
+                       OrderClient orderClient,
+                       AuthClient authClient) {
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
         this.companyRepository = companyRepository;
@@ -74,7 +77,8 @@ public class AuthService {
         this.loyalUserRepository = loyalUserRepository;
         this.activityTypeRepository = activityTypeRepository;
         this.subscriptionPlanRepository = subscriptionPlanRepository;
-        this.client = client;
+        this.authClient = authClient;
+        this.orderClient = orderClient;;
     }
 
     public String getIp(HttpServletRequest httpRequest) {
@@ -141,7 +145,7 @@ public class AuthService {
             loyalUserRepository.save(lu);
         });
         String role = loyalUsers.isEmpty() ? null : LOYAL_USER_ROLE;
-        LoginResponse loginResponse = client.register(
+        LoginResponse loginResponse = authClient.register(
             savedUser.getId(), 
             request.email(),
             request.username(), 
@@ -197,7 +201,7 @@ public class AuthService {
         worker.setRole(WorkerRole.COMPANY_ADMIN);
         workerRepository.save(worker);
 
-        LoginResponse response = client.register(
+        LoginResponse response = authClient.register(
             savedUser.getId(), request.email(), request.username(), request.password(), 
             new DeliveraOrgContext(
                 savedCompany.getId(), WorkerRole.COMPANY_ADMIN, savedCompany.getName(),
@@ -213,9 +217,11 @@ public class AuthService {
 
     @Transactional
     public LoginResponse claimRegister(String token, ClaimRegisterRequest request, RequestClientData requestClientData) {
+        
         Order order = orderRepository.findByTrackingToken(token)
                 .orElseThrow(OrderNotFoundException::new);
 
+       
         if (order.getLoyalUser() != null && order.getLoyalUser().getUser() != null) {
             throw new OrderAlreadyClaimedException();
         }
@@ -223,11 +229,11 @@ public class AuthService {
         String email = request.email().toLowerCase().trim();
         if (!email.equals(order.getRecipientEmail())) {
             throw new OrderClaimEmailMismatchException();
-        }
-
+        } 
         if (userRepository.findByEmail(email).isPresent()) {
             throw new EmailAlreadyExistsException();
         }
+
 
         User user = buildUser(email, request.username(), request.firstName(), request.lastName(), null);
 
@@ -255,7 +261,7 @@ public class AuthService {
         order.setTrackingToken(null);
         orderRepository.save(order);
 
-        return client.register(
+        LoginResponse loginResponse =  authClient.register(
             savedUser.getId(), email, null, request.password(), 
             new DeliveraOrgContext(
                 null, null, 
@@ -263,6 +269,13 @@ public class AuthService {
             ),
             requestClientData
         ).block(); 
+        // TODO:  orderClient.claimOrder(token,request.email(), loyalUser.getId());
+   
+
+        
+
+        return loginResponse;
+
 
     }
 

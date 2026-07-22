@@ -147,13 +147,18 @@ export function useOrderForm() {
         body.recipientLatitude = recipientLatitude.value
         body.recipientLongitude = recipientLongitude.value
       }
+      let res
+      if (orderType.value === 'B2C') {
+        res = await api.post('/orders/B2C', body)
+      } else {
+        res = await dataApi.post('/orders', body)
+      }
 
-      const res = await api.post('/orders', body)
-      if (res.ok) {
+      if (res?.ok) {
         const data = await res.json()
         router.push({ path: '/orders', query: { created: data.reference } })
       } else {
-        const data = await res.json()
+        const data = res? await res.json() : null
         error.value = api.translateError(data, 'error.saveFailed')
       }
     } catch {

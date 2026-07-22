@@ -55,9 +55,18 @@ public class SecurityConfig {
                 
                 auth.requestMatchers(HttpMethod.POST, api+"/internal/units/*/seed/assign").permitAll();
                 auth.requestMatchers(HttpMethod.POST, api+"/internal/vehicles/seed/companies/*").permitAll();
+
+                auth.requestMatchers(HttpMethod.POST, api+"/internal/settings/seed").permitAll();
+                auth.requestMatchers(HttpMethod.POST, api+"/internal/orders/seed").permitAll();
+                auth.requestMatchers(HttpMethod.POST, api+"/internal/orders/*/seed/events").permitAll();
+               
+
                 // internal
                 auth.requestMatchers(HttpMethod.DELETE, api+"/internal/units/companies/*").permitAll();
                 auth.requestMatchers(HttpMethod.GET, api+"/internal/vehicles/companies/*").permitAll();
+                auth.requestMatchers(HttpMethod.POST, api+"/internal/orders/B2C").permitAll();
+                auth.requestMatchers(api + "/internal/orders/public/track/*/register/*").permitAll();
+
 
                 auth.requestMatchers(HttpMethod.GET, api+"/units" ).hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.POST, api+"/units" ).hasRole(ADMIN);
@@ -68,9 +77,25 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.GET, api + "/units/*/workers").hasAnyRole(ADMIN, ANALYST);
                 auth.requestMatchers(HttpMethod.POST, api + "/units/*/workers").hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.DELETE, api + "/units/*/workers/*").hasRole(ADMIN);
+
+                auth.requestMatchers(HttpMethod.POST, api + "/settings").hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.GET, api + "/settings").hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.PUT, api + "/settings").hasRole(ADMIN);
+
                 /*TODO: PREGUNTAR*/
                 auth.requestMatchers(api + "/vehicles/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
 
+
+                // ORDERS
+                //      TODO: LOYAL-USER --> ORDERS
+                auth.requestMatchers(HttpMethod.POST, api + "/orders").hasAnyRole(ADMIN, ANALYST);
+                auth.requestMatchers(HttpMethod.PATCH, api + "/orders/*/status").hasAnyRole(ADMIN, ANALYST, OPERATOR);
+                auth.requestMatchers(HttpMethod.DELETE, api + "/orders/**").hasRole(ADMIN);
+                auth.requestMatchers(api + "/orders/*/messages/**").hasAnyRole(ADMIN, ANALYST, OPERATOR, LOYAL_USER);
+                auth.requestMatchers(HttpMethod.POST, api + "/orders/*/messages").hasAnyRole(ADMIN, ANALYST, OPERATOR, LOYAL_USER);
+                auth.requestMatchers(api + "/orders/public/track/*").permitAll();
+                auth.requestMatchers(api + "/orders/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
+   
                 auth.anyRequest().denyAll();
             });
             

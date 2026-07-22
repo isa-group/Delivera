@@ -2,7 +2,6 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
-import { useApi } from '@/composables/useApi'
 import { useAuthStore } from '@/stores/auth'
 import Chart from 'primevue/chart'
 import L from 'leaflet'
@@ -15,7 +14,7 @@ import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const router = useRouter()
-const api = useApi()
+
 const dataApi = useServices("data-service")
 const auth = useAuthStore()
 
@@ -219,7 +218,7 @@ async function loadData() {
   try {
     const [unitsRes, ordersRes] = await Promise.all([
       dataApi.get('/units'),
-      api.get('/orders'),
+      dataApi.get('/orders'),
     ])
     if (unitsRes.ok) units.value = await unitsRes.json()
     if (ordersRes.ok) orders.value = await ordersRes.json()

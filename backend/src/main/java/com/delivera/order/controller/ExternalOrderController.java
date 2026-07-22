@@ -24,11 +24,12 @@ public class ExternalOrderController {
 
     private final OrderService orderService;
 
+    /* TODO: :)
     @Operation(summary = "Crear pedido desde sistema externo")
     @PostMapping
     public ResponseEntity<OrderResponse> create(@Valid @RequestBody OrderRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderService.create(request));
-    }
+    } */
 
     @Operation(summary = "Actualizar estado de pedido desde sistema externo")
     @PatchMapping("/{id}/status")

@@ -5,6 +5,7 @@ import com.delivera.depot.model.OperationalUnit;
 import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.exception.*;
 import com.delivera.model.*;
+import com.delivera.order.dto.DataOrderRequest;
 import com.delivera.order.dto.OrderDetailResponse;
 import com.delivera.order.dto.OrderLocationRequest;
 import com.delivera.order.dto.OrderRequest;
@@ -28,15 +29,12 @@ import com.delivera.worker.repository.WorkerRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -52,6 +50,7 @@ public class OrderService {
     private final SubscriptionService subscriptionService;
     private final EmailService emailService;
     private final String trackingUrlBase;
+    private final OrderClient orderClient;
 
     public OrderService(OrderRepository orderRepository,
                         OperationalUnitRepository unitRepository,
@@ -61,6 +60,7 @@ public class OrderService {
                         SecurityUtils securityUtils,
                         AppConfigService appConfigService,
                         SubscriptionService subscriptionService,
+                        OrderClient orderClient,
                         EmailService emailService,
                         @Value("${app.tracking-url-base:https://delivera.app/track/}") String trackingUrlBase) {
         this.orderRepository = orderRepository;
@@ -72,6 +72,7 @@ public class OrderService {
         this.appConfigService = appConfigService;
         this.subscriptionService = subscriptionService;
         this.emailService = emailService;
+        this.orderClient = orderClient;
         this.trackingUrlBase = trackingUrlBase;
     }
 
@@ -92,6 +93,7 @@ public class OrderService {
         return OrderDetailResponse.from(order);
     }
 
+    /* TODO: DELETE
     @Transactional
     public OrderResponse create(OrderRequest request) {
         UUID companyId = securityUtils.getCurrentCompanyId();
@@ -174,6 +176,88 @@ public class OrderService {
 
         return OrderResponse.from(orderRepository.save(order));
     }
+    */
+
+    @Transactional
+    public OrderResponse createB2C(OrderRequest request) {
+        UUID companyId = securityUtils.getCurrentCompanyId();
+        subscriptionService.checkOrderLimit(companyId);
+
+        OrderType orderType = request.orderType();
+
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(CompanyContextException::new);
+        if (orderType != OrderType.B2C) {
+            throw new ForbiddenException("YOU CAN'T DO THIS OPERATION");
+        }
+            
+       
+        if (request.recipientEmail() == null || request.recipientEmail().isBlank()) {
+            throw new MissingClientEmailException();
+        }
+        String recipientEmail = request.recipientEmail().toLowerCase().trim();
+        String recipientName = request.recipientName() != null ? request.recipientName().trim() : null;
+    
+        if (!workerRepository.findByUserEmailOrderByCreatedAtAsc(recipientEmail).isEmpty()) {
+            throw new WorkerCannotBeLoyalUserException();
+        }
+        LoyalUser loyalUser = loyalUserRepository.findByEmail(recipientEmail).stream().findFirst()
+                .orElseGet(() -> {
+                    LoyalUser lu = new LoyalUser();
+                    lu.setEmail(recipientEmail);
+                    return lu;
+                });
+        LoyalUserCompany link = loyalUser.linkFor(company);
+        if (link.getName() == null && recipientName != null) link.setName(recipientName);
+        String reqAddr = request.recipientAddress() != null && !request.recipientAddress().isBlank()
+                ? request.recipientAddress().trim() : null;
+        if (link.getAddress() == null && reqAddr != null) link.setAddress(reqAddr);
+        loyalUser = loyalUserRepository.save(loyalUser);
+
+        RecipientCoords coords = resolveRecipientAddress(
+            request, 
+            loyalUser.findLink(companyId)
+            .orElse(null)
+        );
+
+        DataOrderRequest finalRequest = buildFinalRequest(
+            recipientEmail,
+            recipientName,
+            request,
+            coords,
+            loyalUser.getId(),
+            loyalUser.getUser() != null
+        );
+        
+
+
+        return orderClient.executeB2CRequest(finalRequest);
+    }
+
+    private DataOrderRequest buildFinalRequest(
+        String recipientEmail, 
+        String recipientName,
+        OrderRequest request,
+        RecipientCoords coords,
+        UUID loyalUserId,
+        Boolean claimed
+    ){
+        DataOrderRequest finalRequest = new DataOrderRequest();
+        finalRequest.setOriginId(request.originId());
+        finalRequest.setDestinationId(request.destinationId());
+        finalRequest.setRecipientEmail(recipientEmail);
+        finalRequest.setRecipientName(recipientName);
+        finalRequest.setRecipientAddress(coords.addr());
+        finalRequest.setRecipientLatitude(coords.lat());
+        finalRequest.setRecipientLongitude(coords.lon());
+        finalRequest.setOrderType(request.orderType());
+        finalRequest.setPriority(request.priority());
+        finalRequest.setNotes(request.notes());
+        finalRequest.setLoyalUserId(loyalUserId);
+        finalRequest.setClaimed(claimed);
+        return finalRequest;
+    }
+
 
     @Transactional
     public OrderDetailResponse updateStatus(UUID id, OrderStatusRequest request) {
@@ -236,7 +320,7 @@ public class OrderService {
 
     private record RecipientCoords(String addr, BigDecimal lat, BigDecimal lon) {}
 
-    private void resolveRecipientAddress(Order order, OrderRequest request, LoyalUserCompany matchedLink) {
+    private RecipientCoords resolveRecipientAddress(OrderRequest request, LoyalUserCompany matchedLink) {
         String addr = request.recipientAddress() != null && !request.recipientAddress().isBlank()
                 ? request.recipientAddress().trim() : null;
         BigDecimal lat = request.recipientLatitude();
@@ -248,10 +332,8 @@ public class OrderService {
             lat = c.lat();
             lon = c.lon();
         }
-        if (addr == null || lat == null) throw new MissingRecipientAddressException();
-        order.setRecipientAddress(addr);
-        order.setRecipientLatitude(lat);
-        order.setRecipientLongitude(lon);
+        if (addr == null || lat == null || lon == null) throw new MissingRecipientAddressException();
+        return new RecipientCoords(addr,lat,lon);
     }
 
     private RecipientCoords resolveFromLink(LoyalUserCompany link) {
@@ -266,16 +348,6 @@ public class OrderService {
         }
         if (lat == null || lon == null) return new RecipientCoords(null, null, null);
         return new RecipientCoords(addr, lat, lon);
-    }
-
-    public static OrderPriority resolveDefaultPriority(OrderPriority requested,
-                                               OperationalUnit originUnit,
-                                               Company company) {
-        if (requested != null) return requested;
-        boolean locked = company != null && company.isDefaultPriorityLocked();
-        if (!locked && originUnit != null && originUnit.getDefaultPriority() != null) return originUnit.getDefaultPriority();
-        if (company != null && company.getDefaultPriority() != null) return company.getDefaultPriority();
-        return OrderPriority.NORMAL;
     }
 
     private String generateReference() {

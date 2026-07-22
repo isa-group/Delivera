@@ -1,4 +1,4 @@
-package com.delivera.data.dto.common;
+package com.delivera.data.common.dto;
 
 public record ErrorResponse(String code) {
 }

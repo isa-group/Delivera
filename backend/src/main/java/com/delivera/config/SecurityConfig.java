@@ -74,7 +74,7 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.PUT, api + "/vehicles/**").hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.DELETE, api + "/vehicles/**").hasRole(ADMIN);
 
-                auth.requestMatchers(HttpMethod.POST, api + "/orders").hasAnyRole(ADMIN, ANALYST);
+                auth.requestMatchers(HttpMethod.POST, api + "/orders/B2C").hasAnyRole(ADMIN, ANALYST);
                 auth.requestMatchers(HttpMethod.PATCH, api + "/orders/*/status").hasAnyRole(ADMIN, ANALYST, OPERATOR);
                 auth.requestMatchers(HttpMethod.DELETE, api + "/orders/**").hasRole(ADMIN);
 
