@@ -12,7 +12,6 @@ import com.delivera.client.model.UserPrincipal;
 
 public class SecurityUtils {
 
-    
     private UserPrincipal getPrincipal() {
         
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -45,6 +44,18 @@ public class SecurityUtils {
             throw new CompanyContextException();
 
 
+    }
+
+    public String getCurrentJwt() {
+
+        Authentication auth =
+            SecurityContextHolder.getContext().getAuthentication();
+    
+        if (auth instanceof JwtAuthenticationToken jwtAuth) {
+            return jwtAuth.getToken().getTokenValue();
+        }
+    
+        return null;
     }
 
     public UUID getCurrentUserId() {
