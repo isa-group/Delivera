@@ -195,6 +195,11 @@ public class GlobalExceptionHandler {
     }
 
  
+    @ExceptionHandler(InvalidRefreshActionException.class)
+    public ResponseEntity<?> handleInvalidRefreshActionException() {
+        return ResponseEntity.status(409)
+        .body(new ErrorResponse("REFRESH_ERROR"));
+    }
 
     @ExceptionHandler(InvalidRefreshTokenException.class)
     public ResponseEntity<?> handleInvalidRefreshTokenException() {
