@@ -462,6 +462,7 @@ validation:
   orgCodeTaken: This code is already in use, please choose another
 
 error:
+  unreachable: Unreachable information at this moment
   connection: Connection error with the server
   invalidCredentials: Incorrect credentials
   registerFailed: Registration failed

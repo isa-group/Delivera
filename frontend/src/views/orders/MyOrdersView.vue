@@ -2,15 +2,15 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useApi } from '@/composables/useApi'
 import { useAppConfig } from '@/composables/useAppConfig'
 import { useFormatDate } from '@/composables/useFormatDate'
 import EmptyState from '@/components/EmptyState.vue'
+import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const { formatDate } = useFormatDate()
 const router = useRouter()
-const api = useApi()
+const dataApi = useServices("data-service")
 const { load: loadConfig, statusSeverity } = useAppConfig()
 
 const orders = ref([])
@@ -21,7 +21,7 @@ onMounted(async () => {
   loadConfig()
   loading.value = true
   try {
-    const res = await api.get('/loyal-users/me/orders')
+    const res = await dataApi.get('/orders/me')
     if (res.ok) orders.value = await res.json()
     else error.value = t('error.connection')
   } catch {
@@ -38,7 +38,7 @@ onMounted(async () => {
 
     <PMessage v-if="error" severity="error" :closable="false">{{ error }}</PMessage>
 
-    <DataTable v-if="!error" :value="orders" :loading="loading" striped-rows row-hover @row-click="e => router.push({ path: '/my-orders/detail', query: { q: e.data.reference } })">
+    <DataTable v-if="!error" :value="orders" :loading="loading" striped-rows row-hover @row-click="e => router.push({ path: '/my-orders/detail', query: { q: e.data.id } })">
       <template #empty>
         <EmptyState icon="pi-box" :message="t('myOrders.empty')" />
       </template>

@@ -87,7 +87,7 @@ export function useServices(service) {
 
 export async function fetchPublicOrder(reference) {
   const res = await fetch(
-    `${import.meta.env.VITE_API_URL}/api/v2/orders/public/search?reference=${encodeURIComponent(reference)}`
+    `${import.meta.env.VITE_DATA_API_URL}/api/v2/orders/public/search?reference=${encodeURIComponent(reference)}`
   )
   if (!res.ok) throw new Error('not_found')
   return res.json()
