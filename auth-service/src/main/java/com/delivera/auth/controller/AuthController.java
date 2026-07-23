@@ -296,6 +296,7 @@ public class AuthController {
             
         } else {
             orgInfo = new DeliveraOrgContext();
+            orgInfo.setRole("LOYAL_USER");
         }
         
         LoginResponse loginResponse = authService.buildLoginResponse(credential, orgInfo);

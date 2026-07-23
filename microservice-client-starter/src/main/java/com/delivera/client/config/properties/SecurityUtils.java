@@ -31,10 +31,14 @@ public class SecurityUtils {
                 var jwt = jwtAuth.getToken();
                 Number ver = jwt.getClaim("ver");
                 Integer version = ver != null ? ver.intValue() : null;
+                UUID companyId = jwt.getClaim("companyId") != null ? 
+                    UUID.fromString(jwt.getClaim("companyId")) : null;
+                UUID orgId = jwt.getClaim("orgId") != null ? 
+                    UUID.fromString(jwt.getClaim("orgId")) : null;
                 return new UserPrincipal(
                     UUID.fromString(jwt.getSubject()),
-                    UUID.fromString(jwt.getClaim("companyId")),
-                    UUID.fromString(jwt.getClaim("orgId")),
+                    companyId,
+                    orgId,
                     jwt.getClaim("email"),
                     jwt.getClaim("role"),
                     version
