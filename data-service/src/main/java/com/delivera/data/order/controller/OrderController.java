@@ -59,10 +59,23 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getByCompany());
     }
 
+
+    @Operation(summary = "Listar pedidos del usuario")
+    @GetMapping("/me")
+    public ResponseEntity<List<OrderResponse>> getMyOrders() {
+        return ResponseEntity.ok(orderService.getByEmail());
+    }
+
     @Operation(summary = "Detalle de un pedido")
     @GetMapping("/{id}")
     public ResponseEntity<OrderDetailResponse> detail(@PathVariable UUID id) {
         return ResponseEntity.ok(orderService.getDetail(id));
+    }
+
+    @Operation(summary = "Detalle de un pedido")
+    @GetMapping("/{id}/me")
+    public ResponseEntity<PublicOrderResponse> myOrderDetail(@PathVariable UUID id) {
+        return ResponseEntity.ok(orderService.getMyOrderDetail(id));
     }
 
     @Operation(summary = "Crear pedido")

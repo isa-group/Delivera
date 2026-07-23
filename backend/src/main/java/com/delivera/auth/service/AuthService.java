@@ -13,7 +13,6 @@ import com.delivera.dto.auth.RegisterRequest;
 import com.delivera.dto.auth.RegisterResponse;
 import com.delivera.exception.*;
 import com.delivera.model.*;
-import com.delivera.order.model.Order;
 import com.delivera.order.repository.OrderRepository;
 import com.delivera.order.service.OrderClient;
 import com.delivera.org.model.Company;
@@ -34,7 +33,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 
 import java.time.Duration;
 import java.util.List;
@@ -44,18 +42,17 @@ import java.util.List;
 @Service
 public class AuthService {
 
-    private static final String LOYAL_USER_ROLE = "LOYAL_USER";
+    private static final WorkerRole LOYAL_USER_ROLE = WorkerRole.LOYAL_USER;
 
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
     private final CompanyRepository companyRepository;
     private final WorkerRepository workerRepository;
-    private final OrderRepository orderRepository;
     private final LoyalUserRepository loyalUserRepository;
     private final ActivityTypeRepository activityTypeRepository;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
     private final AuthClient authClient;
-    private final OrderClient orderClient;
+
 
     
     @Value("${app.gateway.enabled}")
@@ -76,12 +73,10 @@ public class AuthService {
         this.organizationRepository = organizationRepository;
         this.companyRepository = companyRepository;
         this.workerRepository = workerRepository;
-        this.orderRepository = orderRepository;
         this.loyalUserRepository = loyalUserRepository;
         this.activityTypeRepository = activityTypeRepository;
         this.subscriptionPlanRepository = subscriptionPlanRepository;
         this.authClient = authClient;
-        this.orderClient = orderClient;;
     }
 
     public String getIp(HttpServletRequest httpRequest) {
@@ -147,13 +142,13 @@ public class AuthService {
             lu.setUser(user);
             loyalUserRepository.save(lu);
         });
-        String role = loyalUsers.isEmpty() ? null : LOYAL_USER_ROLE;
+        WorkerRole role = loyalUsers.isEmpty() ? null : LOYAL_USER_ROLE;
         LoginResponse loginResponse = authClient.register(
             savedUser.getId(), 
             request.email(),
             request.username(), 
             request.password(), 
-            new DeliveraOrgContext(null, null, role, null, null,null),
+            new DeliveraOrgContext(null, role, null , null, null,null),
             requestClientData
         ).block();
         return new RegisterResponse(loginResponse.getToken(), user.getEmail(), role, loginResponse.getRefreshCookie());
@@ -252,8 +247,8 @@ public class AuthService {
         LoginResponse loginResponse =  authClient.register(
             savedUser.getId(), email, null, request.password(), 
             new DeliveraOrgContext(
-                null, null, 
-                LOYAL_USER_ROLE, null, null,null
+                null, LOYAL_USER_ROLE,null
+                , null, null,null
             ),
             requestClientData
         ).block();

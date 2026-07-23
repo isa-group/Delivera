@@ -67,6 +67,9 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
        List<Order> findByRecipientEmailOrderByCreatedAtDesc(String recipientEmail);
 
+       
+       Optional<Order> findByIdAndRecipientEmail(UUID id,String recipientEmail);
+
        long countByLoyalUserId(UUID loyalUserId);
 
        boolean existsByCompanyIdAndStatusIn(UUID companyId, List<OrderStatus> statuses);

@@ -2,7 +2,6 @@ package com.delivera.org.service;
 
 
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.depot.service.UnitClient;
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.CompanyHasActiveOrdersException;

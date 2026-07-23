@@ -89,6 +89,8 @@ public class SecurityConfig {
                 // ORDERS
                 //      TODO: LOYAL-USER --> ORDERS
                 auth.requestMatchers(HttpMethod.POST, api + "/orders").hasAnyRole(ADMIN, ANALYST);
+                auth.requestMatchers(HttpMethod.GET, api + "/orders/me").hasAnyRole(LOYAL_USER);
+                auth.requestMatchers(HttpMethod.GET, api + "/orders/*/me").hasAnyRole(LOYAL_USER);
                 auth.requestMatchers(HttpMethod.PATCH, api + "/orders/*/status").hasAnyRole(ADMIN, ANALYST, OPERATOR);
                 auth.requestMatchers(HttpMethod.DELETE, api + "/orders/**").hasRole(ADMIN);
                 auth.requestMatchers(api + "/orders/*/messages/**").hasAnyRole(ADMIN, ANALYST, OPERATOR, LOYAL_USER);

@@ -8,10 +8,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.delivera.auth.dto.DeliveraOrgContext;
 import com.delivera.auth.repository.AuthRepository;
-import com.delivera.exception.WorkerNotFoundException;
+import com.delivera.worker.model.WorkerRole;
 
 @Service
 public class AuthInternalService {
+
+    private static final WorkerRole LOYAL_USER_ROLE = WorkerRole.LOYAL_USER;
 
     private final AuthRepository repository;
 
@@ -26,7 +28,11 @@ public class AuthInternalService {
             .findOrgContextByUserId(userId, PageRequest.of(0, 1))
             .stream()
             .findFirst()
-            .orElseThrow( () -> new WorkerNotFoundException() );
+            .orElse(
+                new DeliveraOrgContext(
+                null, LOYAL_USER_ROLE,null
+                , null, null,null
+            ));
 
 
     }
@@ -36,7 +42,11 @@ public class AuthInternalService {
          
         return repository
             .findOrgContextByUserIdAndCompanyId(userId,companyId)
-            .orElseThrow( () -> new WorkerNotFoundException() );
+            .orElse(
+                new DeliveraOrgContext(
+                null, LOYAL_USER_ROLE,null
+                , null, null,null
+            ));
 
 
     }

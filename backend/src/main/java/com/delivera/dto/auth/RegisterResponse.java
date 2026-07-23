@@ -2,6 +2,7 @@ package com.delivera.dto.auth;
 
 import com.delivera.auth.dto.RefreshCookieData;
 import com.delivera.auth.dto.RequestClientData;
+import com.delivera.worker.model.WorkerRole;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.Getter;
@@ -14,18 +15,18 @@ import lombok.Setter;
 public class RegisterResponse {
     private String token;
     private String email;
-    private String role;
+    private WorkerRole role;
     
     @JsonInclude(JsonInclude.Include.NON_NULL)
     RefreshCookieData refreshCookieData;
 
-    public RegisterResponse(String token, String email, String role) {
+    public RegisterResponse(String token, String email, WorkerRole role) {
         this.token = token;
         this.email = email;
         this.role = role;
     }
 
-    public RegisterResponse(String token, String email, String role, RefreshCookieData refreshCookieData) {
+    public RegisterResponse(String token, String email, WorkerRole role, RefreshCookieData refreshCookieData) {
         this.token = token;
         this.email = email;
         this.role = role;

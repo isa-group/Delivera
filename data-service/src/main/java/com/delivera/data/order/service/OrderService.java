@@ -89,26 +89,12 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public ClaimResponse validateClaim(String token, String email) {
-        ClaimResponse response = new ClaimResponse();
-        Optional<String> orderEmail = orderRepository.findNotClaimedByToken(token);
-        if (orderEmail.isPresent()) {
-            //MAYBE TIMING ATTACK --> IT HAS TO SPLIT NETWORK, SERVER LOAD, ...
-            Boolean sameEmail = orderEmail.get().equalsIgnoreCase(email);
-
-            response.setValid(sameEmail);
-            response.setError(
-                !sameEmail?
-                    "INCORRECT_EMAIL":
-                    null
-            );  
-            return response;
-        } 
-        response.setValid(false);
-        response.setError(
-            "ORDER_CLAIMED_OR_NOT_FOUND"
-        );
-        return response;
+    public List<OrderResponse> getByEmail() {
+        String email = securityUtils.getCurrentEmail();
+        return orderRepository.findByRecipientEmailOrderByCreatedAtDesc(email)
+                .stream()
+                .map(OrderResponse::from)
+                .toList();
     }
 
 
@@ -127,6 +113,15 @@ public class OrderService {
         Order order = orderRepository.findByIdForCompany(id, companyId)
                 .orElseThrow(OrderNotFoundException::new);
         return OrderDetailResponse.from(order);
+    }
+
+    
+    @Transactional(readOnly = true)
+    public PublicOrderResponse getMyOrderDetail(UUID id) {
+        String email = securityUtils.getCurrentEmail();
+        Order order = orderRepository.findByIdAndRecipientEmail(id, email)
+                .orElseThrow(OrderNotFoundException::new);
+        return PublicOrderResponse.from(order);
     }
 
     @Transactional

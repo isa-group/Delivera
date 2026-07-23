@@ -5,9 +5,11 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.delivera.org.dto.CompanyName;
 import com.delivera.org.model.Company;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public interface CompanyRepository extends JpaRepository<Company, UUID> {
@@ -29,4 +31,16 @@ public interface CompanyRepository extends JpaRepository<Company, UUID> {
 
     @Query("SELECT COUNT(c) > 0 FROM Company c WHERE c.id = :id AND c.organization.id = :organizationId")
     Boolean existsByIdAndOrganizationId(UUID id, UUID organizationId);
+
+
+
+    @Query("""
+        SELECT new com.delivera.org.dto.CompanyName(
+            c.id,
+            c.name
+        )
+        FROM Company c 
+        WHERE c.id IN(:companyIds)
+    """)
+   List<CompanyName> findNamesById(@Param("companyIds") Set<UUID> companyIds);
 }
