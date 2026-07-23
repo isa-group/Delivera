@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@Schema(description = "Datos de un vehiculo para el solver de rutas")
+@Schema(name = "Vehicle", description = "Datos de un vehiculo para el solver de rutas")
 public record VehicleDto(
         @Schema(description = "Identificador unico del vehiculo", example = "V-001")
         @NotBlank String id,

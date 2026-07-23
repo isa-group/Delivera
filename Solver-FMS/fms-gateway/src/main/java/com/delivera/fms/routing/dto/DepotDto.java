@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@Schema(description = "Datos de un deposito (punto de origen de vehiculos)")
+@Schema(name = "Depot", description = "Datos de un deposito (punto de origen de vehiculos)")
 public record DepotDto(
         @Schema(description = "Identificador unico del deposito", example = "DEP-1")
         @NotBlank String id,

@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@Schema(description = "Datos de un cliente (punto de entrega) para el problema de ruteo")
+@Schema(name = "Customer", description = "Datos de un cliente (punto de entrega) para el problema de ruteo")
 public record CustomerDto(
         @Schema(description = "Identificador unico del cliente", example = "C-001")
         @NotBlank String id,

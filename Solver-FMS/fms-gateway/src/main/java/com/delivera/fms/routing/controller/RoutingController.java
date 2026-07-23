@@ -1,10 +1,15 @@
 package com.delivera.fms.routing.controller;
 
+import com.delivera.fms.routing.config.OpenApiExamples;
 import com.delivera.fms.routing.dto.DepotDto;
 import com.delivera.fms.routing.dto.RoutingRequest;
 import com.delivera.fms.routing.dto.RoutingResponse;
 import com.delivera.fms.routing.service.EngineDispatcher;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -31,8 +36,26 @@ public class RoutingController {
             description = "Resuelve un problema de ruteo de vehiculos con capacidad para multiples almacenes (MD-CVRP) " +
                     "utilizando el solver especificado en la solicitud. " +
                     "Devuelve las rutas optimizadas con sus vehiculos, paradas, distancias y cargas.")
+    @ApiResponse(responseCode = "200", description = "Problema resuelto correctamente",
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = RoutingResponse.class),
+                    examples = @ExampleObject(
+                            name = "Solucion MD-CVRP (instancia p01)",
+                            description = "Resolucion real de la instancia p01 (4 depositos, 50 clientes) con el solver GREEDY",
+                            value = OpenApiExamples.ROUTING_RESPONSE)))
     @PostMapping("/solve")
-    public ResponseEntity<RoutingResponse> solve(@Valid @RequestBody RoutingRequest request) {
+    public ResponseEntity<RoutingResponse> solve(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = RoutingRequest.class),
+                            examples = @ExampleObject(
+                                    name = "MD-CVRP (2 depositos, 5 clientes)",
+                                    description = "Instancia lista para ejecutar: matriz 7x7 consistente con los indices de los nodos",
+                                    value = OpenApiExamples.SOLVE_REQUEST)))
+            @Valid @RequestBody RoutingRequest request) {
         validateConsistency(request);
         RoutingResponse response = engineDispatcher.dispatch(request);
         return ResponseEntity.ok(response);
