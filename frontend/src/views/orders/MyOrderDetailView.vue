@@ -6,7 +6,7 @@ import { useAppConfig } from '@/composables/useAppConfig'
 import { useFormatDate } from '@/composables/useFormatDate'
 import TimelineList from '@/components/TimelineList.vue'
 import { createMap, addMarker, addRoute, fitBounds, currentLocationOf } from '@/composables/useDeliveraMap'
-import { fetchPublicOrder, useServices } from '@/composables/useServices'
+import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const { formatDateTime } = useFormatDate()

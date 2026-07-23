@@ -13,11 +13,17 @@ export function useOrderForm() {
   const dataApi = useServices("data-service")
   const { validate, required, email: emailRule, errors, invalids } = useValidation()
 
+
+
   const units = ref([])
   const externalUnits = ref([])
   const loyalUsers = ref([])
   const loadError = ref('')
-  const orderType = ref('INTERNAL') // 'INTERNAL' | 'B2C' | 'B2B'
+  const orderType = ref(null) // 'INTERNAL' | 'B2C' | 'B2B'
+  const organizationsLoaded = ref(false)
+  const organizationCompanies = ref([])
+  const companyUnits = ref([])
+  const loyalUsersLoaded = ref(false)
   const originId = ref('')
   const destinationId = ref('')
   const b2bOrgId = ref('')
@@ -33,6 +39,8 @@ export function useOrderForm() {
   const notes = ref('')
   const loading = ref(false)
   const error = ref('')
+  
+  const organizations = ref([])
 
   const destinationOptions = computed(() =>
     units.value.filter(u => u.id !== originId.value)
@@ -79,25 +87,94 @@ export function useOrderForm() {
       recipientLongitude.value = lon
     } catch { /* permiso denegado o no disponible */ }
   }
-
+  /*
   onMounted(async () => {
     try {
-      const [unitsRes, externalRes, luRes] = await Promise.all([
-        dataApi.get('/units'),
+      const [ externalRes, luRes] = await Promise.all([
         api.get('/units/external'),
         api.get('/loyal-users'),
+        
       ])
-      if (unitsRes.ok) units.value = await unitsRes.json()
-      else {
-        const data = await unitsRes.json().catch(() => null)
-        loadError.value = api.translateError(data, 'error.connection')
-      }
+      
       if (externalRes.ok) externalUnits.value = await externalRes.json()
       if (luRes.ok) loyalUsers.value = await luRes.json()
     } catch {
       loadError.value = t('error.connection')
     }
   })
+
+  /*
+  onMounted(async () => {
+    try {
+      const unitsRes =  await dataApi.get('/units')
+      if (unitsRes.ok) units.value = await unitsRes.json()
+      else {
+        const data = await unitsRes.json().catch(() => null)
+        loadError.value = api.translateError(data, 'error.connection')
+      }
+    } catch {
+      loadError.value = t('error.connection')
+    }
+  })*/
+
+  onMounted(async () =>{
+    await executeLoad(dataApi,'/units',units,loadError)
+  })
+
+  async function executeLoad(_api,_url ,_ref, _refLoadError,  _refLoaded = null, _transformationFunction = null) {
+    if (_refLoaded != null && _refLoaded.value) return;
+    
+    if (_api == null || _url == null || _ref == null || _refLoadError == null) return;
+    try {
+      const response = await _api.get(_url)
+      if (response.ok) {
+        const data = await response.json()
+        _ref.value = _transformationFunction == null ?
+          data : _transformationFunction(data)
+
+        if(_refLoaded != null) _refLoaded.value = true
+      }else {
+        const error = await response.json().catch(()=> null)
+        _refLoadError.value = _api.translateError(error, 'error.connection')
+      }
+    } catch {
+      _refLoadError.value = t('error.connection')
+    }
+
+  }
+
+  const organizationList = (data) => {
+    return Object.entries(data).map( ([k,v]) => {return {id: k, name: v}} )
+  }
+
+  const executeLoadB2B = async () => {
+    await executeLoad(
+      api,'/organizations/names', organizations, 
+      loadError, organizationsLoaded, organizationList
+    )
+  }
+
+  const executeLoadB2C = async () => {
+    await executeLoad(
+      api,'/loyal-users',loyalUsers,loadError, loyalUsersLoaded
+    )
+  }
+ 
+
+  watch(orderType, async () => {
+    if (!orderType.value) return;
+
+    const loaders = {
+      "B2B": executeLoadB2B,
+      "B2C": executeLoadB2C
+    }
+    const loader = loaders[orderType.value]
+
+    if (loader) {
+      await loader()
+    }
+  })
+  
 
   async function handleSubmit() {
     if (loading.value) return
@@ -173,7 +250,7 @@ export function useOrderForm() {
     orderType, originId, destinationId, b2bOrgId, b2bDestinationId,
     recipientEmail, recipientName,
     recipientAddress, recipientLatitude, recipientLongitude, locating, captureLocation,
-    priority, notes, loading, error, errors, invalids,
+    priority, notes, loading, error, errors, invalids,organizations,
     destinationOptions, b2bOrganizations, b2bUnitOptions, handleSubmit,
   }
 }

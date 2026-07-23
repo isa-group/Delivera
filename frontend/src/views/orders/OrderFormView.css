@@ -7,3 +7,39 @@
 .form-message { margin-bottom: 12px; }
 .submit-btn { margin-top: 8px; }
 .addr-geo { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.select-type-div {
+    min-height: 220px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 2px solid #d1d5db;
+    border-radius: 12px;
+
+    background: white;
+
+    cursor: pointer;
+
+    font-size: 1.5rem;
+    font-weight: 600;
+
+    transition: all .2s ease;
+}
+.wrapper-select-type-div {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 2rem;
+}
+.select-type-div:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0,0,0,.08);
+    border-color: var(--primary-color);
+}
+
+.order-type-card {
+    width: min(1000px, 95vw);
+    min-height: 350px;
+    padding: 2rem;
+}

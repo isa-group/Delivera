@@ -12,7 +12,7 @@ const {
   recipientEmail, recipientName,
   recipientAddress, recipientLatitude, recipientLongitude, locating, captureLocation,
   priority, notes, loading, error, errors, invalids,
-  destinationOptions, b2bOrganizations, b2bUnitOptions, handleSubmit,
+  destinationOptions, organizations, b2bUnitOptions, handleSubmit,
 } = useOrderForm()
 
 const typeOptions = computed(() => [
@@ -28,8 +28,12 @@ const priorityOptions = computed(() => [
 ])
 </script>
 
+
+
 <template>
-  <form class="surface-card card-wide" @submit.prevent="handleSubmit">
+  <form class="surface-card card-wide"
+    :class="{'surface-card order-type-card': !orderType}"
+   @submit.prevent="handleSubmit">
     <PButton
       type="button"
       text
@@ -38,34 +42,38 @@ const priorityOptions = computed(() => [
       class="form-back-btn"
       @click="router.push('/orders')"
     />
+    
 
     <h1>{{ t('orders.title') }}</h1>
 
+    
+
     <PMessage v-if="loadError" severity="error" :closable="false" class="form-message">{{ loadError }}</PMessage>
     <PMessage v-else-if="units.length < 1 && !loadError" severity="warn" :closable="false" class="form-message">{{ t('orders.noUnits') }}</PMessage>
-
-    <template v-else>
+      
+      <template v-else-if="orderType">
       <!-- Tipo de pedido -->
       <div class="form-field">
         <label for="order-type">{{ t('orders.orderType') }}</label>
         <SelectButton id="order-type" v-model="orderType" :options="typeOptions" option-label="label" option-value="value" />
       </div>
 
-      <!-- Origen (siempre) -->
-      <div class="form-field">
-        <label for="order-origin">{{ t('orders.origin') }}</label>
-        <PSelect
-          id="order-origin"
-          v-model="originId"
-          :options="units"
-          option-label="name"
-          option-value="id"
-          :placeholder="t('orders.originPlaceholder')"
-          :invalid="!!invalids.originId"
-          fluid
-        />
-      </div>
 
+      <!-- Origen (siempre) -->
+  
+        <div class="form-field">
+          <label for="order-origin">{{ t('orders.origin') }}</label>
+          <PSelect
+            id="order-origin"
+            v-model="originId"
+            :options="units"
+            option-label="name"
+            option-value="id"
+            :placeholder="t('orders.originPlaceholder')"
+            :invalid="!!invalids.originId"
+            fluid
+          />
+        </div>
       <!-- INTERNAL: unidad de destino -->
       <template v-if="orderType === 'INTERNAL'">
         <div class="form-field">
@@ -135,7 +143,7 @@ const priorityOptions = computed(() => [
           <PSelect
             id="order-b2b-org"
             v-model="b2bOrgId"
-            :options="b2bOrganizations"
+            :options="organizations"
             option-label="name"
             option-value="id"
             :placeholder="t('orders.destinationOrgPlaceholder')"
@@ -162,39 +170,60 @@ const priorityOptions = computed(() => [
       </template>
 
       <!-- Prioridad -->
-      <div class="form-field">
-        <label for="order-priority">{{ t('orders.priority.label') }}</label>
-        <PSelect
-          id="order-priority"
-          v-model="priority"
-          :options="priorityOptions"
-          option-label="label"
-          option-value="value"
+      <template v-if="orderType">
+        <div class="form-field">
+          <label for="order-priority">{{ t('orders.priority.label') }}</label>
+          <PSelect
+            id="order-priority"
+            v-model="priority"
+            :options="priorityOptions"
+            option-label="label"
+            option-value="value"
+            fluid
+          />
+        </div>
+
+        <!-- Notas -->
+        <div class="form-field">
+          <label for="order-notes">{{ t('orders.notes') }}</label>
+          <PTextarea
+            id="order-notes"
+            v-model="notes"
+            :placeholder="t('orders.notesPlaceholder')"
+            rows="3"
+            fluid
+          />
+        </div>
+
+        <PMessage v-if="error" severity="error" :closable="false" class="form-message">{{ error }}</PMessage>
+
+        <PButton
+          type="submit"
+          :label="loading ? t('common.loading') : t('common.save')"
+          :loading="loading"
           fluid
+          class="submit-btn"
         />
-      </div>
-
-      <!-- Notas -->
-      <div class="form-field">
-        <label for="order-notes">{{ t('orders.notes') }}</label>
-        <PTextarea
-          id="order-notes"
-          v-model="notes"
-          :placeholder="t('orders.notesPlaceholder')"
-          rows="3"
-          fluid
-        />
-      </div>
-
-      <PMessage v-if="error" severity="error" :closable="false" class="form-message">{{ error }}</PMessage>
-
-      <PButton
-        type="submit"
-        :label="loading ? t('common.loading') : t('common.save')"
-        :loading="loading"
-        fluid
-        class="submit-btn"
-      />
+      </template>
+    </template>
+    <template v-else>
+        <div class="wrapper-select-type-div">
+          <div class="select-type-div"
+            @click="orderType='INTERNAL'"
+          >
+            <h2>{{ t('orders.type.INTERNAL')}}</h2>
+          </div>
+          <div class="select-type-div"
+            @click="orderType='B2C'"
+          >
+            <h2>{{ t('orders.type.B2C')}}</h2>
+          </div>
+          <div class="select-type-div"
+            @click="orderType='B2B'"
+          >
+            <h2>{{ t('orders.type.B2B')}}</h2>
+          </div>
+        </div>
     </template>
   </form>
 </template>

@@ -9,9 +9,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class CompanyName {
+public class IdNameProjection {
 
-    private UUID companyId;
+    private UUID id;
 
     private String name;
 
