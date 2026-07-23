@@ -11,13 +11,16 @@ services:
     environment:
       - FMS_ENGINES_GREEDY_URL=http://greedy-engine:8091
       - FMS_ENGINES_RANDOM_URL=http://random-engine:8092
-      - FMS_INSTANCES_DIR=/app/instances-MD-CVRP
+      - FMS_ENGINES_GENETIC_URL=http://genetic-engine:8093
+      - FMS_INSTANCES_DIR=/app/instances-MD-CVRP-JSON
     volumes:
-      - ./instances-MD-CVRP:/app/instances-MD-CVRP:ro
+      - ./instances-MD-CVRP-JSON:/app/instances-MD-CVRP-JSON:ro
     depends_on:
       greedy-engine:
         condition: service_healthy
       random-engine:
+        condition: service_healthy
+      genetic-engine:
         condition: service_healthy
     networks:
       - fms-network
@@ -41,6 +44,17 @@ services:
     container_name: random-engine
     ports:
       - "8092:8092"
+    networks:
+      - fms-network
+    restart: unless-stopped
+
+  genetic-engine:
+    build:
+      context: ./engines/genetic-engine
+      dockerfile: Dockerfile
+    container_name: genetic-engine
+    ports:
+      - "8093:8093"
     networks:
       - fms-network
     restart: unless-stopped

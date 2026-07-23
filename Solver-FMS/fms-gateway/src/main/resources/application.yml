@@ -16,12 +16,14 @@ management:
 
 fms:
   instances:
-    dir: instances-MD-CVRP
+    dir: instances-MD-CVRP-JSON
   engines:
     greedy:
       url: http://greedy-engine:8091
     random:
       url: http://random-engine:8092
+    genetic:
+      url: http://genetic-engine:8093
 
 springdoc:
   api-docs:

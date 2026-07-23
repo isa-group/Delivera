@@ -49,7 +49,7 @@ public class StandardInstanceClient {
 
         double[][] distanceMatrix = calculator.calculate(depots, customers);
 
-        String problemId = file.getFileName().toString();
+        String problemId = file.getFileName().toString().replace(".json", "");
 
         RoutingRequest request = new RoutingRequest(
                 problemId,
