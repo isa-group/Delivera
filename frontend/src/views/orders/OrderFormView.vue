@@ -12,7 +12,7 @@ const {
   recipientEmail, recipientName,
   recipientAddress, recipientLatitude, recipientLongitude, locating, captureLocation,
   priority, notes, loading, error, errors, invalids,b2bCompanyId,organizationCompanies,
-  destinationOptions, organizations,companyUnits, b2bUnitOptions, handleSubmit,
+  destinationOptions, organizations,companyUnits, handleSubmit,
 } = useOrderForm()
 
 const typeOptions = computed(() => [

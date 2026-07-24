@@ -1,6 +1,8 @@
 package com.delivera.org.service;
 
+
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -28,6 +30,7 @@ public class CompanyService {
 
     @Transactional(readOnly = true)
     public Map<UUID,String> getCompanyNames(Set<UUID> companyIds) {
+        companyIds.removeIf(Objects::isNull);
         return companyRepository.findNamesById(companyIds)
         .stream()
         .collect(

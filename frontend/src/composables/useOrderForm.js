@@ -6,9 +6,11 @@ import { useValidation } from '@/composables/useValidation'
 import { useGeolocation } from '@/composables/useGeolocation'
 import { useServices } from './useServices'
 import { useAuthStore } from '@/stores/auth'
+import { useLoad } from './useLoad'
 
 export function useOrderForm() {
   const { t } = useI18n()
+  const { executeLoad } = useLoad()
   const router = useRouter()
   const api = useApi()
   const auth = useAuthStore()
@@ -50,19 +52,7 @@ export function useOrderForm() {
     units.value.filter(u => u.id !== originId.value)
   )
 
-  const b2bOrganizations = computed(() => {
-    const seen = new Set()
-    return externalUnits.value
-      .filter(u => !seen.has(u.orgId) && seen.add(u.orgId))
-      .map(u => ({ id: u.orgId, name: u.orgName }))
-  })
-
-  const b2bUnitOptions = computed(() =>
-    externalUnits.value
-      .filter(u => u.orgId === b2bOrgId.value)
-      .map(u => ({ ...u, displayName: `${u.companyName} · ${u.name}` }))
-  )
-
+  
   const loyalUserMatch = computed(() => {
     if (orderType.value !== 'B2C' || !recipientEmail.value) return null
     return loyalUsers.value.find(lu => lu.email.toLowerCase() === recipientEmail.value.toLowerCase().trim()) || null
@@ -91,61 +81,9 @@ export function useOrderForm() {
       recipientLongitude.value = lon
     } catch { /* permiso denegado o no disponible */ }
   }
-  /*
-  onMounted(async () => {
-    try {
-      const [ externalRes, luRes] = await Promise.all([
-        api.get('/units/external'),
-        api.get('/loyal-users'),
-        
-      ])
-      
-      if (externalRes.ok) externalUnits.value = await externalRes.json()
-      if (luRes.ok) loyalUsers.value = await luRes.json()
-    } catch {
-      loadError.value = t('error.connection')
-    }
-  })
-
-  /*
-  onMounted(async () => {
-    try {
-      const unitsRes =  await dataApi.get('/units')
-      if (unitsRes.ok) units.value = await unitsRes.json()
-      else {
-        const data = await unitsRes.json().catch(() => null)
-        loadError.value = api.translateError(data, 'error.connection')
-      }
-    } catch {
-      loadError.value = t('error.connection')
-    }
-  })*/
-
   onMounted(async () =>{
     await executeLoad(dataApi,'/units',units,loadError)
   })
-
-  async function executeLoad(_api,_url ,_ref, _refLoadError,  _refLoaded = null, _transformationFunction = null) {
-    if (_refLoaded != null && _refLoaded.value) return;
-    
-    if (_api == null || _url == null || _ref == null || _refLoadError == null) return;
-    try {
-      const response = await _api.get(_url)
-      if (response.ok) {
-        const data = await response.json()
-        _ref.value = _transformationFunction == null ?
-          data : _transformationFunction(data)
-
-        if(_refLoaded != null) _refLoaded.value = true
-      }else {
-        const error = await response.json().catch(()=> null)
-        _refLoadError.value = _api.translateError(error, 'error.connection')
-      }
-    } catch {
-      _refLoadError.value = t('error.connection')
-    }
-
-  }
 
   const organizationList = (data) => {
     return Object.entries(data).map( ([k,v]) => {
@@ -292,6 +230,6 @@ export function useOrderForm() {
     recipientEmail, recipientName,b2bCompanyId,organizationCompanies,
     recipientAddress, recipientLatitude, recipientLongitude, locating, captureLocation,
     priority, notes, loading, error, errors, invalids,organizations,
-    destinationOptions, b2bOrganizations, b2bUnitOptions, handleSubmit,
+    destinationOptions, handleSubmit,
   }
 }

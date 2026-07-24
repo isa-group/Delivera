@@ -9,16 +9,21 @@ import TimelineList from '@/components/TimelineList.vue'
 import { createMap, addMarker, addRoute, fitBounds, currentLocationOf } from '@/composables/useDeliveraMap'
 import { WORKER_ROLES } from '@/constants/roles'
 import { useServices } from '@/composables/useServices'
+import { useLoad } from '@/composables/useLoad'
 
 const { t } = useI18n()
 const { formatDateTime } = useFormatDate()
 const route = useRoute()
 const router = useRouter()
+const { post } = useLoad()
 const dataApi = useServices("data-service")
+const deliveraApi = useServices("delivera_service")
 const auth = useAuthStore()
 const { load: loadConfig, statusSeverity, prioritySeverity, getNextStatuses } = useAppConfig()
 
 const order = ref(null)
+const originCompanyName = ref(null)
+const destCompanyName = ref(null)
 const loading = ref(false)
 const error = ref('')
 const updating = ref(false)
@@ -170,7 +175,10 @@ async function loadOrder() {
     if (res.ok) {
       order.value = await res.json()
       loadMessages(order.value.id)
-      console.log(order.value)
+      originCompanyName.value = auth.companyId === order.value.originCompanyId ?
+        auth.companyName : ""
+      destCompanyName.value = auth.companyId === order.value.destinationCompanyId ?
+        auth.companyName : ""
     } else error.value = t('error.ORDER_NOT_FOUND')
   } catch {
     error.value = t('error.connection')
@@ -178,6 +186,25 @@ async function loadOrder() {
     loading.value = false
   }
 }
+
+async function getCompanyName(_nameRef,companyId) {
+  if (!(_nameRef.value === null || _nameRef.value === "")) return;
+  await post(
+    deliveraApi,"/companies/names",[companyId], 
+    _nameRef,error,null,(data) => { return data[companyId] } 
+  )
+}
+
+watch(originCompanyName, async () => {
+  await getCompanyName(originCompanyName,order.value.originCompanyId)
+})
+
+watch(destCompanyName, async () => {
+  if (!order.value.destinationCompanyId) return;
+  await getCompanyName(destCompanyName,order.value.destinationCompanyId)
+})
+
+
 
 onMounted(async () => {
   loadConfig()
@@ -221,6 +248,8 @@ async function submitStatusUpdate() {
     updating.value = false
   }
 }
+
+
 </script>
 
 <template>
@@ -268,12 +297,12 @@ async function submitStatusUpdate() {
                 <div class="info-item">
                   <span class="info-label">{{ t('orders.origin') }}</span>
                   <span class="info-value">{{ order.originName }}</span>
-                  <span class="info-sub">{{ order.originCompanyName }}</span>
+                  <span class="info-sub">{{originCompanyName }}</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">{{ order.destinationName ? t('orders.destination') : t('tracking.recipient') }}</span>
                   <span class="info-value">{{ order.destinationName || order.recipientName || order.recipientEmail }}</span>
-                  <span v-if="order.destinationCompanyName" class="info-sub">{{ order.destinationCompanyName }}</span>
+                  <span v-if="destCompanyName" class="info-sub">{{ destCompanyName }}</span>
                   <span v-else-if="order.recipientName && order.recipientEmail" class="info-sub">{{ order.recipientEmail }}</span>
                 </div>
                 <div class="info-item info-item--full">
