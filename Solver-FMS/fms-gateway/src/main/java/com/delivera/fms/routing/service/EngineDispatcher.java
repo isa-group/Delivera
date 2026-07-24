@@ -6,13 +6,11 @@ import com.delivera.fms.routing.dto.RoutingResponse;
 import com.delivera.fms.routing.dto.TypeSolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.time.Duration;
-import java.util.Map;
 
 @Service
 public class EngineDispatcher {
@@ -20,26 +18,15 @@ public class EngineDispatcher {
     private static final Logger log = LoggerFactory.getLogger(EngineDispatcher.class);
     private static final Duration TIMEOUT = Duration.ofSeconds(300);
 
-    private final Map<TypeSolver, WebClient> engineClients;
+    private final SolverRegistry registry;
 
-    public EngineDispatcher(
-            @Qualifier("greedyWebClient") WebClient greedyWebClient,
-            @Qualifier("randomWebClient") WebClient randomWebClient,
-            @Qualifier("geneticWebClient") WebClient geneticWebClient) {
-        this.engineClients = Map.of(
-                TypeSolver.GREEDY, greedyWebClient,
-                TypeSolver.RANDOM, randomWebClient,
-                TypeSolver.GENETIC, geneticWebClient
-        );
+    public EngineDispatcher(SolverRegistry registry) {
+        this.registry = registry;
     }
 
     public RoutingResponse dispatch(RoutingRequest request) {
         TypeSolver solverType = request.solverType();
-        WebClient client = engineClients.get(solverType);
-
-        if (client == null) {
-            throw new IllegalArgumentException("No engine configured for solver type: " + solverType);
-        }
+        WebClient client = registry.clientFor(solverType);
 
         log.info("Dispatching problem '{}' to {} engine", request.problemId(), solverType);
 

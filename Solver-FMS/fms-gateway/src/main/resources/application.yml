@@ -17,13 +17,32 @@ management:
 fms:
   instances:
     dir: instances-MD-CVRP-JSON
+  # Catalogo de motores. Cada entrada alimenta a la vez el cliente HTTP, el
+  # despacho de problemas y el endpoint GET /api/v1/fms/solvers. Para dar de
+  # alta un solver nuevo basta con añadir su constante al enum TypeSolver y un
+  # bloque aqui; ninguna clase Java necesita cambiar.
   engines:
-    greedy:
-      url: http://greedy-engine:8091
     random:
       url: http://random-engine:8092
+      display-name: Aleatorio
+      description: Asigna clientes a vehiculos de forma aleatoria respetando la capacidad. Sirve como linea base de comparacion
+      strategy: Baseline
+      deterministic: false
+      order: 10
+    greedy:
+      url: http://greedy-engine:8091
+      display-name: Voraz
+      description: Heuristica constructiva de vecino mas cercano con asignacion al deposito mas proximo
+      strategy: Heuristica constructiva
+      deterministic: true
+      order: 20
     genetic:
       url: http://genetic-engine:8093
+      display-name: Algoritmo Genetico
+      description: Metaheuristica evolutiva con cruce BCRC, mutaciones intra e inter deposito y busqueda local
+      strategy: Metaheuristica
+      deterministic: false
+      order: 30
 
 springdoc:
   api-docs:
