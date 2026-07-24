@@ -1,6 +1,7 @@
 package com.delivera.data.order.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.data.common.service.AppConfigService;
 import com.delivera.data.depot.model.OperationalUnit;
 import com.delivera.data.depot.repository.OperationalUnitRepository;
 import com.delivera.data.depot.repository.WorkerRepository;
@@ -13,7 +14,6 @@ import com.delivera.data.exception.OrderClaimEmailMismatchException;
 import com.delivera.data.exception.OrderNotFoundException;
 import com.delivera.data.order.dto.ClaimData;
 import com.delivera.data.order.dto.ClaimRegisterRequest;
-import com.delivera.data.order.dto.ClaimResponse;
 import com.delivera.data.order.dto.LoginResponse;
 import com.delivera.data.order.dto.OrderDetailResponse;
 import com.delivera.data.order.dto.OrderLocationRequest;
@@ -56,7 +56,7 @@ public class OrderService {
     // TODO:P001-LoyalUser private final LoyalUserRepository loyalUserRepository;
     private final WorkerRepository workerRepository;
     private final SecurityUtils securityUtils;
-    //TODO:P003-States private final AppConfigService appConfigService;
+    private final AppConfigService appConfigService;
     // TODO:P008-SPACE private final SubscriptionService subscriptionService;
     private final EmailService emailService;
     private final String trackingUrlBase;
@@ -70,7 +70,7 @@ public class OrderService {
                         //TODO:P001-LoyalUser LoyalUserRepository loyalUserRepository,
                         WorkerRepository workerRepository,
                         SecurityUtils securityUtils,
-                        //TODO:P003-States AppConfigService appConfigService,
+                        AppConfigService appConfigService,
                         //TODO:P008-SPACE SubscriptionService subscriptionService,
                         EmailService emailService,
                         @Value("${app.tracking-url-base:https://delivera.app/track/}") String trackingUrlBase) {
@@ -82,7 +82,7 @@ public class OrderService {
         this.workerRepository = workerRepository;
         this.securityUtils = securityUtils;
         this.orgClient = orgClient;
-        //TODO:P003-States this.appConfigService = appConfigService;
+        this.appConfigService = appConfigService;
         //TODO:P008-SPACE this.subscriptionService = subscriptionService;
         this.emailService = emailService;
         this.trackingUrlBase = trackingUrlBase;
@@ -328,9 +328,7 @@ public class OrderService {
     }
 
     private void validateTransition(OrderStatus current, OrderStatus next) {
-       /*TODO:P003-States
        appConfigService.validateTransition(current.name(), next.name()); 
-       */
     }
 
    
