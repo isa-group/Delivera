@@ -564,6 +564,8 @@ settings:
   noCompaniesFound: No se encontraron empresas con ese criterio
   searchByName: Buscar por nombre
   filterAll: Todos
+  prioritySettings: Políticas de prioridad
+  companyInfo: Información de la compañia
   devices: 
     name: Dispositivos
     message: Gestiona tus dispositivos activos

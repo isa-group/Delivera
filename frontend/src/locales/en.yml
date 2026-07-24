@@ -564,6 +564,8 @@ settings:
   noCompaniesFound: No companies found matching that criteria
   searchByName: Search by name
   filterAll: All
+  prioritySettings: Priority Settings
+  companyInfo: Company Information
   devices: 
     name: Devices
     message: Manage your active devices

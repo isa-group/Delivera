@@ -341,7 +341,7 @@ public class OrderService {
                                             ) {
         CompanySettings settings = settingsService.get(originUnit.getCompanyId());
         // TODO:P002-Company
-        if (requested != null) return requested;
+        //if (requested != null) return requested;
         boolean locked = settings.isDefaultPriorityLocked();
         if (!locked && originUnit != null && originUnit.getDefaultPriority() != null) return originUnit.getDefaultPriority();
         if (settings.getDefaultPriority() != null) return settings.getDefaultPriority(); 
