@@ -69,6 +69,7 @@ public class SecurityConfig {
 
 
                 auth.requestMatchers(HttpMethod.GET, api+"/units" ).hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.GET, api+"/units/names" ).hasAnyRole(ADMIN,ANALYST);
                 auth.requestMatchers(HttpMethod.POST, api+"/units" ).hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.GET, api+"/units/*" ).hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.PUT, api + "/units/*").hasRole(ADMIN);

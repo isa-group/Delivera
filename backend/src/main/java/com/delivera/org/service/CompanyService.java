@@ -38,4 +38,17 @@ public class CompanyService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public Map<UUID,String> getByCompany(UUID organizationId) {
+        return companyRepository.findNamesByOrgId(organizationId)
+        .stream()
+        .collect(
+            Collectors.toMap(
+                IdNameProjection::getId,
+                IdNameProjection::getName
+            )
+        );
+    }
+
+
 }

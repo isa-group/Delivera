@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.delivera.data.common.dto.IdNameProjection;
 import com.delivera.data.depot.dto.B2BUnitResponse;
 import com.delivera.data.depot.model.OperationalUnit;
 /*import com.delivera.data.worker.model.Worker;*/
@@ -94,4 +95,14 @@ public interface OperationalUnitRepository extends JpaRepository<OperationalUnit
         WHERE u.companyId = :companyId
     """)
     void deleteAllFromCompany(@Param("companyId") UUID companyId);
+
+    @Query("""
+    SELECT new com.delivera.data.common.dto.IdNameProjection(
+        u.id,
+        u.name
+    )
+    FROM OperationalUnit u 
+    WHERE u.companyId = :companyId
+    """)
+   List<IdNameProjection> findNamesByCompanyId(@Param("companyId") UUID companyId);
 }

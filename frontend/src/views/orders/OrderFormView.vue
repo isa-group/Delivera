@@ -11,8 +11,8 @@ const {
   orderType, originId, destinationId, b2bOrgId, b2bDestinationId,
   recipientEmail, recipientName,
   recipientAddress, recipientLatitude, recipientLongitude, locating, captureLocation,
-  priority, notes, loading, error, errors, invalids,
-  destinationOptions, organizations, b2bUnitOptions, handleSubmit,
+  priority, notes, loading, error, errors, invalids,b2bCompanyId,organizationCompanies,
+  destinationOptions, organizations,companyUnits, b2bUnitOptions, handleSubmit,
 } = useOrderForm()
 
 const typeOptions = computed(() => [
@@ -151,19 +151,32 @@ const priorityOptions = computed(() => [
             :invalid="!!invalids.b2bOrgId"
             fluid
           />
+          <label for="order-b2b-company">{{ t('orders.destinationCompany') }}</label>
+          <PSelect 
+            id="order-b2b-company"
+            v-model="b2bCompanyId"
+            :options="organizationCompanies"
+            option-label="name"
+            option-value="id"
+            :placeholder="t('orders.destinationOrgPlaceholder')"
+            :empty-message="t('orders.noB2bOrgs')"
+            :invalid="!!invalids.b2bCompanyId"
+            :disabled="!(b2bOrgId)"
+            fluid
+          />
         </div>
         <div class="form-field">
           <label for="order-b2b-unit">{{ t('orders.destinationUnit') }}</label>
           <PSelect
             id="order-b2b-unit"
             v-model="b2bDestinationId"
-            :options="b2bUnitOptions"
-            option-label="displayName"
+            :options="companyUnits"
+            option-label="name"
             option-value="id"
             :placeholder="t('orders.destinationUnitPlaceholder')"
             :empty-message="t('orders.noDestinationOptions')"
             :invalid="!!invalids.b2bDestinationId"
-            :disabled="!b2bOrgId"
+            :disabled="!(b2bOrgId && b2bCompanyId)"
             fluid
           />
         </div>

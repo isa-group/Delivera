@@ -62,6 +62,7 @@ public class SecurityConfig {
                 auth.requestMatchers(api + "/admin/**").hasRole("GLOBAL_ADMIN");
                 auth.requestMatchers(api + "/settings/**").hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.POST,api + "/companies/names").authenticated();
+                auth.requestMatchers(HttpMethod.GET,api + "/companies/names").hasAnyRole(ADMIN, ANALYST);
 
                 auth.requestMatchers(HttpMethod.GET, api + "/units/external").hasAnyRole(ADMIN, ANALYST);
                 auth.requestMatchers(HttpMethod.GET, api + "/units/external-companies").hasAnyRole(ADMIN, ANALYST);

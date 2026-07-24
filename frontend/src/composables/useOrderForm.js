@@ -5,15 +5,18 @@ import { useApi } from '@/composables/useApi'
 import { useValidation } from '@/composables/useValidation'
 import { useGeolocation } from '@/composables/useGeolocation'
 import { useServices } from './useServices'
+import { useAuthStore } from '@/stores/auth'
 
 export function useOrderForm() {
   const { t } = useI18n()
   const router = useRouter()
   const api = useApi()
+  const auth = useAuthStore()
   const dataApi = useServices("data-service")
   const { validate, required, email: emailRule, errors, invalids } = useValidation()
 
-
+  const organizationCompaniesCache = new Map()
+  const companyUnitsCache = new Map()
 
   const units = ref([])
   const externalUnits = ref([])
@@ -27,6 +30,7 @@ export function useOrderForm() {
   const originId = ref('')
   const destinationId = ref('')
   const b2bOrgId = ref('')
+  const b2bCompanyId = ref('')
   const b2bDestinationId = ref('')
   const recipientEmail = ref('')
   const recipientName = ref('')
@@ -144,7 +148,21 @@ export function useOrderForm() {
   }
 
   const organizationList = (data) => {
-    return Object.entries(data).map( ([k,v]) => {return {id: k, name: v}} )
+    return Object.entries(data).map( ([k,v]) => {
+      return {id: k, name: v}
+    }).filter((entry) => auth.orgId != entry.id)
+  }
+
+  const companyList = (data) => {
+    return Object.entries(data).map( ([k,v]) => {
+      return {id: k, name: v}
+    }).filter((entry) => auth.companyId != entry.id)
+  }
+
+  const unitList = (data) => {
+    return Object.entries(data).map( ([k,v]) => {
+      return {id: k, name: v}
+    })
   }
 
   const executeLoadB2B = async () => {
@@ -173,6 +191,29 @@ export function useOrderForm() {
     if (loader) {
       await loader()
     }
+  })
+
+  watch(b2bOrgId, async () => {
+    if (!b2bOrgId.value) return;
+    if (organizationCompaniesCache.has(b2bOrgId.value)) {
+      organizationCompanies.value = organizationCompaniesCache.get(b2bOrgId.value)
+      return
+    }
+    await executeLoad(api,`/companies/names?orgId=${b2bOrgId.value}`,organizationCompanies , 
+      loadError, null, companyList)
+    organizationCompaniesCache.set(b2bOrgId.value, organizationCompanies.value)
+  })
+
+  watch(b2bCompanyId, async () => {
+    if (!b2bCompanyId.value) return;
+    b2bDestinationId.value = ""
+    if (companyUnitsCache.has(b2bCompanyId.value)) {
+      companyUnits.value = companyUnitsCache.get(b2bCompanyId.value)
+      return
+    }
+    await executeLoad(dataApi,`/units/names?companyId=${b2bCompanyId.value}`,companyUnits , 
+      loadError, null, unitList)
+    companyUnitsCache.set(b2bCompanyId.value, companyUnits.value)
   })
   
 
@@ -247,8 +288,8 @@ export function useOrderForm() {
 
   return {
     units, loyalUsers, loyalUserMatch, loadError,
-    orderType, originId, destinationId, b2bOrgId, b2bDestinationId,
-    recipientEmail, recipientName,
+    orderType, originId, destinationId, b2bOrgId, b2bDestinationId,companyUnits,
+    recipientEmail, recipientName,b2bCompanyId,organizationCompanies,
     recipientAddress, recipientLatitude, recipientLongitude, locating, captureLocation,
     priority, notes, loading, error, errors, invalids,organizations,
     destinationOptions, b2bOrganizations, b2bUnitOptions, handleSubmit,

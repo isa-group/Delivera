@@ -43,4 +43,13 @@ public interface CompanyRepository extends JpaRepository<Company, UUID> {
         WHERE c.id IN(:companyIds)
     """)
    List<IdNameProjection> findNamesById(@Param("companyIds") Set<UUID> companyIds);
+   @Query("""
+    SELECT new com.delivera.org.dto.IdNameProjection(
+        c.id,
+        c.name
+    )
+    FROM Company c 
+    WHERE c.organization.id = :organizationId
+    """)
+   List<IdNameProjection> findNamesByOrgId(@Param("organizationId") UUID organizationId);
 }

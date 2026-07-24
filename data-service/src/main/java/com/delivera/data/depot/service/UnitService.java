@@ -1,6 +1,7 @@
 package com.delivera.data.depot.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.data.common.dto.IdNameProjection;
 import com.delivera.data.depot.dto.AssignRequest;
 import com.delivera.data.depot.dto.B2BUnitResponse;
 import com.delivera.data.depot.dto.UnitDetailResponse;
@@ -23,8 +24,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class UnitService {
@@ -121,7 +124,23 @@ public class UnitService {
         return unitRepository.findAllByCompanyId(companyId).stream()
                 .map(UnitResponse::from).toList();
     } 
-            
+
+    @Transactional(readOnly = true)
+    public Map<UUID,String> getByCompanyId(UUID companyId) {        
+        return unitRepository.findNamesByCompanyId(companyId)
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    IdNameProjection::getId,
+                    IdNameProjection::getName
+                )
+            );
+        
+    } 
+      
+      
+    
+
 
 
    
