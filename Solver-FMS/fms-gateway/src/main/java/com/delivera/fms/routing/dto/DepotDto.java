@@ -16,6 +16,11 @@ public record DepotDto(
         @NotNull Double lng,
 
         @Schema(description = "Indice del deposito en la matriz de distancias", example = "0")
-        @NotNull Integer matrixIndex
+        @NotNull Integer matrixIndex,
+
+        @Schema(description = "Duracion maxima de una ruta que sale de este deposito, en las mismas "
+                + "unidades que la matriz de distancias. Ausente o 0 significa sin limite",
+                example = "200")
+        Double maxDuration
 ) {
 }

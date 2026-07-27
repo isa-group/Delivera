@@ -9,6 +9,12 @@ public record CustomerDto(
         @NotNull @Min(value = 1) Integer demand,
         @NotNull Double lat,
         @NotNull Double lng,
-        @NotNull Integer matrixIndex
+        @NotNull Integer matrixIndex,
+        // Tiempo de servicio en el cliente. Nulo significa 0.
+        Double serviceDuration
 ) {
+
+    public double service() {
+        return (serviceDuration == null) ? 0.0 : serviceDuration;
+    }
 }

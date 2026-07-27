@@ -1,29 +1,29 @@
 package com.delivera.fms.engine.genetic.operator.mutation;
 
-import com.delivera.fms.engine.genetic.dto.CustomerDto;
 import com.delivera.fms.engine.genetic.dto.DepotDto;
+import com.delivera.fms.engine.genetic.scheduler.PermutationCodec;
 import org.uma.jmetal.operator.mutation.MutationOperator;
 import org.uma.jmetal.solution.permutationsolution.PermutationSolution;
 import org.uma.jmetal.util.pseudorandom.JMetalRandom;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Reordena clientes dentro de la secuencia de cada deposito, sin cambiar su asignacion.
+ *
+ * Trabaja sobre la secuencia del deposito y no sobre los bloques contiguos de la permutacion:
+ * un deposito cuyos clientes ya estan agrupados es justo el caso que hay que poder mutar.
+ */
 public class IntraDepotMutation implements MutationOperator<PermutationSolution<Integer>> {
 
     private final double probability;
     private final JMetalRandom random;
-    private final List<CustomerDto> customers;
     private final List<DepotDto> depots;
 
-    public IntraDepotMutation(double probability,
-                               List<CustomerDto> customers,
-                               List<DepotDto> depots) {
+    public IntraDepotMutation(double probability, List<DepotDto> depots) {
         this.probability = probability;
         this.random = JMetalRandom.getInstance();
-        this.customers = customers;
         this.depots = depots;
     }
 
@@ -38,102 +38,61 @@ public class IntraDepotMutation implements MutationOperator<PermutationSolution<
             return solution;
         }
 
-        @SuppressWarnings("unchecked")
-        Map<Integer, DepotDto> localDepotMap = (Map<Integer, DepotDto>) solution.attributes().get("depotMap");
-        if (localDepotMap == null) return solution;
+        Map<Integer, DepotDto> depotMap = PermutationCodec.depotMap(solution);
+        if (depotMap == null) {
+            return solution;
+        }
 
-        Map<DepotDto, List<int[]>> depotSegments = buildDepotSegments(solution, localDepotMap);
+        Map<DepotDto, List<Integer>> depotOrder = PermutationCodec.depotOrder(solution, depots, depotMap);
 
-        for (var entry : depotSegments.entrySet()) {
-            List<int[]> segments = entry.getValue();
-            if (segments.size() < 2) continue;
-
-            int op = random.nextInt(0, 2);
-            switch (op) {
-                case 0 -> swapCustomers(solution, segments);
-                case 1 -> invertSegment(solution, segments);
-                case 2 -> relocateCustomer(solution, segments);
+        for (List<Integer> order : depotOrder.values()) {
+            if (order.size() < 2) {
+                continue;
+            }
+            switch (random.nextInt(0, 2)) {
+                case 0 -> swap(order);
+                case 1 -> invert(order);
+                default -> relocate(order);
             }
         }
 
+        PermutationCodec.writeBack(solution, depotOrder, depotMap);
         return solution;
     }
 
-    private Map<DepotDto, List<int[]>> buildDepotSegments(PermutationSolution<Integer> solution,
-                                                           Map<Integer, DepotDto> localDepotMap) {
-        Map<DepotDto, List<int[]>> depotSegments = new HashMap<>();
-        for (DepotDto d : depots) {
-            depotSegments.put(d, new ArrayList<>());
+    private void swap(List<Integer> order) {
+        int i = random.nextInt(0, order.size() - 1);
+        int j = random.nextInt(0, order.size() - 1);
+        if (i == j) {
+            return;
         }
-
-        int start = 0;
-        DepotDto currentDepot = null;
-
-        for (int i = 0; i < solution.variables().size(); i++) {
-            int cIdx = solution.variables().get(i);
-            DepotDto depot = localDepotMap.get(cIdx);
-
-            if (currentDepot == null) {
-                currentDepot = depot;
-                start = i;
-            } else if (!currentDepot.equals(depot)) {
-                if (i > start) {
-                    depotSegments.get(currentDepot).add(new int[]{start, i - 1});
-                }
-                currentDepot = depot;
-                start = i;
-            }
-        }
-        if (currentDepot != null && solution.variables().size() > start) {
-            depotSegments.get(currentDepot).add(new int[]{start, solution.variables().size() - 1});
-        }
-
-        return depotSegments;
+        int tmp = order.get(i);
+        order.set(i, order.get(j));
+        order.set(j, tmp);
     }
 
-    private void swapCustomers(PermutationSolution<Integer> solution, List<int[]> segments) {
-        int[] seg1 = segments.get(random.nextInt(0, segments.size() - 1));
-        int[] seg2 = segments.get(random.nextInt(0, segments.size() - 1));
-
-        int i = seg1[0] + random.nextInt(0, seg1[1] - seg1[0]);
-        int j = seg2[0] + random.nextInt(0, seg2[1] - seg2[0]);
-
-        if (i != j) {
-            int tmp = solution.variables().get(i);
-            solution.variables().set(i, solution.variables().get(j));
-            solution.variables().set(j, tmp);
+    private void invert(List<Integer> order) {
+        if (order.size() < 3) {
+            return;
+        }
+        int from = random.nextInt(0, order.size() - 2);
+        int to = random.nextInt(from + 1, order.size() - 1);
+        while (from < to) {
+            int tmp = order.get(from);
+            order.set(from, order.get(to));
+            order.set(to, tmp);
+            from++;
+            to--;
         }
     }
 
-    private void invertSegment(PermutationSolution<Integer> solution, List<int[]> segments) {
-        int[] seg = segments.get(random.nextInt(0, segments.size() - 1));
-        if (seg[1] - seg[0] < 2) return;
-
-        int i = seg[0] + random.nextInt(0, seg[1] - seg[0] - 1);
-        int j = i + 1 + random.nextInt(0, seg[1] - i - 1);
-        if (j > seg[1]) j = seg[1];
-
-        while (i < j) {
-            int tmp = solution.variables().get(i);
-            solution.variables().set(i, solution.variables().get(j));
-            solution.variables().set(j, tmp);
-            i++;
-            j--;
+    private void relocate(List<Integer> order) {
+        int from = random.nextInt(0, order.size() - 1);
+        int to = random.nextInt(0, order.size() - 1);
+        if (from == to) {
+            return;
         }
-    }
-
-    private void relocateCustomer(PermutationSolution<Integer> solution, List<int[]> segments) {
-        int[] srcSeg = segments.get(random.nextInt(0, segments.size() - 1));
-        int srcPos = srcSeg[0] + random.nextInt(0, srcSeg[1] - srcSeg[0]);
-
-        int[] dstSeg = segments.get(random.nextInt(0, segments.size() - 1));
-        int dstPos = dstSeg[0] + random.nextInt(0, dstSeg[1] - dstSeg[0]);
-
-        if (srcPos == dstPos) return;
-
-        int customer = solution.variables().get(srcPos);
-        solution.variables().remove(srcPos);
-        int adjustedDst = dstPos > srcPos ? dstPos - 1 : dstPos;
-        solution.variables().add(adjustedDst, customer);
+        int customer = order.remove(from);
+        order.add(to, customer);
     }
 }

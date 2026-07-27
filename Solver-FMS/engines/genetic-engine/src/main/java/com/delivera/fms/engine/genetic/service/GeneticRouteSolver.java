@@ -11,7 +11,9 @@ import com.delivera.fms.engine.genetic.operator.mutation.InterDepotMutation;
 import com.delivera.fms.engine.genetic.operator.mutation.IntraDepotMutation;
 import com.delivera.fms.engine.genetic.operator.search.InterDepotLocalSearch;
 import com.delivera.fms.engine.genetic.operator.search.LocalSearch;
+import com.delivera.fms.engine.genetic.scheduler.PermutationCodec;
 import com.delivera.fms.engine.genetic.scheduler.RouteScheduler;
+import com.delivera.fms.engine.genetic.scheduler.RouteSplitter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,11 +24,9 @@ import org.uma.jmetal.util.pseudorandom.JMetalRandom;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Service
 public class GeneticRouteSolver {
@@ -39,30 +39,33 @@ public class GeneticRouteSolver {
     private static final int INTER_DEPOT_FREQUENCY = 5;
     private static final int INTER_DEPOT_INDIVIDUALS = 10;
     private static final int RESTART_STAGNANT = 20;
+    private static final int MAX_RESTARTS = 3; // Maximo numero de reinicios de poblacion antes de parar la ejecucion.
     private static final int ELITISM_COUNT = 5;
-    private static final int LOCAL_SEARCH_FREQUENCY = 25;
+    private static final int LOCAL_SEARCH_FREQUENCY = 10;
     private static final int INTER_DEPOT_OPT_FREQUENCY = 30;
     private static final int TOP_K_LOCAL_SEARCH = 3;
     private static final double HEURISTIC_SEED_RATIO = 0.2;
+    private static final int SEED_CANDIDATE_LIST = 3;
 
     public RoutingResponse solve(RoutingRequest request) {
         log.info("Solving MD-CVRP problem '{}' with solver: {}", request.problemId(), SOLVER_TYPE);
         long startTime = System.currentTimeMillis();
 
-        MDCVRPProblem problem = new MDCVRPProblem(request);
+        RouteSplitter splitter = new RouteSplitter(
+                request.customers(), request.distanceMatrix(),
+                capacityByDepot(request), fleetByDepot(request));
+        MDCVRPProblem problem = new MDCVRPProblem(request, splitter);
         RouteScheduler scheduler = new RouteScheduler(
-                request.customers(), request.depots(), request.distanceMatrix(), request.vehicles());
+                request.customers(), request.distanceMatrix(), splitter, request.vehicles());
 
-        BestCostRouteCrossover crossover = new BestCostRouteCrossover(
-                0.9, request.customers(), request.depots(), request.distanceMatrix());
-        IntraDepotMutation intraMutation = new IntraDepotMutation(
-                0.2, request.customers(), request.depots());
+        BestCostRouteCrossover crossover = new BestCostRouteCrossover(0.9, request.depots(), splitter);
+        IntraDepotMutation intraMutation = new IntraDepotMutation(0.2, request.depots());
         InterDepotMutation interMutation = new InterDepotMutation(
-                0.3, request.customers(), request.depots(), request.distanceMatrix());
+                0.3, request.customers(), request.depots(), request.distanceMatrix(), splitter);
         LocalSearch localSearch = new LocalSearch(
-                request.customers(), request.depots(), request.distanceMatrix());
+                request.customers(), request.depots(), request.distanceMatrix(), splitter);
         InterDepotLocalSearch interDepotSearch = new InterDepotLocalSearch(
-                request.customers(), request.depots(), request.distanceMatrix());
+                request.customers(), request.depots(), request.distanceMatrix(), splitter);
 
         List<PermutationSolution<Integer>> population = initializePopulation(problem);
         evaluatePopulation(population, problem);
@@ -70,38 +73,26 @@ public class GeneticRouteSolver {
         int evaluations = population.size();
         int generation = 0;
         int stagnantGenerations = 0;
-        boolean hasRestarted = false;
-        PermutationSolution<Integer> bestSolution = findBest(population);
+        int restarts = 0;
+        PermutationSolution<Integer> bestSolution = copySolution(findBest(population));
         double bestFitness = bestSolution.objectives()[0];
         int bestGeneration = 0;
 
         while (evaluations < MAX_EVALUATIONS || generation < MIN_GENERATIONS) {
+            List<PermutationSolution<Integer>> elites = selectElites(population, ELITISM_COUNT);
             List<PermutationSolution<Integer>> offspring = new ArrayList<>();
 
             while (offspring.size() < POPULATION_SIZE) {
-                PermutationSolution<Integer> parent1 = tournamentSelect(population);
-                PermutationSolution<Integer> parent2 = tournamentSelect(population);
+                PermutationSolution<Integer> parent1 = tournamentSelect(population, null);
+                PermutationSolution<Integer> parent2 = tournamentSelect(population, parent1);
 
-                List<PermutationSolution<Integer>> children = crossover.execute(List.of(parent1, parent2));
-
-                for (int i = 0; i < children.size(); i++) {
-                    PermutationSolution<Integer> child = children.get(i);
-
-                    if (i == 0) {
-                        @SuppressWarnings("unchecked")
-                        Map<Integer, DepotDto> parent1Map = (Map<Integer, DepotDto>) parent1.attributes().get("depotMap");
-                        child.attributes().put("depotMap", new HashMap<>(parent1Map));
+                for (PermutationSolution<Integer> child : crossover.execute(List.of(parent1, parent2))) {
+                    if (offspring.size() >= POPULATION_SIZE) {
+                        break;
                     }
-
-                    if (offspring.size() >= POPULATION_SIZE) break;
-
                     intraMutation.execute(child);
                     offspring.add(child);
                 }
-            }
-
-            if (offspring.size() > POPULATION_SIZE) {
-                offspring = new ArrayList<>(offspring.subList(0, POPULATION_SIZE));
             }
 
             evaluatePopulation(offspring, problem);
@@ -109,76 +100,66 @@ public class GeneticRouteSolver {
 
             if (generation % INTER_DEPOT_FREQUENCY == 0 && generation > 0) {
                 for (int i = 0; i < Math.min(INTER_DEPOT_INDIVIDUALS, offspring.size()); i++) {
-                    int idx = JMetalRandom.getInstance().nextInt(0, offspring.size() - 1);
-                    interMutation.execute(offspring.get(idx));
-                    problem.evaluate(offspring.get(idx));
+                    int index = JMetalRandom.getInstance().nextInt(0, offspring.size() - 1);
+                    interMutation.execute(offspring.get(index));
+                    problem.evaluate(offspring.get(index));
                     evaluations++;
                 }
             }
 
-            List<Integer> worstIndices = findWorstIndices(offspring, ELITISM_COUNT);
-            replaceWorstWithElites(offspring, worstIndices, bestSolution);
-
+            replaceWorstWithElites(offspring, elites);
             population = offspring;
-            PermutationSolution<Integer> genBest = findBest(population);
-            double genBestFitness = genBest.objectives()[0];
-            if (genBestFitness < bestFitness) {
-                bestSolution = genBest;
-                bestFitness = genBestFitness;
+
+            if (generation > 0 && generation % LOCAL_SEARCH_FREQUENCY == 0) {
+                applyLocalSearchToTopK(population, problem, localSearch, TOP_K_LOCAL_SEARCH);
+                evaluations += TOP_K_LOCAL_SEARCH;
+            }
+
+            if (generation > 0 && generation % INTER_DEPOT_OPT_FREQUENCY == 0) {
+                PermutationSolution<Integer> candidate = copySolution(bestSolution);
+                if (interDepotSearch.optimize(candidate)) {
+                    localSearch.improveSolution(candidate);
+                    problem.evaluate(candidate);
+                    evaluations++;
+                    if (candidate.objectives()[0] < bestFitness) {
+                        population.set(worstIndex(population), candidate);
+                    }
+                }
+            }
+
+            PermutationSolution<Integer> generationBest = findBest(population);
+            if (generationBest.objectives()[0] < bestFitness) {
+                bestSolution = copySolution(generationBest);
+                bestFitness = bestSolution.objectives()[0];
                 bestGeneration = generation;
                 stagnantGenerations = 0;
             } else {
                 stagnantGenerations++;
             }
 
-            if (generation > 0 && generation % LOCAL_SEARCH_FREQUENCY == 0) {
-                applyLocalSearchToTopK(population, problem, localSearch, TOP_K_LOCAL_SEARCH);
-                evaluations += TOP_K_LOCAL_SEARCH;
-                PermutationSolution<Integer> lsBest = findBest(population);
-                double lsFitness = lsBest.objectives()[0];
-                if (lsFitness < bestFitness) {
-                    bestSolution = lsBest;
-                    bestFitness = lsFitness;
-                    bestGeneration = generation;
-                    stagnantGenerations = 0;
-                }
-            }
-
-            if (generation > 0 && generation % INTER_DEPOT_OPT_FREQUENCY == 0) {
-                PermutationSolution<Integer> candidate = copySolution(bestSolution);
-                boolean moved = interDepotSearch.optimize(candidate);
-                if (moved) {
-                    problem.evaluate(candidate);
-                    evaluations++;
-                    localSearch.improveSolution(candidate);
-                    problem.evaluate(candidate);
-                    evaluations++;
-                    if (candidate.objectives()[0] < bestFitness) {
-                        bestSolution = candidate;
-                        bestFitness = candidate.objectives()[0];
-                        bestGeneration = generation;
-                        stagnantGenerations = 0;
-                    }
-                }
-            }
-
             generation++;
 
             if (generation >= MIN_GENERATIONS && stagnantGenerations >= RESTART_STAGNANT) {
-                if (hasRestarted) {
-                    log.debug("Early stopping at gen {} after second stagnation. Best at gen {}.", generation, bestGeneration);
+                if (restarts >= MAX_RESTARTS) {
+                    log.debug("Early stopping at gen {} after {} restarts. Best at gen {}.",
+                            generation, restarts, bestGeneration);
                     break;
                 }
                 log.debug("Restarting population at gen {} after {} stagnant gens.", generation, stagnantGenerations);
                 population = restartPopulation(problem, bestSolution, ELITISM_COUNT);
                 evaluatePopulation(population, problem);
-                evaluations += POPULATION_SIZE;
+                evaluations += population.size();
                 stagnantGenerations = 0;
-                hasRestarted = true;
+                restarts++;
             }
         }
 
-        List<RouteDto> routes = decodeSolution(bestSolution, request, problem, scheduler);
+        // Pulido final: deja el mejor cromosoma en un optimo local antes de decodificarlo.
+        interDepotSearch.optimize(bestSolution);
+        localSearch.improveSolution(bestSolution);
+        problem.evaluate(bestSolution);
+
+        List<RouteDto> routes = decodeSolution(bestSolution, request, scheduler);
         double totalCost = routes.stream().mapToDouble(RouteDto::totalDistance).sum();
         long computationTime = System.currentTimeMillis() - startTime;
 
@@ -191,6 +172,40 @@ public class GeneticRouteSolver {
         );
     }
 
+    /** Capacidad del mayor vehiculo de cada deposito; sin vehiculos declarados, sin limite. */
+    private static Map<DepotDto, Integer> capacityByDepot(RoutingRequest request) {
+        Map<String, List<VehicleDto>> byDepot = vehiclesByDepot(request);
+        Map<DepotDto, Integer> capacities = new HashMap<>();
+        for (DepotDto depot : request.depots()) {
+            capacities.put(depot, byDepot.getOrDefault(depot.id(), List.of()).stream()
+                    .mapToInt(VehicleDto::capacity)
+                    .max()
+                    .orElse(Integer.MAX_VALUE));
+        }
+        return capacities;
+    }
+
+    /** Numero de vehiculos de cada deposito; sin vehiculos declarados, sin limite. */
+    private static Map<DepotDto, Integer> fleetByDepot(RoutingRequest request) {
+        Map<String, List<VehicleDto>> byDepot = vehiclesByDepot(request);
+        Map<DepotDto, Integer> fleets = new HashMap<>();
+        for (DepotDto depot : request.depots()) {
+            List<VehicleDto> vehicles = byDepot.getOrDefault(depot.id(), List.of());
+            fleets.put(depot, vehicles.isEmpty() ? Integer.MAX_VALUE : vehicles.size());
+        }
+        return fleets;
+    }
+
+    private static Map<String, List<VehicleDto>> vehiclesByDepot(RoutingRequest request) {
+        Map<String, List<VehicleDto>> byDepot = new HashMap<>();
+        if (request.vehicles() != null) {
+            for (VehicleDto vehicle : request.vehicles()) {
+                byDepot.computeIfAbsent(vehicle.startDepotId(), key -> new ArrayList<>()).add(vehicle);
+            }
+        }
+        return byDepot;
+    }
+
     private List<PermutationSolution<Integer>> initializePopulation(MDCVRPProblem problem) {
         List<PermutationSolution<Integer>> population = new ArrayList<>();
         JMetalRandom random = JMetalRandom.getInstance();
@@ -199,8 +214,7 @@ public class GeneticRouteSolver {
         for (int i = 0; i < heuristicCount; i++) {
             population.add(createHeuristicSolution(problem, random));
         }
-
-        for (int i = population.size(); i < POPULATION_SIZE; i++) {
+        while (population.size() < POPULATION_SIZE) {
             population.add(createRandomSolution(problem, random));
         }
 
@@ -209,75 +223,60 @@ public class GeneticRouteSolver {
 
     private PermutationSolution<Integer> createRandomSolution(MDCVRPProblem problem, JMetalRandom random) {
         PermutationSolution<Integer> solution = problem.createSolution();
-        List<Integer> perm = new ArrayList<>();
-        for (int j = 0; j < problem.length(); j++) {
-            perm.add(j);
+        List<Integer> permutation = new ArrayList<>();
+        for (int i = 0; i < problem.length(); i++) {
+            permutation.add(i);
         }
-        for (int j = perm.size() - 1; j > 0; j--) {
-            int k = random.nextInt(0, j);
-            int tmp = perm.get(j);
-            perm.set(j, perm.get(k));
-            perm.set(k, tmp);
+        for (int i = permutation.size() - 1; i > 0; i--) {
+            int j = random.nextInt(0, i);
+            int tmp = permutation.get(i);
+            permutation.set(i, permutation.get(j));
+            permutation.set(j, tmp);
         }
-        for (int j = 0; j < perm.size(); j++) {
-            solution.variables().set(j, perm.get(j));
+        for (int i = 0; i < permutation.size(); i++) {
+            solution.variables().set(i, permutation.get(i));
         }
         return solution;
     }
 
+    /**
+     * Vecino mas cercano aleatorizado: en cada paso elige al azar entre los
+     * {@value #SEED_CANDIDATE_LIST} clientes mas proximos. Un vecino mas cercano puro seria
+     * deterministico y sembraria la poblacion con individuos identicos.
+     */
     private PermutationSolution<Integer> createHeuristicSolution(MDCVRPProblem problem, JMetalRandom random) {
         PermutationSolution<Integer> solution = problem.createSolution();
         List<CustomerDto> customers = problem.customers();
-        List<DepotDto> depots = problem.depots();
-        double[][] dist = problem.distanceMatrix();
+        double[][] distanceMatrix = problem.distanceMatrix();
+        Map<Integer, DepotDto> depotMap = PermutationCodec.depotMap(solution);
 
-        @SuppressWarnings("unchecked")
-        Map<Integer, DepotDto> depotMap = (Map<Integer, DepotDto>) solution.attributes().get("depotMap");
-
-        Map<DepotDto, List<Integer>> depotCustomers = new LinkedHashMap<>();
-        for (DepotDto d : depots) {
-            depotCustomers.put(d, new ArrayList<>());
+        Map<DepotDto, List<Integer>> depotOrder = new LinkedHashMap<>();
+        for (DepotDto depot : problem.depots()) {
+            depotOrder.put(depot, new ArrayList<>());
         }
-        for (int j = 0; j < customers.size(); j++) {
-            DepotDto d = depotMap.get(j);
-            if (d != null) {
-                depotCustomers.get(d).add(j);
-            }
+        for (int i = 0; i < customers.size(); i++) {
+            depotOrder.get(depotMap.get(i)).add(i);
         }
 
-        List<Integer> permutation = new ArrayList<>();
-        for (var entry : depotCustomers.entrySet()) {
-            DepotDto depot = entry.getKey();
-            List<Integer> customerList = new ArrayList<>(entry.getValue());
-
-            if (customerList.size() <= 1) {
-                permutation.addAll(customerList);
-                continue;
-            }
-
-            int currentMatrixIdx = depot.matrixIndex();
-            Set<Integer> remaining = new HashSet<>(customerList);
-            List<Integer> ordered = new ArrayList<>();
+        List<Integer> permutation = new ArrayList<>(customers.size());
+        for (var entry : depotOrder.entrySet()) {
+            List<Integer> remaining = new ArrayList<>(entry.getValue());
+            int currentIndex = entry.getKey().matrixIndex();
 
             while (!remaining.isEmpty()) {
-                int bestCustomer = -1;
-                double bestDist = Double.MAX_VALUE;
-                for (int cIdx : remaining) {
-                    double d = dist[currentMatrixIdx][customers.get(cIdx).matrixIndex()];
-                    if (d < bestDist) {
-                        bestDist = d;
-                        bestCustomer = cIdx;
-                    }
-                }
-                ordered.add(bestCustomer);
-                currentMatrixIdx = customers.get(bestCustomer).matrixIndex();
-                remaining.remove(bestCustomer);
+                int reference = currentIndex;
+                remaining.sort(Comparator.comparingDouble(
+                        candidate -> distanceMatrix[reference][customers.get(candidate).matrixIndex()]));
+
+                int limit = Math.min(SEED_CANDIDATE_LIST, remaining.size());
+                int chosen = remaining.remove(random.nextInt(0, limit - 1));
+                permutation.add(chosen);
+                currentIndex = customers.get(chosen).matrixIndex();
             }
-            permutation.addAll(ordered);
         }
 
-        for (int j = 0; j < permutation.size(); j++) {
-            solution.variables().set(j, permutation.get(j));
+        for (int i = 0; i < permutation.size(); i++) {
+            solution.variables().set(i, permutation.get(i));
         }
         return solution;
     }
@@ -288,21 +287,55 @@ public class GeneticRouteSolver {
         }
     }
 
-    private PermutationSolution<Integer> tournamentSelect(List<PermutationSolution<Integer>> population) {
+    private PermutationSolution<Integer> tournamentSelect(List<PermutationSolution<Integer>> population,
+                                                          PermutationSolution<Integer> exclude) {
         JMetalRandom random = JMetalRandom.getInstance();
-        int a = random.nextInt(0, population.size() - 1);
-        int b = random.nextInt(0, population.size() - 1);
-        int c = random.nextInt(0, population.size() - 1);
-        PermutationSolution<Integer> best = population.get(a);
-        if (population.get(b).objectives()[0] < best.objectives()[0]) best = population.get(b);
-        if (population.get(c).objectives()[0] < best.objectives()[0]) best = population.get(c);
-        return best;
+        PermutationSolution<Integer> best = null;
+
+        for (int i = 0; i < 3; i++) {
+            PermutationSolution<Integer> candidate = population.get(random.nextInt(0, population.size() - 1));
+            if (candidate == exclude) {
+                continue;
+            }
+            if (best == null || candidate.objectives()[0] < best.objectives()[0]) {
+                best = candidate;
+            }
+        }
+
+        return (best != null) ? best : population.get(random.nextInt(0, population.size() - 1));
     }
 
     private PermutationSolution<Integer> findBest(List<PermutationSolution<Integer>> population) {
         return population.stream()
-                .min(Comparator.comparingDouble(s -> s.objectives()[0]))
+                .min(Comparator.comparingDouble(solution -> solution.objectives()[0]))
                 .orElse(population.get(0));
+    }
+
+    private int worstIndex(List<PermutationSolution<Integer>> population) {
+        int worst = 0;
+        for (int i = 1; i < population.size(); i++) {
+            if (population.get(i).objectives()[0] > population.get(worst).objectives()[0]) {
+                worst = i;
+            }
+        }
+        return worst;
+    }
+
+    /** Copias de los {@code count} mejores individuos distintos, no {@code count} clones del mejor. */
+    private List<PermutationSolution<Integer>> selectElites(List<PermutationSolution<Integer>> population, int count) {
+        return population.stream()
+                .sorted(Comparator.comparingDouble(solution -> solution.objectives()[0]))
+                .limit(count)
+                .map(this::copySolution)
+                .toList();
+    }
+
+    private void replaceWorstWithElites(List<PermutationSolution<Integer>> offspring,
+                                         List<PermutationSolution<Integer>> elites) {
+        List<Integer> worstIndices = findWorstIndices(offspring, elites.size());
+        for (int i = 0; i < worstIndices.size(); i++) {
+            offspring.set(worstIndices.get(i), elites.get(i));
+        }
     }
 
     private List<Integer> findWorstIndices(List<PermutationSolution<Integer>> population, int count) {
@@ -315,21 +348,12 @@ public class GeneticRouteSolver {
         return indices.subList(0, Math.min(count, indices.size()));
     }
 
-    private void replaceWorstWithElites(List<PermutationSolution<Integer>> offspring,
-                                         List<Integer> worstIndices,
-                                         PermutationSolution<Integer> bestSolution) {
-        PermutationSolution<Integer> elite = copySolution(bestSolution);
-        for (int idx : worstIndices) {
-            offspring.set(idx, idx == worstIndices.get(0) ? elite : copySolution(bestSolution));
-        }
-    }
-
     private void applyLocalSearchToTopK(List<PermutationSolution<Integer>> population,
                                          MDCVRPProblem problem,
                                          LocalSearch localSearch,
                                          int k) {
         List<PermutationSolution<Integer>> sorted = new ArrayList<>(population);
-        sorted.sort(Comparator.comparingDouble(s -> s.objectives()[0]));
+        sorted.sort(Comparator.comparingDouble(solution -> solution.objectives()[0]));
 
         for (int i = 0; i < Math.min(k, sorted.size()); i++) {
             PermutationSolution<Integer> solution = sorted.get(i);
@@ -343,9 +367,11 @@ public class GeneticRouteSolver {
                                                                   int keepCount) {
         JMetalRandom random = JMetalRandom.getInstance();
         List<PermutationSolution<Integer>> newPopulation = new ArrayList<>();
-        newPopulation.add(copySolution(bestSolution));
+        for (int i = 0; i < Math.max(1, keepCount); i++) {
+            newPopulation.add(copySolution(bestSolution));
+        }
 
-        int heuristicCount = (int) ((POPULATION_SIZE - keepCount) * HEURISTIC_SEED_RATIO);
+        int heuristicCount = (int) ((POPULATION_SIZE - newPopulation.size()) * HEURISTIC_SEED_RATIO);
         for (int i = 0; i < heuristicCount; i++) {
             newPopulation.add(createHeuristicSolution(problem, random));
         }
@@ -365,65 +391,26 @@ public class GeneticRouteSolver {
         for (int i = 0; i < source.objectives().length; i++) {
             copy.objectives()[i] = source.objectives()[i];
         }
-        
-        @SuppressWarnings("unchecked")
-        Map<Integer, DepotDto> sourceMap = (Map<Integer, DepotDto>) source.attributes().get("depotMap");
+
+        Map<Integer, DepotDto> sourceMap = PermutationCodec.depotMap(source);
         if (sourceMap != null) {
-            copy.attributes().put("depotMap", new HashMap<>(sourceMap));
+            copy.attributes().put(PermutationCodec.DEPOT_MAP, new HashMap<>(sourceMap));
         }
-        
+
         return copy;
     }
 
     private List<RouteDto> decodeSolution(PermutationSolution<Integer> solution,
                                            RoutingRequest request,
-                                           MDCVRPProblem problem,
                                            RouteScheduler scheduler) {
-        List<CustomerDto> customers = request.customers();
-        List<DepotDto> depots = request.depots();
-        List<VehicleDto> vehicles = request.vehicles();
-        boolean hasVehicles = vehicles != null && !vehicles.isEmpty();
-
-        Map<DepotDto, List<Integer>> depotOrder = problem.buildDepotOrder(solution);
+        Map<Integer, DepotDto> depotMap = PermutationCodec.depotMap(solution);
+        Map<DepotDto, List<Integer>> depotOrder =
+                PermutationCodec.depotOrder(solution, request.depots(), depotMap);
 
         List<RouteDto> routes = new ArrayList<>();
-        Set<String> visited = new HashSet<>();
-
         for (var entry : depotOrder.entrySet()) {
-            DepotDto depot = entry.getKey();
-            List<Integer> order = entry.getValue();
-
-            List<RouteDto> depotRoutes = scheduler.buildRoutes(depot, order);
-            for (RouteDto route : depotRoutes) {
-                for (String stop : route.stops()) {
-                    visited.add(stop);
-                }
-                routes.add(route);
-            }
+            routes.addAll(scheduler.buildRoutes(entry.getKey(), entry.getValue()));
         }
-
-        List<CustomerDto> unvisited = customers.stream()
-                .filter(c -> !visited.contains(c.id()))
-                .toList();
-        if (!unvisited.isEmpty()) {
-            DepotDto fallbackDepot = depots.get(0);
-            String fallbackVehicleId = "V-GA-FALLBACK-" + fallbackDepot.id();
-            List<String> stops = new ArrayList<>();
-            double totalDistance = 0.0;
-            int totalLoad = 0;
-            int currentIndex = fallbackDepot.matrixIndex();
-            double[][] dist = request.distanceMatrix();
-
-            for (CustomerDto c : unvisited) {
-                totalDistance += dist[currentIndex][c.matrixIndex()];
-                stops.add(c.id());
-                totalLoad += c.demand();
-                currentIndex = c.matrixIndex();
-            }
-            totalDistance += dist[currentIndex][fallbackDepot.matrixIndex()];
-            routes.add(new RouteDto(fallbackVehicleId, fallbackDepot.id(), stops, totalDistance, totalLoad));
-        }
-
         return routes;
     }
 
@@ -432,104 +419,43 @@ public class GeneticRouteSolver {
         private final List<CustomerDto> customers;
         private final List<DepotDto> depots;
         private final double[][] distanceMatrix;
-        private final Map<DepotDto, Integer> depotCapacity;
+        private final RouteSplitter splitter;
 
-        MDCVRPProblem(RoutingRequest request) {
+        MDCVRPProblem(RoutingRequest request, RouteSplitter splitter) {
             this.customers = request.customers();
             this.depots = request.depots();
             this.distanceMatrix = request.distanceMatrix();
-
-            boolean hasVehicles = request.vehicles() != null && !request.vehicles().isEmpty();
-            this.depotCapacity = new HashMap<>();
-            if (hasVehicles) {
-                Map<String, List<VehicleDto>> vehiclesByDepot = new HashMap<>();
-                for (VehicleDto v : request.vehicles()) {
-                    vehiclesByDepot.computeIfAbsent(v.startDepotId(), k -> new ArrayList<>()).add(v);
-                }
-                for (DepotDto d : depots) {
-                    List<VehicleDto> dv = vehiclesByDepot.getOrDefault(d.id(), List.of());
-                    int maxCap = dv.isEmpty()
-                            ? Integer.MAX_VALUE
-                            : dv.stream().mapToInt(VehicleDto::capacity).max().orElse(Integer.MAX_VALUE);
-                    depotCapacity.put(d, maxCap);
-                }
-            } else {
-                for (DepotDto d : depots) {
-                    depotCapacity.put(d, Integer.MAX_VALUE);
-                }
-            }
-        }
-
-        Map<DepotDto, List<Integer>> buildDepotOrder(PermutationSolution<Integer> solution) {
-            Map<DepotDto, List<Integer>> depotOrder = new LinkedHashMap<>();
-            for (DepotDto d : depots) {
-                depotOrder.put(d, new ArrayList<>());
-            }
-            
-            @SuppressWarnings("unchecked")
-            Map<Integer, DepotDto> localDepotMap = (Map<Integer, DepotDto>) solution.attributes().get("depotMap");
-
-            for (int i = 0; i < solution.variables().size(); i++) {
-                int cIdx = solution.variables().get(i);
-                DepotDto depot = localDepotMap.get(cIdx);
-                if (depot != null) {
-                    depotOrder.get(depot).add(cIdx);
-                }
-            }
-            return depotOrder;
+            this.splitter = splitter;
         }
 
         PermutationSolution<Integer> createSolution() {
             PermutationSolution<Integer> solution = new IntegerPermutationSolution(customers.size(), 1, 0);
-            
-            Map<Integer, DepotDto> localDepotMap = new HashMap<>();
+
+            Map<Integer, DepotDto> depotMap = new HashMap<>();
             for (int i = 0; i < customers.size(); i++) {
-                CustomerDto c = customers.get(i);
+                CustomerDto customer = customers.get(i);
                 DepotDto nearest = depots.stream()
-                        .min(Comparator.comparingDouble(d -> distanceMatrix[d.matrixIndex()][c.matrixIndex()]))
+                        .min(Comparator.comparingDouble(
+                                depot -> distanceMatrix[depot.matrixIndex()][customer.matrixIndex()]))
                         .orElse(depots.get(0));
-                localDepotMap.put(i, nearest);
+                depotMap.put(i, nearest);
             }
-            
-            solution.attributes().put("depotMap", localDepotMap);
+
+            solution.attributes().put(PermutationCodec.DEPOT_MAP, depotMap);
             return solution;
         }
 
         PermutationSolution<Integer> evaluate(PermutationSolution<Integer> solution) {
-            Map<DepotDto, List<Integer>> depotOrder = buildDepotOrder(solution);
+            Map<Integer, DepotDto> depotMap = PermutationCodec.depotMap(solution);
+            Map<DepotDto, List<Integer>> depotOrder =
+                    PermutationCodec.depotOrder(solution, depots, depotMap);
 
             double totalDistance = 0.0;
-            int routeCount = 0;
             for (var entry : depotOrder.entrySet()) {
                 DepotDto depot = entry.getKey();
-                List<Integer> order = entry.getValue();
-                int capacity = depotCapacity.getOrDefault(depot, Integer.MAX_VALUE);
-
-                int currentLoad = 0;
-                int currentIndex = depot.matrixIndex();
-                boolean routeOpen = false;
-
-                for (int cIdx : order) {
-                    CustomerDto customer = customers.get(cIdx);
-
-                    if (currentLoad + customer.demand() > capacity && currentLoad > 0) {
-                        totalDistance += distanceMatrix[currentIndex][depot.matrixIndex()];
-                        currentIndex = depot.matrixIndex();
-                        currentLoad = 0;
-                        routeCount++;
-                        routeOpen = false;
-                    }
-
-                    totalDistance += distanceMatrix[currentIndex][customer.matrixIndex()];
-                    currentLoad += customer.demand();
-                    currentIndex = customer.matrixIndex();
-                    routeOpen = true;
-                }
-
-                if (routeOpen) {
-                    totalDistance += distanceMatrix[currentIndex][depot.matrixIndex()];
-                    routeCount++;
-                }
+                RouteSplitter.Split split = splitter.evaluate(depot, entry.getValue());
+                totalDistance += split.cost()
+                        + RouteSplitter.fleetPenalty(split.routeCount(), splitter.fleet(depot));
             }
 
             solution.objectives()[0] = totalDistance;

@@ -2,129 +2,164 @@ package com.delivera.fms.engine.genetic.operator.search;
 
 import com.delivera.fms.engine.genetic.dto.CustomerDto;
 import com.delivera.fms.engine.genetic.dto.DepotDto;
+import com.delivera.fms.engine.genetic.scheduler.PermutationCodec;
+import com.delivera.fms.engine.genetic.scheduler.RouteSplitter;
 import org.uma.jmetal.solution.permutationsolution.PermutationSolution;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Reasigna clientes entre depositos. Hace dos cosas distintas y las mantiene separadas:
+ *
+ * <ol>
+ *   <li><b>Reparar</b>: si un deposito necesita mas rutas que vehiculos tiene, se le saca carga
+ *       aunque cueste distancia. Como criterio de mejora de coste puede no existir ningun
+ *       movimiento individual que compense, la reparacion se acepta sin condicion de coste.
+ *   <li><b>Mejorar</b>: reubicar clientes frontera cuando reduce el coste real de los dos
+ *       depositos implicados.
+ * </ol>
+ *
+ * <p>Los deltas se miden dentro de la secuencia de cada deposito y todo movimiento se confirma con
+ * el troceado real, de modo que nunca se acepta por una arista que no existe en ninguna ruta.
+ */
 public class InterDepotLocalSearch {
 
     private static final double BORDER_RATIO = 1.3;
-    private static final int MAX_ITERATIONS = 3;
+    private static final int MAX_ITERATIONS = 10;
+    private static final int MAX_REPAIR_MOVES = 20;
+    private static final int MAX_CANDIDATES = 25;
+    private static final double EPSILON = 1e-10;
 
     private final List<CustomerDto> customers;
     private final List<DepotDto> depots;
     private final double[][] distanceMatrix;
+    private final RouteSplitter splitter;
 
-    public InterDepotLocalSearch(List<CustomerDto> customers, List<DepotDto> depots, double[][] distanceMatrix) {
+    public InterDepotLocalSearch(List<CustomerDto> customers,
+                                  List<DepotDto> depots,
+                                  double[][] distanceMatrix,
+                                  RouteSplitter splitter) {
         this.customers = customers;
         this.depots = depots;
         this.distanceMatrix = distanceMatrix;
+        this.splitter = splitter;
     }
 
     public boolean optimize(PermutationSolution<Integer> solution) {
-        if (depots.size() < 2) return false;
+        if (depots.size() < 2) {
+            return false;
+        }
 
-        @SuppressWarnings("unchecked")
-        Map<Integer, DepotDto> depotMap = (Map<Integer, DepotDto>) solution.attributes().get("depotMap");
-        if (depotMap == null) return false;
+        Map<Integer, DepotDto> depotMap = PermutationCodec.depotMap(solution);
+        if (depotMap == null) {
+            return false;
+        }
 
-        boolean anyImprovement = false;
+        Map<DepotDto, List<Integer>> depotOrder = PermutationCodec.depotOrder(solution, depots, depotMap);
+        Map<DepotDto, Double> costs = new HashMap<>();
+        Map<DepotDto, Integer> routeCounts = new HashMap<>();
+        for (var entry : depotOrder.entrySet()) {
+            measure(entry.getKey(), entry.getValue(), costs, routeCounts);
+        }
 
-        for (int iter = 0; iter < MAX_ITERATIONS; iter++) {
-            List<Integer> borderCustomers = findBorderCustomers(solution, depotMap);
-            if (borderCustomers.isEmpty()) break;
+        boolean changed = repairFleet(depotOrder, depotMap, costs, routeCounts);
 
-            BestMove best = findBestReassignment(solution, depotMap, borderCustomers);
-
-            if (best != null && best.delta < -1e-10) {
-                applyReassignment(solution, depotMap, best);
-                anyImprovement = true;
-            } else {
+        for (int iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
+            if (!applyBestMove(depotOrder, depotMap, costs, routeCounts)) {
                 break;
             }
+            changed = true;
         }
 
-        return anyImprovement;
-    }
-
-    private List<Integer> findBorderCustomers(PermutationSolution<Integer> solution,
-                                               Map<Integer, DepotDto> depotMap) {
-        List<Integer> borderCustomers = new ArrayList<>();
-        for (int i = 0; i < solution.variables().size(); i++) {
-            int cIdx = solution.variables().get(i);
-            CustomerDto customer = customers.get(cIdx);
-            DepotDto assignedDepot = depotMap.get(cIdx);
-            if (assignedDepot == null) continue;
-
-            double distToAssigned = distanceMatrix[assignedDepot.matrixIndex()][customer.matrixIndex()];
-            double minOtherDist = Double.MAX_VALUE;
-            for (DepotDto d : depots) {
-                if (d.equals(assignedDepot)) continue;
-                double dist = distanceMatrix[d.matrixIndex()][customer.matrixIndex()];
-                if (dist < minOtherDist) minOtherDist = dist;
-            }
-
-            if (minOtherDist / (distToAssigned + 1e-10) < BORDER_RATIO) {
-                borderCustomers.add(cIdx);
-            }
+        if (changed) {
+            PermutationCodec.writeBackContiguous(solution, depotOrder);
         }
-        return borderCustomers;
+        return changed;
     }
 
-    private BestMove findBestReassignment(PermutationSolution<Integer> solution,
-                                           Map<Integer, DepotDto> depotMap,
-                                           List<Integer> borderCustomers) {
-        BestMove best = null;
-        Map<DepotDto, List<int[]>> depotSegments = buildDepotSegments(solution, depotMap);
+    /** Vacia los depositos que superan su flota, al menor coste posible pero sin exigir mejora. */
+    private boolean repairFleet(Map<DepotDto, List<Integer>> depotOrder,
+                                 Map<Integer, DepotDto> depotMap,
+                                 Map<DepotDto, Double> costs,
+                                 Map<DepotDto, Integer> routeCounts) {
+        boolean changed = false;
 
-        for (int cIdx : borderCustomers) {
-            DepotDto currentDepot = depotMap.get(cIdx);
-            int currentPos = findCustomerPosition(solution, cIdx);
-            if (currentPos < 0) continue;
+        for (int move = 0; move < MAX_REPAIR_MOVES; move++) {
+            DepotDto source = overloadedDepot(routeCounts);
+            if (source == null) {
+                break;
+            }
 
-            double oldContribution = customerContributionInRoute(solution, cIdx, currentDepot, depotMap, currentPos);
+            Move relief = cheapestRelief(source, depotOrder, routeCounts);
+            if (relief == null) {
+                break;
+            }
 
-            for (DepotDto newDepot : depots) {
-                if (newDepot.equals(currentDepot)) continue;
+            List<Integer> from = depotOrder.get(source);
+            List<Integer> to = depotOrder.get(relief.target());
+            from.remove(Integer.valueOf(relief.customer()));
+            to.add(relief.position(), relief.customer());
+            depotMap.put(relief.customer(), relief.target());
 
-                List<int[]> segments = depotSegments.get(newDepot);
-                if (segments == null) continue;
+            measure(source, from, costs, routeCounts);
+            measure(relief.target(), to, costs, routeCounts);
+            changed = true;
+        }
 
-                int bestInsertPos = -1;
-                double bestInsertCost = Double.MAX_VALUE;
+        return changed;
+    }
 
-                int size = solution.variables().size();
-                double startCost = insertionCostInRoute(solution, 0, cIdx, newDepot);
-                if (startCost < bestInsertCost) {
-                    bestInsertCost = startCost;
-                    bestInsertPos = 0;
+    /**
+     * Cliente, deposito destino y posicion que descargan el deposito al menor coste, entre los que
+     * dejan al destino dentro de su flota. Se recorren todas las posiciones del destino: el numero
+     * de rutas depende de donde se corte la secuencia, no solo de la carga, asi que la posicion mas
+     * barata en distancia puede ser justo la que le anade una ruta.
+     */
+    private Move cheapestRelief(DepotDto source,
+                                 Map<DepotDto, List<Integer>> depotOrder,
+                                 Map<DepotDto, Integer> routeCounts) {
+        List<Integer> order = depotOrder.get(source);
+        Map<DepotDto, Double> scratchCost = new HashMap<>();
+        Map<DepotDto, Integer> scratchRoutes = new HashMap<>();
+
+        Move best = null;
+        double bestCost = Double.MAX_VALUE;
+
+        for (int position = 0; position < order.size(); position++) {
+            int customer = order.get(position);
+
+            List<Integer> reduced = new ArrayList<>(order);
+            reduced.remove(position);
+            measure(source, reduced, scratchCost, scratchRoutes);
+            double sourceCost = scratchCost.get(source);
+
+            for (DepotDto target : depots) {
+                if (target.equals(source)) {
+                    continue;
+                }
+                int fleet = splitter.fleet(target);
+                if (routeCounts.getOrDefault(target, 0) > fleet) {
+                    continue;
                 }
 
-                for (int[] seg : segments) {
-                    for (int pos = seg[0] + 1; pos <= seg[1] + 1 && pos <= size; pos++) {
-                        double cost = insertionCostInRoute(solution, pos, cIdx, newDepot);
-                        if (cost < bestInsertCost) {
-                            bestInsertCost = cost;
-                            bestInsertPos = pos;
-                        }
+                List<Integer> targetOrder = depotOrder.get(target);
+                for (int at = 0; at <= targetOrder.size(); at++) {
+                    targetOrder.add(at, customer);
+                    measure(target, targetOrder, scratchCost, scratchRoutes);
+                    targetOrder.remove(at);
+
+                    if (scratchRoutes.get(target) > fleet) {
+                        continue;
                     }
-                }
-
-                double endCost = insertionCostInRoute(solution, size, cIdx, newDepot);
-                if (endCost < bestInsertCost) {
-                    bestInsertCost = endCost;
-                    bestInsertPos = size;
-                }
-
-                double newContribution = bestInsertCost;
-                double delta = newContribution - oldContribution;
-
-                if (best == null || delta < best.delta) {
-                    best = new BestMove(cIdx, currentDepot, newDepot, currentPos, bestInsertPos, delta);
+                    double total = sourceCost + scratchCost.get(target);
+                    if (total < bestCost) {
+                        bestCost = total;
+                        best = new Move(customer, source, target, at, total);
+                    }
                 }
             }
         }
@@ -132,155 +167,127 @@ public class InterDepotLocalSearch {
         return best;
     }
 
-    private Map<DepotDto, List<int[]>> buildDepotSegments(PermutationSolution<Integer> solution,
-                                                            Map<Integer, DepotDto> depotMap) {
-        Map<DepotDto, List<int[]>> depotSegments = new HashMap<>();
-        for (DepotDto d : depots) {
-            depotSegments.put(d, new ArrayList<>());
+    private DepotDto overloadedDepot(Map<DepotDto, Integer> routeCounts) {
+        DepotDto worst = null;
+        int worstExcess = 0;
+
+        for (DepotDto depot : depots) {
+            int excess = routeCounts.getOrDefault(depot, 0) - splitter.fleet(depot);
+            if (excess > worstExcess) {
+                worstExcess = excess;
+                worst = depot;
+            }
         }
 
-        int start = 0;
-        DepotDto currentDepot = null;
-        int n = solution.variables().size();
+        return worst;
+    }
 
-        for (int i = 0; i < n; i++) {
-            int cIdx = solution.variables().get(i);
-            DepotDto depot = depotMap.get(cIdx);
+    /**
+     * Aplica la mejor reubicacion de un cliente frontera que resista la comprobacion exacta. El
+     * delta estimado solo ordena candidatos, por eso se verifican varios en lugar de rendirse
+     * cuando el primero no mejora de verdad.
+     */
+    private boolean applyBestMove(Map<DepotDto, List<Integer>> depotOrder,
+                                   Map<Integer, DepotDto> depotMap,
+                                   Map<DepotDto, Double> costs,
+                                   Map<DepotDto, Integer> routeCounts) {
+        List<Move> candidates = new ArrayList<>();
 
-            if (currentDepot == null) {
-                currentDepot = depot;
-                start = i;
-            } else if (!currentDepot.equals(depot)) {
-                if (i > start) {
-                    depotSegments.get(currentDepot).add(new int[]{start, i - 1});
+        for (var entry : depotOrder.entrySet()) {
+            DepotDto source = entry.getKey();
+            List<Integer> order = entry.getValue();
+
+            for (int position = 0; position < order.size(); position++) {
+                int customer = order.get(position);
+                if (!isBorderCustomer(customer, source)) {
+                    continue;
                 }
-                currentDepot = depot;
-                start = i;
-            }
-        }
-        if (currentDepot != null && n > start) {
-            depotSegments.get(currentDepot).add(new int[]{start, n - 1});
-        }
+                double gain = splitter.removalGain(source, order, position);
 
-        return depotSegments;
-    }
+                for (DepotDto target : depots) {
+                    if (target.equals(source)) {
+                        continue;
+                    }
+                    List<Integer> targetOrder = depotOrder.get(target);
+                    int insertAt = splitter.bestPosition(target, targetOrder, customer);
+                    double delta = splitter.insertionCost(target, targetOrder, insertAt, customer) - gain;
 
-    private void applyReassignment(PermutationSolution<Integer> solution,
-                                    Map<Integer, DepotDto> depotMap,
-                                    BestMove move) {
-        int adjustedPos = move.currentPos;
-        if (move.currentPos < move.bestInsertPos) {
-            adjustedPos = move.currentPos;
-        }
-        solution.variables().remove(adjustedPos);
-
-        int insertPos = move.bestInsertPos;
-        if (move.currentPos < move.bestInsertPos) {
-            insertPos = move.bestInsertPos - 1;
-        }
-        if (insertPos > solution.variables().size()) {
-            insertPos = solution.variables().size();
-        }
-        solution.variables().add(insertPos, move.customerIdx);
-        depotMap.put(move.customerIdx, move.newDepot);
-    }
-
-    private int findCustomerPosition(PermutationSolution<Integer> solution, int cIdx) {
-        for (int i = 0; i < solution.variables().size(); i++) {
-            if (solution.variables().get(i) == cIdx) return i;
-        }
-        return -1;
-    }
-
-    private boolean isInDepotSegment(PermutationSolution<Integer> solution, int pos,
-                                      DepotDto depot, Map<Integer, DepotDto> depotMap) {
-        if (pos == 0 || pos == solution.variables().size()) return true;
-        int prevCustomer = solution.variables().get(pos - 1);
-        DepotDto prevDepot = depotMap.get(prevCustomer);
-        return prevDepot != null && prevDepot.equals(depot);
-    }
-
-    private double customerContributionInRoute(PermutationSolution<Integer> solution, int cIdx,
-                                                DepotDto depot, Map<Integer, DepotDto> depotMap,
-                                                int position) {
-        CustomerDto customer = customers.get(cIdx);
-        int cMatrix = customer.matrixIndex();
-        int depotMatrix = depot.matrixIndex();
-        int n = solution.variables().size();
-
-        int prevCustomer = -1;
-        for (int i = position - 1; i >= 0; i--) {
-            int pC = solution.variables().get(i);
-            if (depot.equals(depotMap.get(pC))) {
-                prevCustomer = pC;
-                break;
-            }
-        }
-        int nextCustomer = -1;
-        for (int i = position + 1; i < n; i++) {
-            int nC = solution.variables().get(i);
-            if (depot.equals(depotMap.get(nC))) {
-                nextCustomer = nC;
-                break;
+                    if (delta < -EPSILON) {
+                        candidates.add(new Move(customer, source, target, insertAt, delta));
+                    }
+                }
             }
         }
 
-        int prevMatrix = (prevCustomer >= 0) ? customers.get(prevCustomer).matrixIndex() : depotMatrix;
-        int nextMatrix = (nextCustomer >= 0) ? customers.get(nextCustomer).matrixIndex() : depotMatrix;
+        candidates.sort(Comparator.comparingDouble(Move::delta));
 
-        return distanceMatrix[prevMatrix][cMatrix]
-                + distanceMatrix[cMatrix][nextMatrix]
-                - distanceMatrix[prevMatrix][nextMatrix];
+        for (int i = 0; i < Math.min(MAX_CANDIDATES, candidates.size()); i++) {
+            if (tryApply(candidates.get(i), depotOrder, depotMap, costs, routeCounts)) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    private double insertionCostInRoute(PermutationSolution<Integer> solution, int pos,
-                                         int cIdx, DepotDto depot) {
-        CustomerDto customer = customers.get(cIdx);
-        int cMatrix = customer.matrixIndex();
-        int depotMatrix = depot.matrixIndex();
-        int n = solution.variables().size();
-
-        if (n == 0) {
-            return distanceMatrix[depotMatrix][cMatrix] + distanceMatrix[cMatrix][depotMatrix];
-        }
-        if (pos == 0) {
-            int next = solution.variables().get(0);
-            int nextMatrix = customers.get(next).matrixIndex();
-            return distanceMatrix[depotMatrix][cMatrix] + distanceMatrix[cMatrix][nextMatrix]
-                    - distanceMatrix[depotMatrix][nextMatrix];
-        }
-        if (pos == n) {
-            int prev = solution.variables().get(n - 1);
-            int prevMatrix = customers.get(prev).matrixIndex();
-            return distanceMatrix[prevMatrix][cMatrix] + distanceMatrix[cMatrix][depotMatrix]
-                    - distanceMatrix[prevMatrix][depotMatrix];
+    /** Confirma el movimiento con el troceado real de ambos depositos y lo deshace si no mejora. */
+    private boolean tryApply(Move move,
+                              Map<DepotDto, List<Integer>> depotOrder,
+                              Map<Integer, DepotDto> depotMap,
+                              Map<DepotDto, Double> costs,
+                              Map<DepotDto, Integer> routeCounts) {
+        List<Integer> source = depotOrder.get(move.source());
+        List<Integer> target = depotOrder.get(move.target());
+        int sourcePosition = source.indexOf(move.customer());
+        if (sourcePosition < 0) {
+            return false;
         }
 
-        int prev = solution.variables().get(pos - 1);
-        int next = solution.variables().get(pos);
-        int prevMatrix = customers.get(prev).matrixIndex();
-        int nextMatrix = customers.get(next).matrixIndex();
+        double previousCost = costs.get(move.source()) + costs.get(move.target());
+        source.remove(sourcePosition);
+        target.add(Math.min(move.position(), target.size()), move.customer());
 
-        return distanceMatrix[prevMatrix][cMatrix] + distanceMatrix[cMatrix][nextMatrix]
-                - distanceMatrix[prevMatrix][nextMatrix];
+        Map<DepotDto, Double> newCosts = new HashMap<>();
+        Map<DepotDto, Integer> newRouteCounts = new HashMap<>();
+        measure(move.source(), source, newCosts, newRouteCounts);
+        measure(move.target(), target, newCosts, newRouteCounts);
+
+        if (newCosts.get(move.source()) + newCosts.get(move.target()) >= previousCost - EPSILON) {
+            target.remove(Integer.valueOf(move.customer()));
+            source.add(sourcePosition, move.customer());
+            return false;
+        }
+
+        costs.putAll(newCosts);
+        routeCounts.putAll(newRouteCounts);
+        depotMap.put(move.customer(), move.target());
+        return true;
     }
 
-    private static class BestMove {
-        final int customerIdx;
-        final DepotDto currentDepot;
-        final DepotDto newDepot;
-        final int currentPos;
-        final int bestInsertPos;
-        final double delta;
-
-        BestMove(int customerIdx, DepotDto currentDepot, DepotDto newDepot,
-                 int currentPos, int bestInsertPos, double delta) {
-            this.customerIdx = customerIdx;
-            this.currentDepot = currentDepot;
-            this.newDepot = newDepot;
-            this.currentPos = currentPos;
-            this.bestInsertPos = bestInsertPos;
-            this.delta = delta;
+    private boolean isBorderCustomer(int customer, DepotDto assigned) {
+        double distanceToAssigned = distanceMatrix[assigned.matrixIndex()][matrixIndex(customer)];
+        double nearestOther = Double.MAX_VALUE;
+        for (DepotDto depot : depots) {
+            if (depot.equals(assigned)) {
+                continue;
+            }
+            nearestOther = Math.min(nearestOther, distanceMatrix[depot.matrixIndex()][matrixIndex(customer)]);
         }
+        return nearestOther / (distanceToAssigned + 1e-10) < BORDER_RATIO;
+    }
+
+    /** Coste penalizado y numero de rutas del deposito, la misma cuenta que hace la funcion objetivo. */
+    private void measure(DepotDto depot, List<Integer> order,
+                         Map<DepotDto, Double> costs, Map<DepotDto, Integer> routeCounts) {
+        RouteSplitter.Split split = splitter.evaluate(depot, order);
+        costs.put(depot, split.cost()
+                + RouteSplitter.fleetPenalty(split.routeCount(), splitter.fleet(depot)));
+        routeCounts.put(depot, split.routeCount());
+    }
+
+    private int matrixIndex(int customer) {
+        return customers.get(customer).matrixIndex();
+    }
+
+    private record Move(int customer, DepotDto source, DepotDto target, int position, double delta) {
     }
 }

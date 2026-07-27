@@ -2,6 +2,8 @@ package com.delivera.fms.engine.genetic.operator.mutation;
 
 import com.delivera.fms.engine.genetic.dto.CustomerDto;
 import com.delivera.fms.engine.genetic.dto.DepotDto;
+import com.delivera.fms.engine.genetic.scheduler.PermutationCodec;
+import com.delivera.fms.engine.genetic.scheduler.RouteSplitter;
 import org.uma.jmetal.solution.permutationsolution.PermutationSolution;
 import org.uma.jmetal.util.pseudorandom.JMetalRandom;
 
@@ -9,168 +11,137 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Reasigna un cliente frontera a otro deposito cercano.
+ *
+ * Es un operador de diversificacion: el deposito destino se elige al azar entre los cercanos, no
+ * siempre el segundo mas proximo, que daba un movimiento deterministico y casi siempre igual. La
+ * seleccion posterior decide si el cambio sobrevive; lo que si se comprueba aqui es que el deposito
+ * destino tenga flota suficiente para absorber la demanda.
+ */
 public class InterDepotMutation {
+
+    private static final double BORDER_RATIO = 1.3;
 
     private final double probability;
     private final JMetalRandom random;
     private final List<CustomerDto> customers;
     private final List<DepotDto> depots;
     private final double[][] distanceMatrix;
+    private final RouteSplitter splitter;
 
     public InterDepotMutation(double probability,
                                List<CustomerDto> customers,
                                List<DepotDto> depots,
-                               double[][] distanceMatrix) {
+                               double[][] distanceMatrix,
+                               RouteSplitter splitter) {
         this.probability = probability;
         this.random = JMetalRandom.getInstance();
         this.customers = customers;
         this.depots = depots;
         this.distanceMatrix = distanceMatrix;
+        this.splitter = splitter;
     }
 
     public PermutationSolution<Integer> execute(PermutationSolution<Integer> solution) {
-        if (depots.size() < 2) return solution;
-        if (random.nextDouble() >= probability) return solution;
-
-        @SuppressWarnings("unchecked")
-        Map<Integer, DepotDto> localDepotMap = (Map<Integer, DepotDto>) solution.attributes().get("depotMap");
-        if (localDepotMap == null) return solution;
-
-        List<Integer> borderCustomers = findBorderCustomers(solution, localDepotMap);
-        if (borderCustomers.isEmpty()) return solution;
-
-        int customerIdx = borderCustomers.get(random.nextInt(0, borderCustomers.size() - 1));
-        DepotDto currentDepot = localDepotMap.get(customerIdx);
-        DepotDto bestDepot = findBestDepotForCustomer(customerIdx, currentDepot);
-
-        if (bestDepot != null && !bestDepot.equals(currentDepot)) {
-            reassignCustomer(solution, customerIdx, currentDepot, bestDepot, localDepotMap);
-            localDepotMap.put(customerIdx, bestDepot);
+        if (depots.size() < 2 || random.nextDouble() >= probability) {
+            return solution;
         }
 
+        Map<Integer, DepotDto> depotMap = PermutationCodec.depotMap(solution);
+        if (depotMap == null) {
+            return solution;
+        }
+
+        Map<DepotDto, List<Integer>> depotOrder = PermutationCodec.depotOrder(solution, depots, depotMap);
+
+        List<Integer> border = findBorderCustomers(solution, depotMap);
+        if (border.isEmpty()) {
+            return solution;
+        }
+
+        int customer = border.get(random.nextInt(0, border.size() - 1));
+        DepotDto currentDepot = depotMap.get(customer);
+        DepotDto targetDepot = pickNearbyDepot(customer, currentDepot);
+        if (targetDepot == null || !fits(depotOrder.get(targetDepot), targetDepot, customer)) {
+            return solution;
+        }
+
+        depotOrder.get(currentDepot).remove(Integer.valueOf(customer));
+        List<Integer> target = depotOrder.get(targetDepot);
+        target.add(splitter.bestPosition(targetDepot, target, customer), customer);
+        depotMap.put(customer, targetDepot);
+
+        PermutationCodec.writeBackContiguous(solution, depotOrder);
         return solution;
     }
 
     private List<Integer> findBorderCustomers(PermutationSolution<Integer> solution,
-                                               Map<Integer, DepotDto> localDepotMap) {
-        List<Integer> borderCustomers = new ArrayList<>();
+                                               Map<Integer, DepotDto> depotMap) {
+        List<Integer> border = new ArrayList<>();
 
         for (int i = 0; i < solution.variables().size(); i++) {
-            int cIdx = solution.variables().get(i);
-            CustomerDto customer = customers.get(cIdx);
-            DepotDto assignedDepot = localDepotMap.get(cIdx);
-
-            double distToAssigned = distanceMatrix[assignedDepot.matrixIndex()][customer.matrixIndex()];
-
-            double minOtherDist = Double.MAX_VALUE;
-            for (DepotDto d : depots) {
-                if (!d.equals(assignedDepot)) {
-                    double dist = distanceMatrix[d.matrixIndex()][customer.matrixIndex()];
-                    if (dist < minOtherDist) {
-                        minOtherDist = dist;
-                    }
-                }
+            int customer = solution.variables().get(i);
+            DepotDto assigned = depotMap.get(customer);
+            if (assigned == null) {
+                continue;
             }
-
-            double ratio = minOtherDist / (distToAssigned + 1e-10);
-            if (ratio < 1.3) {
-                borderCustomers.add(cIdx);
+            double distanceToAssigned = distanceMatrix[assigned.matrixIndex()][matrixIndex(customer)];
+            if (nearestOtherDistance(customer, assigned) / (distanceToAssigned + 1e-10) < BORDER_RATIO) {
+                border.add(customer);
             }
         }
 
-        return borderCustomers;
+        return border;
     }
 
-    private DepotDto findBestDepotForCustomer(int customerIdx, DepotDto excludeDepot) {
-        CustomerDto customer = customers.get(customerIdx);
-        DepotDto bestDepot = null;
-        double bestDist = Double.MAX_VALUE;
+    // Deposito destino aleatorio entre los que estan a distancia comparable del cliente.
+    private DepotDto pickNearbyDepot(int customer, DepotDto currentDepot) {
+        double nearest = nearestOtherDistance(customer, currentDepot);
+        if (nearest == Double.MAX_VALUE) {
+            return null;
+        }
 
-        for (DepotDto d : depots) {
-            if (d.equals(excludeDepot)) continue;
-            double dist = distanceMatrix[d.matrixIndex()][customer.matrixIndex()];
-            if (dist < bestDist) {
-                bestDist = dist;
-                bestDepot = d;
+        List<DepotDto> candidates = new ArrayList<>();
+        for (DepotDto depot : depots) {
+            if (depot.equals(currentDepot)) {
+                continue;
+            }
+            if (distanceMatrix[depot.matrixIndex()][matrixIndex(customer)] <= nearest * BORDER_RATIO) {
+                candidates.add(depot);
             }
         }
 
-        return bestDepot;
+        return candidates.isEmpty() ? null : candidates.get(random.nextInt(0, candidates.size() - 1));
     }
 
-    private void reassignCustomer(PermutationSolution<Integer> solution, int customerIdx,
-                                   DepotDto oldDepot, DepotDto newDepot,
-                                   Map<Integer, DepotDto> localDepotMap) {
-        int oldPos = -1;
-        for (int i = 0; i < solution.variables().size(); i++) {
-            if (solution.variables().get(i) == customerIdx) {
-                oldPos = i;
-                break;
+    // El deposito destino debe poder servir la demanda con los vehiculos de los que dispone.
+    private boolean fits(List<Integer> targetOrder, DepotDto depot, int customer) {
+        int capacity = splitter.capacity(depot);
+        int fleet = splitter.fleet(depot);
+        if (fleet == Integer.MAX_VALUE || capacity == Integer.MAX_VALUE) {
+            return true;
+        }
+
+        int load = customers.get(customer).demand();
+        for (int assigned : targetOrder) {
+            load += customers.get(assigned).demand();
+        }
+        return load <= (long) capacity * fleet;
+    }
+
+    private double nearestOtherDistance(int customer, DepotDto excluded) {
+        double nearest = Double.MAX_VALUE;
+        for (DepotDto depot : depots) {
+            if (depot.equals(excluded)) {
+                continue;
             }
+            nearest = Math.min(nearest, distanceMatrix[depot.matrixIndex()][matrixIndex(customer)]);
         }
-        if (oldPos == -1) return;
-
-        solution.variables().remove(oldPos);
-
-        int insertPos = findBestInsertionPosition(solution, customerIdx, newDepot, localDepotMap);
-        solution.variables().add(insertPos, customerIdx);
+        return nearest;
     }
 
-    private int findBestInsertionPosition(PermutationSolution<Integer> solution, int customerIdx,
-                                           DepotDto depot, Map<Integer, DepotDto> localDepotMap) {
-        int bestPos = 0;
-        double bestCost = Double.MAX_VALUE;
-
-        for (int i = 0; i <= solution.variables().size(); i++) {
-            boolean inDepotSegment = isInDepotSegment(solution, i, depot, localDepotMap);
-            if (!inDepotSegment && i < solution.variables().size()) continue;
-
-            double cost = insertionCost(solution, i, customerIdx, depot);
-            if (cost < bestCost) {
-                bestCost = cost;
-                bestPos = i;
-            }
-        }
-
-        return bestPos;
-    }
-
-    private boolean isInDepotSegment(PermutationSolution<Integer> solution, int pos,
-                                      DepotDto depot, Map<Integer, DepotDto> localDepotMap) {
-        if (pos == 0 || pos == solution.variables().size()) return true;
-        int prevCustomer = solution.variables().get(pos - 1);
-        return localDepotMap.get(prevCustomer).equals(depot);
-    }
-
-    private double insertionCost(PermutationSolution<Integer> solution, int pos, int customerIdx, DepotDto depot) {
-        CustomerDto customer = customers.get(customerIdx);
-        int cMatrix = customer.matrixIndex();
-        int dMatrix = depot.matrixIndex();
-
-        if (solution.variables().size() == 0) {
-            return distanceMatrix[dMatrix][cMatrix] + distanceMatrix[cMatrix][dMatrix];
-        }
-
-        if (pos == 0) {
-            int next = solution.variables().get(0);
-            int nextMatrix = customers.get(next).matrixIndex();
-            return distanceMatrix[dMatrix][cMatrix] + distanceMatrix[cMatrix][nextMatrix]
-                    - distanceMatrix[dMatrix][nextMatrix];
-        }
-
-        if (pos == solution.variables().size()) {
-            int prev = solution.variables().get(pos - 1);
-            int prevMatrix = customers.get(prev).matrixIndex();
-            return distanceMatrix[prevMatrix][cMatrix] + distanceMatrix[cMatrix][dMatrix]
-                    - distanceMatrix[prevMatrix][dMatrix];
-        }
-
-        int prev = solution.variables().get(pos - 1);
-        int next = solution.variables().get(pos);
-        int prevMatrix = customers.get(prev).matrixIndex();
-        int nextMatrix = customers.get(next).matrixIndex();
-
-        return distanceMatrix[prevMatrix][cMatrix] + distanceMatrix[cMatrix][nextMatrix]
-                - distanceMatrix[prevMatrix][nextMatrix];
+    private int matrixIndex(int customer) {
+        return customers.get(customer).matrixIndex();
     }
 }

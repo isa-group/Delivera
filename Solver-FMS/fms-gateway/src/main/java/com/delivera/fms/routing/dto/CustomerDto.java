@@ -20,6 +20,10 @@ public record CustomerDto(
         @NotNull Double lng,
 
         @Schema(description = "Indice del cliente en la matriz de distancias", example = "0")
-        @NotNull Integer matrixIndex
+        @NotNull Integer matrixIndex,
+
+        @Schema(description = "Tiempo de servicio en el cliente, en las mismas unidades que la "
+                + "duracion maxima de ruta. Ausente significa 0", example = "10")
+        Double serviceDuration
 ) {
 }

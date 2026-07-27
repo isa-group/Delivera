@@ -2,90 +2,160 @@ package com.delivera.fms.engine.genetic.operator.search;
 
 import com.delivera.fms.engine.genetic.dto.CustomerDto;
 import com.delivera.fms.engine.genetic.dto.DepotDto;
+import com.delivera.fms.engine.genetic.scheduler.PermutationCodec;
+import com.delivera.fms.engine.genetic.scheduler.RouteSplitter;
 import org.uma.jmetal.solution.permutationsolution.PermutationSolution;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Busqueda local a nivel de ruta.
+ *
+ * Trocea la secuencia de cada deposito en rutas reales antes de optimizar, de modo que los
+ * movimientos se evaluan contra el coste que realmente tendra la solucion. Optimizar la gira
+ * gigante como si fuera un TSP y trocear despues puede reducir la gira y aumentar el coste final.
+ */
 public class LocalSearch {
+
+    private static final int MAX_PASSES = 8;
+    private static final double EPSILON = 1e-10;
 
     private final List<CustomerDto> customers;
     private final List<DepotDto> depots;
     private final double[][] distanceMatrix;
+    private final RouteSplitter splitter;
 
-    public LocalSearch(List<CustomerDto> customers, List<DepotDto> depots, double[][] distanceMatrix) {
+    public LocalSearch(List<CustomerDto> customers,
+                       List<DepotDto> depots,
+                       double[][] distanceMatrix,
+                       RouteSplitter splitter) {
         this.customers = customers;
         this.depots = depots;
         this.distanceMatrix = distanceMatrix;
+        this.splitter = splitter;
     }
-
-    private static final int MAX_2OPT_PASSES = 2;
 
     public void improveSolution(PermutationSolution<Integer> solution) {
-        @SuppressWarnings("unchecked")
-        Map<Integer, DepotDto> depotMap = (Map<Integer, DepotDto>) solution.attributes().get("depotMap");
-        if (depotMap == null) return;
+        Map<Integer, DepotDto> depotMap = PermutationCodec.depotMap(solution);
+        if (depotMap == null) {
+            return;
+        }
 
-        Map<DepotDto, List<Integer>> depotOrder = buildDepotOrder(solution, depotMap);
+        Map<DepotDto, List<Integer>> depotOrder = PermutationCodec.depotOrder(solution, depots, depotMap);
 
-        for (int pass = 0; pass < MAX_2OPT_PASSES; pass++) {
-            boolean improved = false;
-            for (var entry : depotOrder.entrySet()) {
-                DepotDto depot = entry.getKey();
-                List<Integer> customerList = entry.getValue();
-                if (customerList.size() < 3) continue;
-                if (twoOpt(customerList, depot)) improved = true;
+        for (var entry : depotOrder.entrySet()) {
+            DepotDto depot = entry.getKey();
+            List<Integer> order = entry.getValue();
+            if (order.size() < 2) {
+                continue;
             }
-            if (!improved) break;
-            rebuildPermutation(solution, depotOrder, depotMap);
-        }
-    }
 
-    Map<DepotDto, List<Integer>> buildDepotOrder(PermutationSolution<Integer> solution,
-                                                  Map<Integer, DepotDto> depotMap) {
-        Map<DepotDto, List<Integer>> depotOrder = new LinkedHashMap<>();
-        for (DepotDto d : depots) {
-            depotOrder.put(d, new ArrayList<>());
-        }
-        for (int i = 0; i < solution.variables().size(); i++) {
-            int cIdx = solution.variables().get(i);
-            DepotDto depot = depotMap.get(cIdx);
-            if (depot != null) {
-                depotOrder.get(depot).add(cIdx);
+            int capacity = splitter.capacity(depot);
+            List<List<Integer>> routes = splitter.split(depot, order);
+            improveRoutes(depot, routes, capacity);
+
+            order.clear();
+            for (List<Integer> route : routes) {
+                order.addAll(route);
             }
         }
-        return depotOrder;
+
+        PermutationCodec.writeBack(solution, depotOrder, depotMap);
     }
 
-    private boolean twoOpt(List<Integer> customerList, DepotDto depot) {
-        int n = customerList.size();
-        if (n < 3) return false;
+    private void improveRoutes(DepotDto depot, List<List<Integer>> routes, int capacity) {
+        boolean improved = true;
+        int pass = 0;
+        while (improved && pass++ < MAX_PASSES) {
+            improved = false;
+            for (List<Integer> route : routes) {
+                improved |= twoOpt(depot, route);
+            }
+            improved |= relocate(depot, routes, capacity);
+        }
+        routes.removeIf(List::isEmpty);
+    }
 
+    /**
+     * 2-opt dentro de una ruta. Tras aceptar una inversion se reinicia el barrido: las aristas
+     * cacheadas dejan de ser validas en cuanto el segmento se invierte.
+     */
+    private boolean twoOpt(DepotDto depot, List<Integer> route) {
+        int n = route.size();
+        if (n < 3) {
+            return false;
+        }
+
+        int depotIndex = depot.matrixIndex();
+        boolean anyImprovement = false;
+        boolean improved = true;
+
+        while (improved) {
+            improved = false;
+            for (int i = -1; i < n - 2 && !improved; i++) {
+                int previous = (i >= 0) ? matrixIndex(route.get(i)) : depotIndex;
+                int start = matrixIndex(route.get(i + 1));
+
+                for (int j = i + 2; j < n; j++) {
+                    int end = matrixIndex(route.get(j));
+                    int next = (j + 1 < n) ? matrixIndex(route.get(j + 1)) : depotIndex;
+
+                    double delta = distanceMatrix[previous][end] + distanceMatrix[start][next]
+                            - distanceMatrix[previous][start] - distanceMatrix[end][next];
+
+                    if (delta < -EPSILON) {
+                        reverse(route, i + 1, j);
+                        improved = true;
+                        anyImprovement = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return anyImprovement;
+    }
+
+    // Mueve clientes a la mejor posicion de otra ruta del mismo deposito, respetando capacidad.
+    private boolean relocate(DepotDto depot, List<List<Integer>> routes, int capacity) {
         boolean improved = false;
-        int depotIdx = depot.matrixIndex();
-        int[] mi = buildMatrixIndices(customerList);
 
-        for (int i = -1; i < n - 1; i++) {
-            int iPrev = (i >= 0) ? mi[i] : depotIdx;
-            int iNext = mi[i + 1];
-            double edgeICost = distanceMatrix[iPrev][iNext];
+        for (int from = 0; from < routes.size(); from++) {
+            List<Integer> source = routes.get(from);
+            int position = 0;
 
-            for (int j = i + 2; j < n; j++) {
-                int jCurr = mi[j];
-                int jNext = (j + 1 < n) ? mi[j + 1] : depotIdx;
-                double edgeJCost = distanceMatrix[jCurr][jNext];
+            while (position < source.size()) {
+                int customer = source.get(position);
+                int demand = customers.get(customer).demand();
+                double bestCost = splitter.removalGain(depot, source, position) - EPSILON;
+                int bestRoute = -1;
+                int bestPosition = -1;
 
-                double oldCost = edgeICost + edgeJCost;
-                double newCost = distanceMatrix[iPrev][jCurr] + distanceMatrix[iNext][jNext];
+                for (int to = 0; to < routes.size(); to++) {
+                    if (to == from) {
+                        continue;
+                    }
+                    List<Integer> target = routes.get(to);
+                    if (load(target) + demand > capacity) {
+                        continue;
+                    }
+                    for (int at = 0; at <= target.size(); at++) {
+                        double cost = splitter.insertionCost(depot, target, at, customer);
+                        if (cost < bestCost) {
+                            bestCost = cost;
+                            bestRoute = to;
+                            bestPosition = at;
+                        }
+                    }
+                }
 
-                if (newCost < oldCost - 1e-10) {
-                    reverseSegment(customerList, i + 1, j);
-                    rebuildMatrixIndices(customerList, mi);
+                if (bestRoute >= 0) {
+                    source.remove(position);
+                    routes.get(bestRoute).add(bestPosition, customer);
                     improved = true;
+                } else {
+                    position++;
                 }
             }
         }
@@ -93,51 +163,25 @@ public class LocalSearch {
         return improved;
     }
 
-    private void reverseSegment(List<Integer> list, int from, int to) {
+    private int load(List<Integer> route) {
+        int load = 0;
+        for (int customer : route) {
+            load += customers.get(customer).demand();
+        }
+        return load;
+    }
+
+    private void reverse(List<Integer> route, int from, int to) {
         while (from < to) {
-            int tmp = list.get(from);
-            list.set(from, list.get(to));
-            list.set(to, tmp);
+            int tmp = route.get(from);
+            route.set(from, route.get(to));
+            route.set(to, tmp);
             from++;
             to--;
         }
     }
 
-    private int[] buildMatrixIndices(List<Integer> customerList) {
-        int[] mi = new int[customerList.size()];
-        for (int i = 0; i < customerList.size(); i++) {
-            mi[i] = getMatrixIndex(customerList.get(i));
-        }
-        return mi;
-    }
-
-    private void rebuildMatrixIndices(List<Integer> customerList, int[] mi) {
-        for (int i = 0; i < customerList.size(); i++) {
-            mi[i] = getMatrixIndex(customerList.get(i));
-        }
-    }
-
-    private int getMatrixIndex(int customerIdx) {
-        return customers.get(customerIdx).matrixIndex();
-    }
-
-    private void rebuildPermutation(PermutationSolution<Integer> solution,
-                                     Map<DepotDto, List<Integer>> depotOrder,
-                                     Map<Integer, DepotDto> depotMap) {
-        Map<DepotDto, Iterator<Integer>> iterators = new HashMap<>();
-        for (var entry : depotOrder.entrySet()) {
-            iterators.put(entry.getKey(), entry.getValue().iterator());
-        }
-
-        for (int i = 0; i < solution.variables().size(); i++) {
-            int cIdx = solution.variables().get(i);
-            DepotDto depot = depotMap.get(cIdx);
-            if (depot != null) {
-                Iterator<Integer> it = iterators.get(depot);
-                if (it != null && it.hasNext()) {
-                    solution.variables().set(i, it.next());
-                }
-            }
-        }
+    private int matrixIndex(int customer) {
+        return customers.get(customer).matrixIndex();
     }
 }
