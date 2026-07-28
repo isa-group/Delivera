@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.delivera.org.dto.CompanyAdminProjection;
+import com.delivera.org.dto.CompanyAdminProjection.InnerCompanyAdminProjection;
 import com.delivera.org.dto.IdNameProjection;
 import com.delivera.org.dto.OrgCheckRequest;
 import com.delivera.org.repository.CompanyRepository;
@@ -55,16 +56,13 @@ public class CompanyService {
     }
 
     @Transactional(readOnly = true)
-    public Map<UUID,Map<String,String>> getCompanyAndOrgNames() {
+    public Map<UUID,InnerCompanyAdminProjection> getCompanyAndOrgNames() {
         return companyRepository.findCompanyAndOrgNames()
         .stream()
         .collect(
             Collectors.toMap(
                 CompanyAdminProjection::getCompanyId,
-                entry -> Map.of(
-                    "companyName", entry.getCompanyName(), 
-                    "orgName", entry.getOrgName()
-                )
+                CompanyAdminProjection::coreData
             )
         );
     }

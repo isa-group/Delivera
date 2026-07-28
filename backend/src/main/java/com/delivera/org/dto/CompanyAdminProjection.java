@@ -18,6 +18,20 @@ public class CompanyAdminProjection {
     private String orgName;
 
 
+    public InnerCompanyAdminProjection coreData() {
+        return new InnerCompanyAdminProjection(companyName, orgName);
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    public static class InnerCompanyAdminProjection {
+        private String companyName;
+        private String orgName;
+
+        
+    }
+
 
 
 }

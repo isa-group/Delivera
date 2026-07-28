@@ -3,6 +3,7 @@ package com.delivera.controller;
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.activity.ActivityMetricsResponse;
 import com.delivera.dto.admin.*;
+import com.delivera.org.dto.CompanyAdminProjection.InnerCompanyAdminProjection;
 import com.delivera.org.service.CompanyService;
 import com.delivera.service.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,7 +48,7 @@ public class AdminController {
 
     @Operation(summary = "Lista de empresas")
     @GetMapping("/organizations/companies")
-    public ResponseEntity<Map<UUID,Map<String,String>>> getCompanyAndOrgNames() {
+    public ResponseEntity<Map<UUID,InnerCompanyAdminProjection>> getCompanyAndOrgNames() {
         return ResponseEntity.ok(companyService.getCompanyAndOrgNames());
     }
 
