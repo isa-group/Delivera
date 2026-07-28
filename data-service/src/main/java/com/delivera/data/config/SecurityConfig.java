@@ -65,6 +65,7 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.DELETE, api+"/internal/units/companies/*").permitAll();
                 auth.requestMatchers(HttpMethod.GET, api+"/internal/vehicles/companies/*").permitAll();
                 auth.requestMatchers(HttpMethod.POST, api+"/internal/orders/B2C").permitAll();
+                auth.requestMatchers(HttpMethod.POST, api + "/internal/settings").permitAll();
 
                 // units
 
@@ -79,7 +80,7 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.POST, api + "/units/*/workers").hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.DELETE, api + "/units/*/workers/*").hasRole(ADMIN);
 
-                auth.requestMatchers(HttpMethod.POST, api + "/settings").hasRole(ADMIN);
+              
                 auth.requestMatchers(HttpMethod.GET, api + "/settings").hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.PUT, api + "/settings").hasRole(ADMIN);
 

@@ -4,11 +4,15 @@ import java.util.UUID;
 
 import com.delivera.order.model.OrderPriority;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class CompanySettingsDTO {
 
 

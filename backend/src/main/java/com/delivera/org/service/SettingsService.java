@@ -11,6 +11,7 @@ import com.delivera.exception.UserNotFoundException;
 import com.delivera.model.*;
 import com.delivera.order.repository.OrderRepository;
 import com.delivera.org.dto.CompanyCreateRequest;
+import com.delivera.org.dto.CompanySettingsDTO;
 import com.delivera.org.dto.CompanySummary;
 import com.delivera.org.dto.CompanyUpdateRequest;
 import com.delivera.org.dto.OrgUpdateRequest;
@@ -52,6 +53,7 @@ public class SettingsService {
     private final SecurityUtils securityUtils;
     private final SubscriptionService subscriptionService;
     private final AppConfigService appConfigService;
+    private final SettingsClient settingsClient;
 
     private Company currentCompany() {
         return companyRepository.findById(securityUtils.getCurrentCompanyId())
@@ -103,7 +105,7 @@ public class SettingsService {
         newCompany.setName(req.name());
         newCompany.setActivityType(activityTypeRepository.getReferenceById(req.activityType()));
         newCompany.setPlan(subscriptionPlanRepository.getReferenceById("FREE"));
-        companyRepository.save(newCompany);
+        Company savedCompany = companyRepository.save(newCompany);
 
         String email = securityUtils.getCurrentEmail();
         User user = userRepository.findByEmail(email).orElseThrow(UserNotFoundException::new);
@@ -112,6 +114,9 @@ public class SettingsService {
         worker.setCompany(newCompany);
         worker.setRole(WorkerRole.COMPANY_ADMIN);
         workerRepository.save(worker);
+        // TODO
+
+        settingsClient.createSettings(new CompanySettingsDTO(savedCompany.getId(),null, false));
 
         return new CompanySummary(newCompany.getId(), newCompany.getName(), newCompany.getActivityType().getCode(), null, null, false);
     }

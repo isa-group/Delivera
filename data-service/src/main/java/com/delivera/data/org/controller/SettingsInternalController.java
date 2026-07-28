@@ -1,6 +1,8 @@
 package com.delivera.data.org.controller;
 
 
+import java.util.UUID;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,6 +30,17 @@ public class SettingsInternalController {
         settingsService.create(request);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping
+    public ResponseEntity<CompanySettingsDTO> create(
+        @RequestBody CompanySettingsDTO request
+    ) {
+        return ResponseEntity.status(201)
+        .body(
+            settingsService.create(request).dto()
+        );
+    }
+
 
    
 }

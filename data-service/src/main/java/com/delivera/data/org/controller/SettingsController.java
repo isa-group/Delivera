@@ -34,18 +34,7 @@ public class SettingsController {
     }
 
 
-    @PostMapping
-    public ResponseEntity<CompanySettingsDTO> create(
-        @RequestBody CompanySettingsDTO request
-    ) {
-        UUID companyId = securityUtils.getCurrentCompanyId();
-        request.setCompanyId(companyId);
-        return ResponseEntity.status(201)
-        .body(
-            settingsService.create(request).dto()
-        );
-    }
-
+ 
     @PutMapping
     public ResponseEntity<Void> update(
         @RequestBody CompanySettingsDTO request
