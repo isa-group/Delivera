@@ -66,12 +66,12 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.GET, api+"/internal/vehicles/companies/*").permitAll();
                 auth.requestMatchers(HttpMethod.POST, api+"/internal/orders/B2C").permitAll();
 
+                // units
 
-
-                auth.requestMatchers(HttpMethod.GET, api+"/units" ).hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.GET, api+"/units" ).hasAnyRole(ADMIN,ANALYST,OPERATOR);
                 auth.requestMatchers(HttpMethod.GET, api+"/units/names" ).hasAnyRole(ADMIN,ANALYST);
                 auth.requestMatchers(HttpMethod.POST, api+"/units" ).hasRole(ADMIN);
-                auth.requestMatchers(HttpMethod.GET, api+"/units/*" ).hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.GET, api+"/units/*" ).hasAnyRole(ADMIN,ANALYST,OPERATOR);
                 auth.requestMatchers(HttpMethod.PUT, api + "/units/*").hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.DELETE, api + "/units/*").hasRole(ADMIN);
 
@@ -82,6 +82,8 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.POST, api + "/settings").hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.GET, api + "/settings").hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.PUT, api + "/settings").hasRole(ADMIN);
+
+                // vehicles
 
                 /*TODO: PREGUNTAR*/
                 auth.requestMatchers(api + "/vehicles/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
@@ -99,7 +101,16 @@ public class SecurityConfig {
                 auth.requestMatchers(api + "/orders/public/track/*").permitAll();
                 auth.requestMatchers(HttpMethod.POST,api + "/orders/public/track/*/register").permitAll();
                 auth.requestMatchers(api + "/orders/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
-   
+
+                // ACTIVITY
+                auth.requestMatchers(api + "/activity/**").hasAnyRole(ADMIN, ANALYST);
+
+                // ADMIN
+                auth.requestMatchers(HttpMethod.GET, api + "/admin/organizations/orders").hasRole("GLOBAL_ADMIN");
+                auth.requestMatchers(HttpMethod.GET, api + "/admin/companies/orders").hasRole("GLOBAL_ADMIN");
+                auth.requestMatchers(HttpMethod.GET, api + "/admin/orders").hasRole("GLOBAL_ADMIN");
+
+
                 auth.anyRequest().denyAll();
             });
             

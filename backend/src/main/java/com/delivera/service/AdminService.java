@@ -2,7 +2,6 @@ package com.delivera.service;
 
 import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.dto.activity.ActivityMetricsResponse;
-import com.delivera.dto.activity.OrdersByDayEntry;
 import com.delivera.dto.admin.*;
 import com.delivera.exception.ForbiddenException;
 import com.delivera.model.*;
@@ -162,7 +161,7 @@ public class AdminService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+   /*TODO:P009-ADMIN @Transactional(readOnly = true)
     public ActivityMetricsResponse getGlobalActivityMetrics(String period) {
         Instant from = periodStart(period);
         return new ActivityMetricsResponse(
@@ -172,7 +171,7 @@ public class AdminService {
                 orderRepository.countByStatusAndCreatedAtAfter(OrderStatus.CANCELLED, from),
                 orderRepository.countByStatusInAndCreatedAtAfter(List.of(OrderStatus.PENDING, OrderStatus.IN_TRANSIT), from),
                 0L);
-    }
+    }*/
 
     @Transactional(readOnly = true)
     public List<UnitAdminSummary> listUnits() {
@@ -236,7 +235,7 @@ public class AdminService {
                         ((Number) row[3]).longValue()))
                 .toList();
     }
-
+/* 
     @Transactional(readOnly = true)
     public List<OrdersByDayEntry> getGlobalOrdersByDay(String period) {
         Instant from = periodStart(period);
@@ -247,6 +246,7 @@ public class AdminService {
                 })
                 .toList();
     }
+                */
 
     // ── Delete operations ─────────────────────────────────────────────────────
 

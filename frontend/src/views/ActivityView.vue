@@ -4,9 +4,11 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import Chart from 'primevue/chart'
+import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const api = useApi()
+const dataApi = useServices("data-service")
 const router = useRouter()
 
 const period = ref('MONTH')
@@ -81,20 +83,28 @@ function fillDateRange(entries, p) {
   return result
 }
 
+
 async function load() {
   loading.value = true
   error.value = ''
   chartData.value = null
   unitRanking.value = []
   try {
-    const [metricsRes, chartRes, rankingRes] = await Promise.all([
+    const [metricsRes, chartRes, rankingRes,loyalUserMetricsRes] = await Promise.all([
+      dataApi.get(`/activity/metrics?period=${period.value}`),
+      dataApi.get(`/activity/orders-by-day?period=${period.value}`),
+      dataApi.get(`/activity/unit-ranking?period=${period.value}`),
       api.get(`/activity/metrics?period=${period.value}`),
-      api.get(`/activity/orders-by-day?period=${period.value}`),
-      api.get(`/activity/unit-ranking?period=${period.value}`),
     ])
-    if (metricsRes.ok) metrics.value = await metricsRes.json()
-    else error.value = t('error.connection')
-
+    if (metricsRes.ok) {
+      metrics.value = await metricsRes.json()
+      if (loyalUserMetricsRes.ok){
+        const countLoyalUser = await loyalUserMetricsRes.json()
+        metrics.value.newLoyalUsers = countLoyalUser?.newLoyalUsers
+      }
+    } else{
+      error.value = t('error.connection')
+    } 
     if (chartRes.ok) {
       const raw = await chartRes.json()
       const entries = fillDateRange(raw, period.value)

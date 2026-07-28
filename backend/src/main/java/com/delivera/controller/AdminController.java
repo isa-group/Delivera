@@ -2,30 +2,30 @@ package com.delivera.controller;
 
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.activity.ActivityMetricsResponse;
-import com.delivera.dto.activity.OrdersByDayEntry;
 import com.delivera.dto.admin.*;
-
+import com.delivera.org.service.CompanyService;
 import com.delivera.service.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/admin")
+@RequiredArgsConstructor
 @Tag(name = "Admin", description = "Panel de administración global")
 public class AdminController {
 
     private final AdminService adminService;
+    private final CompanyService companyService;
     private final SecurityUtils securityUtils;
 
-    public AdminController(AdminService adminService, SecurityUtils securityUtils) {
-        this.adminService = adminService;
-        this.securityUtils = securityUtils;
-    }
 
     @Operation(summary = "Lista de organizaciones con métricas")
     @GetMapping("/organizations")
@@ -45,6 +45,12 @@ public class AdminController {
         return ResponseEntity.ok(adminService.listCompanies());
     }
 
+    @Operation(summary = "Lista de empresas")
+    @GetMapping("/organizations/companies")
+    public ResponseEntity<Map<UUID,Map<String,String>>> getCompanyAndOrgNames() {
+        return ResponseEntity.ok(companyService.getCompanyAndOrgNames());
+    }
+
     @Operation(summary = "Lista de pedidos")
     @GetMapping("/orders")
     public ResponseEntity<List<OrderAdminSummary>> listOrders() {
@@ -62,7 +68,7 @@ public class AdminController {
     public ResponseEntity<List<WorkerAdminSummary>> listWorkers() {
         return ResponseEntity.ok(adminService.listWorkers());
     }
-
+/*TODO:P009-ADMIN
     @Operation(summary = "Métricas globales de actividad por período")
     @GetMapping("/activity")
     public ResponseEntity<ActivityMetricsResponse> getGlobalActivity(
@@ -75,7 +81,7 @@ public class AdminController {
     public ResponseEntity<List<OrdersByDayEntry>> getGlobalOrdersByDay(
             @RequestParam(defaultValue = "MONTH") String period) {
         return ResponseEntity.ok(adminService.getGlobalOrdersByDay(period));
-    }
+    }*/
 
     @Operation(summary = "Lista de unidades con coordenadas (global)")
     @GetMapping("/units")

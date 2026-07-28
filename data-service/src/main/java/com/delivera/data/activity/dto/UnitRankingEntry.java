@@ -1,4 +1,4 @@
-package com.delivera.dto.activity;
+package com.delivera.data.activity.dto;
 
 import java.util.UUID;
 

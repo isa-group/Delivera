@@ -3,8 +3,8 @@ package com.delivera.data.order.service;
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.data.common.service.AppConfigService;
 import com.delivera.data.depot.model.OperationalUnit;
+import com.delivera.data.depot.model.WorkerRole;
 import com.delivera.data.depot.repository.OperationalUnitRepository;
-import com.delivera.data.depot.repository.WorkerRepository;
 import com.delivera.data.email.service.EmailService;
 import com.delivera.data.exception.InvalidOrderUnitsException;
 import com.delivera.data.exception.MissingClientEmailException;
@@ -38,12 +38,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -51,24 +49,17 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OperationalUnitRepository unitRepository;
-    // TODO:P002-Company private final CompanyRepository companyRepository;
     private final SettingsService settingsService;
-    // TODO:P001-LoyalUser private final LoyalUserRepository loyalUserRepository;
-    private final WorkerRepository workerRepository;
     private final SecurityUtils securityUtils;
     private final AppConfigService appConfigService;
-    // TODO:P008-SPACE private final SubscriptionService subscriptionService;
     private final EmailService emailService;
     private final String trackingUrlBase;
     private final OrgClient orgClient;
 
     public OrderService(OrderRepository orderRepository,
                         OperationalUnitRepository unitRepository,
-                        //TODO:P002-Company CompanyRepository companyRepository,
                         SettingsService settingsService,
                         OrgClient orgClient,
-                        //TODO:P001-LoyalUser LoyalUserRepository loyalUserRepository,
-                        WorkerRepository workerRepository,
                         SecurityUtils securityUtils,
                         AppConfigService appConfigService,
                         //TODO:P008-SPACE SubscriptionService subscriptionService,
@@ -76,10 +67,7 @@ public class OrderService {
                         @Value("${app.tracking-url-base:https://delivera.app/track/}") String trackingUrlBase) {
         this.orderRepository = orderRepository;
         this.unitRepository = unitRepository;
-        //TODO:P002-Company this.companyRepository = companyRepository;
         this.settingsService = settingsService;
-        //TODO:P001-LoyalUser this.loyalUserRepository = loyalUserRepository;
-        this.workerRepository = workerRepository;
         this.securityUtils = securityUtils;
         this.orgClient = orgClient;
         this.appConfigService = appConfigService;
@@ -101,6 +89,13 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<OrderResponse> getByCompany() {
         UUID companyId = securityUtils.getCurrentCompanyId();
+        String role = securityUtils.getCurrentRole();
+        if (WorkerRole.OPERATOR.name().equals(role)) {
+            UUID userId = securityUtils.getCurrentUserId();
+            return orderRepository.findSentOrReceivedByCompanyIdAndUserId(companyId, userId)
+                .stream()
+                .map(OrderResponse::from).toList();
+        }
         return orderRepository.findSentOrReceivedByCompanyId(companyId)
                 .stream()
                 .map(OrderResponse::from)
@@ -328,18 +323,15 @@ public class OrderService {
     }
 
     private void validateTransition(OrderStatus current, OrderStatus next) {
-       appConfigService.validateTransition(current.name(), next.name()); 
+      //TODO:P003-States appConfigService.validateTransition(current.name(), next.name()); 
     }
 
    
 
     public OrderPriority resolveDefaultPriority(OrderPriority requested,
                                                OperationalUnit originUnit
-                                               //Company company
                                             ) {
         CompanySettings settings = settingsService.get(originUnit.getCompanyId());
-        // TODO:P002-Company
-        //if (requested != null) return requested;
         boolean locked = settings.isDefaultPriorityLocked();
         if (!locked && originUnit != null && originUnit.getDefaultPriority() != null) return originUnit.getDefaultPriority();
         if (settings.getDefaultPriority() != null) return settings.getDefaultPriority(); 

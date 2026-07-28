@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.delivera.data.common.dto.IdCountProjection;
+import com.delivera.data.order.dto.OrderAdminSummary;
 import com.delivera.data.order.model.Order;
 import com.delivera.data.order.model.OrderStatus;
 
@@ -17,6 +19,29 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
        @Query(value = "SELECT nextval('order_ref_seq')", nativeQuery = true)
        Long nextReferenceSeq();
+
+
+
+       @Query("""
+       SELECT new com.delivera.data.common.dto.IdCountProjection(
+              u.orgId,
+              COUNT(o)
+       )
+       FROM Order o
+       JOIN o.origin u
+       GROUP BY u.orgId
+       """)
+       List<IdCountProjection> countByOrganization();
+
+       @Query("""
+       SELECT new com.delivera.data.common.dto.IdCountProjection(
+              o.companyId,
+              COUNT(o)
+       )
+       FROM Order o
+       GROUP BY o.companyId
+       """)
+       List<IdCountProjection> countByCompany();
 
        List<Order> findByCompanyIdOrderByCreatedAtDesc(UUID companyId);
 
@@ -164,4 +189,38 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
                      
        """)
        Optional<String> findNotClaimedByToken(@Param("token") String token);
+
+
+       @Query("""
+       SELECT DISTINCT o
+       FROM UnitWorker w
+       JOIN Order o ON
+              (o.origin.id = w.unit.id 
+              OR 
+              o.destination.id = w.unit.id)
+       LEFT JOIN FETCH o.origin
+       LEFT JOIN FETCH o.destination
+       WHERE 
+              w.companyId = :companyId
+              AND
+              w.userId = :userId 
+       """)
+       List<Order> findSentOrReceivedByCompanyIdAndUserId(
+              @Param("companyId") UUID companyId,
+              @Param("userId") UUID userId
+       );
+
+
+       @Query("""
+       SELECT  new com.delivera.data.order.dto.OrderAdminSummary(
+              o.id,
+              o.reference,
+              o.status,
+              o.orderType,
+              o.companyId,
+              o.createdAt
+       )
+       FROM Order o
+       """)
+       List<OrderAdminSummary> findSummaryOfAll();
 }

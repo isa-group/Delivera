@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.delivera.org.dto.CompanyAdminProjection;
 import com.delivera.org.dto.IdNameProjection;
 import com.delivera.org.model.Company;
 
@@ -52,4 +53,15 @@ public interface CompanyRepository extends JpaRepository<Company, UUID> {
     WHERE c.organization.id = :organizationId
     """)
    List<IdNameProjection> findNamesByOrgId(@Param("organizationId") UUID organizationId);
+
+
+   @Query("""
+    SELECT new com.delivera.org.dto.CompanyAdminProjection(
+        c.id,
+        c.name,
+        c.organization.name
+    )
+    FROM Company c 
+    """)
+    List<CompanyAdminProjection> findCompanyAndOrgNames();
 }

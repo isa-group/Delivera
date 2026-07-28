@@ -21,7 +21,7 @@ import java.util.List;
 @Service
 public class AppConfigService {
 
-    private final com.delivera.data.order.repository.OrderStatusConfigRepository statusConfigRepository;
+    private final OrderStatusConfigRepository statusConfigRepository;
     private final OrderPriorityConfigRepository priorityConfigRepository;
 
 

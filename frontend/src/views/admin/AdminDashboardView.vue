@@ -10,9 +10,11 @@ import {
   attachRouteVisibilityHandler,
 } from '@/composables/useDeliveraMap'
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM_COUNTRY } from '@/constants/map'
+import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const api = useApi()
+const dataApi = useServices("data-service")
 const { formatDate } = useFormatDate()
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -99,6 +101,7 @@ async function loadHome() {
   metricsLoading.value = true
   homeChartData.value = null
   try {
+    // TODO: P009-ADMIN
     const [metricsRes, chartRes, unitsRes, routesRes] = await Promise.all([
       api.get('/admin/metrics'),
       api.get('/admin/activity/orders-by-day?period=MONTH'),
@@ -225,17 +228,57 @@ async function loadActivity() {
   }
 }
 
+function mixCountOrdersWithEntity(dataCount = null, dataEntity) {
+
+    return [...dataEntity].map(entity => {
+       entity.orderCount =  dataCount!=null? dataCount[entity.id]?? '?':'?'
+       return entity
+    })
+   
+    
+}
+
+async function mixOrdersWithCompanyNames(orders) {
+  const request = await api.get(`/admin/organizations/companies`)
+  let data = null
+  if (request.ok) {
+    data = await request.json()
+  }
+  return [...orders].map(order => {
+    order.companyName = data != null 
+      ? data[order.companyId]?.companyName?? '?' : '?'
+    order.orgName = data != null 
+      ? data[order.companyId]?.orgName?? '?' : '?'
+    return order
+  })
+
+}
+
 async function loadEntity(entity) {
   entityLoading.value = true
   entityError.value = ''
   deleteConfirmId.value = null
+  let dataCount = null
+  let res
+  let countRequest
   try {
-    const res = await api.get(`/admin/${entity}`)
-    if (res.ok) {
+    if (entity === 'organizations' || entity === 'companies') {
+      [countRequest, res] = await Promise.all([
+        dataApi.get(`/admin/${entity}/orders`),
+        api.get(`/admin/${entity}`)
+      ])
+      dataCount = countRequest.ok? await countRequest.json() : null
+    }else if (entity === 'orders'){ 
+      res = await dataApi.get(`/admin/${entity}`)
+    }else {
+      res = await api.get(`/admin/${entity}`)
+    }
+    
+    if (res?.ok) {
       const data = await res.json()
-      if (entity === 'organizations') organizations.value = data
-      else if (entity === 'companies') companies.value = data
-      else if (entity === 'orders') orders.value = data
+      if (entity === 'organizations') organizations.value = mixCountOrdersWithEntity(dataCount,data)
+      else if (entity === 'companies') companies.value = mixCountOrdersWithEntity(dataCount,data)
+      else if (entity === 'orders') orders.value = await mixOrdersWithCompanyNames(data)
       else if (entity === 'users') users.value = data
       else if (entity === 'workers') workers.value = data
     } else {
