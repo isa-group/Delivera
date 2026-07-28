@@ -56,7 +56,6 @@ export function startAuthRefresh() {
         }
       )
       
-      console.log(response.status)
       if (response.status === 401 || response.status === 403) {
         stopAuthRefresh()
         auth.logout()

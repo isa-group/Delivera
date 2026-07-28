@@ -91,13 +91,10 @@ async function fetchOrder() {
   try {
     const response = await dataApi.get(`/orders/${id}/me`)
     order.value = await response.json()
-    console.log(order.value)
-    // await fetchPublicOrder(reference)
     loadMessages()
     try {
       const nameResponse = await deliveraApi.post('/companies/names',[order.value.companyUUID])
       companyName.value = await nameResponse.json()
-      console.log(companyName.value[order.value.companyUUID],order.value.companyUUID)
     }catch{ /* empty */ }
   } catch (e) {
     error.value = e.message === 'not_found' ? t('tracking.notFound') : t('error.connection')

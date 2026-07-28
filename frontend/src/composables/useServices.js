@@ -17,8 +17,6 @@ export function useServices(service) {
  
 
   function resolveBaseUrl(service) {
-    console.log(service)
-    console.log( SERVICE_MAP[service] || import.meta.env.VITE_API_URL)
     return SERVICE_MAP[service] || import.meta.env.VITE_API_URL
   }
   

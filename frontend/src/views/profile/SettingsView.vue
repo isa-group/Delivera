@@ -279,7 +279,6 @@ async function load() {
         await settRes.json(), await dataSettRes.json()
     )
     else loadError.value = t('error.connection')
-    console.log(settings.value)
     if (compRes.ok) allCompanies.value = await compRes.json()
     // TODO: PROVISONAL FIX
     allCompanies.value = [...allCompanies.value].map((company) => {
@@ -289,7 +288,6 @@ async function load() {
       }
       return company
     })
-    console.log(allCompanies.value)
     if (subRes.ok) subscription.value = await subRes.json()
   } catch {
     loadError.value = t('error.connection')
@@ -350,7 +348,6 @@ async function saveOrg() {
 
 function startEditCompany(company) {
   if (company.id !== settings.value?.companyId) return
-  console.log(company)
   editingCompanyId.value = company.id
   companyName.value = company.name
   activityType.value = company.activityType
@@ -404,7 +401,6 @@ async function savePrioritySettings() {
       defaultPriority: defaultPriority.value,
       defaultPriorityLocked: defaultPriorityLocked.value
     })
-    console.log(res.status)
     if (res.status == 204) {
       settings.value.defaultPriority =
         defaultPriority.value
@@ -475,11 +471,11 @@ async function confirmDeleteCompany(id) {
     }
     const url = force ? `/settings/companies/${id}?force=true` : `/settings/companies/${id}`
     const res = await api.del(url)
-    console.log(res.status
-    )
     if (res.status === 204) {
       if (isCurrent) {
-        router.push('/settings')
+        router.push('/home')
+        auth.loadCompanies()
+        reloadSubscription()
       } else {
         allCompanies.value = allCompanies.value.filter(c => c.id !== id)
         auth.loadCompanies()
