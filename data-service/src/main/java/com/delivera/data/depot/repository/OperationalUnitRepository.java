@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.delivera.data.common.dto.IdNameProjection;
 import com.delivera.data.depot.dto.B2BUnitResponse;
+import com.delivera.data.depot.dto.UnitAdminSummary;
 import com.delivera.data.depot.model.OperationalUnit;
 /*import com.delivera.data.worker.model.Worker;*/
 
@@ -105,4 +106,25 @@ public interface OperationalUnitRepository extends JpaRepository<OperationalUnit
     WHERE u.companyId = :companyId
     """)
    List<IdNameProjection> findNamesByCompanyId(@Param("companyId") UUID companyId);
+
+
+
+   @Query("""
+    SELECT new com.delivera.data.depot.dto.UnitAdminSummary(
+        u.id,
+        u.name,
+        u.type,
+        u.latitude,
+        u.longitude,
+        u.companyId,
+        u.orgId
+
+    )
+    FROM OperationalUnit u
+    WHERE 
+        u.latitude IS NOT NULL
+        AND
+        u.longitude IS NOT NULL
+    """)
+   List<UnitAdminSummary> findAdminSummaries();
 }

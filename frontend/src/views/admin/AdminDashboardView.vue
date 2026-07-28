@@ -29,6 +29,7 @@ const METRIC_ICONS = {
   totalOrdersThisMonth: 'pi-send',
   totalActiveUsers: 'pi-users',
 }
+const companyAndOrgNamesByCompanyId = ref(null)
 const metrics = ref(null)
 const metricsLoading = ref(false)
 const homeChartData = ref(null)
@@ -97,18 +98,35 @@ const resetError = ref('')
 const resetSuccess = ref(false)
 
 // ── Load functions ────────────────────────────────────────────────────────────
+async function mixMetrics(ordersRes, metricsRes) {
+  const metrics = await metricsRes.json()
+  let ordersThisMonth = '?'
+  if (ordersRes.ok) {
+    ordersThisMonth = await ordersRes.json()
+    metrics.totalOrdersThisMonth = ordersThisMonth
+  } 
+  return metrics
+}
+
+
+
 async function loadHome() {
   metricsLoading.value = true
   homeChartData.value = null
   try {
     // TODO: P009-ADMIN
-    const [metricsRes, chartRes, unitsRes, routesRes] = await Promise.all([
+    const [companyAndOrgNamesRes,
+      ordersRes,metricsRes, chartRes, unitsRes, routesRes
+    ] = await Promise.all([
+      api.get(`/admin/organizations/companies`),
+      dataApi.get('/admin/activity/orders'),
       api.get('/admin/metrics'),
-      api.get('/admin/activity/orders-by-day?period=MONTH'),
-      api.get('/admin/units'),
+      dataApi.get('/admin/activity/orders-by-day?period=MONTH'),
+      dataApi.get('/admin/units'),
       api.get('/admin/routes'),
     ])
-    if (metricsRes.ok) metrics.value = await metricsRes.json()
+    if (companyAndOrgNamesRes.ok) companyAndOrgNamesByCompanyId.value = await companyAndOrgNamesRes.json()
+    if (metricsRes.ok) metrics.value = await mixMetrics(ordersRes,metricsRes)
     if (chartRes.ok) {
       const raw = await chartRes.json()
       const entries = fillDateRange(raw, 'MONTH')
@@ -124,7 +142,7 @@ async function loadHome() {
         }
       }
     }
-    if (unitsRes.ok) mapUnits.value = await unitsRes.json()
+    if (unitsRes.ok) mapUnits.value = mixWithCompanyAndOrgNames(await unitsRes.json())
     if (routesRes.ok) mapRoutes.value = await routesRes.json()
   } finally {
     metricsLoading.value = false
@@ -201,8 +219,8 @@ async function loadActivity() {
   companyRanking.value = []
   try {
     const [metricsRes, chartRes, rankingRes] = await Promise.all([
-      api.get(`/admin/activity?period=${period.value}`),
-      api.get(`/admin/activity/orders-by-day?period=${period.value}`),
+      dataApi.get(`/admin/activity?period=${period.value}`),
+      dataApi.get(`/admin/activity/orders-by-day?period=${period.value}`),
       api.get(`/admin/activity/company-ranking?period=${period.value}`),
     ])
     if (metricsRes.ok) activityMetrics.value = await metricsRes.json()
@@ -238,18 +256,14 @@ function mixCountOrdersWithEntity(dataCount = null, dataEntity) {
     
 }
 
-async function mixOrdersWithCompanyNames(orders) {
-  const request = await api.get(`/admin/organizations/companies`)
-  let data = null
-  if (request.ok) {
-    data = await request.json()
-  }
-  return [...orders].map(order => {
-    order.companyName = data != null 
-      ? data[order.companyId]?.companyName?? '?' : '?'
-    order.orgName = data != null 
-      ? data[order.companyId]?.orgName?? '?' : '?'
-    return order
+function mixWithCompanyAndOrgNames(entities) {
+  const data = companyAndOrgNamesByCompanyId.value ?? null
+  return [...entities].map(entity => {
+    entity.companyName = data != null 
+      ? data[entity.companyId]?.companyName?? '?' : '?'
+      entity.orgName = data != null 
+      ? data[entity.companyId]?.orgName?? '?' : '?'
+    return entity
   })
 
 }
@@ -278,7 +292,7 @@ async function loadEntity(entity) {
       const data = await res.json()
       if (entity === 'organizations') organizations.value = mixCountOrdersWithEntity(dataCount,data)
       else if (entity === 'companies') companies.value = mixCountOrdersWithEntity(dataCount,data)
-      else if (entity === 'orders') orders.value = await mixOrdersWithCompanyNames(data)
+      else if (entity === 'orders') orders.value = mixWithCompanyAndOrgNames(data)
       else if (entity === 'users') users.value = data
       else if (entity === 'workers') workers.value = data
     } else {
