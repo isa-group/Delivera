@@ -151,13 +151,16 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
        // TODO: TERMINAR DE VER
        @Query("""
-       SELECT o.companyId, COUNT(o) 
+       SELECT new com.delivera.data.common.dto.IdCountProjection(
+              o.companyId,
+              COUNT(o)
+       )
        FROM Order o 
        WHERE o.createdAt > :after 
        GROUP BY o.companyId
        ORDER BY COUNT(o) DESC
        """)
-       List<Object[]> rankCompaniesByOrderCount(@Param("after") Instant after);
+       List<IdCountProjection> rankCompaniesByOrderCount(@Param("after") Instant after);
 
        @Modifying
        @Query("DELETE FROM OrderEvent e WHERE e.order.origin.companyId = :companyId")

@@ -221,7 +221,7 @@ async function loadActivity() {
     const [metricsRes, chartRes, rankingRes] = await Promise.all([
       dataApi.get(`/admin/activity?period=${period.value}`),
       dataApi.get(`/admin/activity/orders-by-day?period=${period.value}`),
-      api.get(`/admin/activity/company-ranking?period=${period.value}`),
+      dataApi.get(`/admin/activity/company-ranking?period=${period.value}`),
     ])
     if (metricsRes.ok) activityMetrics.value = await metricsRes.json()
     else activityError.value = t('error.connection')
@@ -238,7 +238,7 @@ async function loadActivity() {
         }],
       }
     }
-    if (rankingRes.ok) companyRanking.value = await rankingRes.json()
+    if (rankingRes.ok) companyRanking.value = mixWithCompanyAndOrgNamesById(await rankingRes.json())
   } catch {
     activityError.value = t('error.connection')
   } finally {
@@ -263,6 +263,18 @@ function mixWithCompanyAndOrgNames(entities) {
       ? data[entity.companyId]?.companyName?? '?' : '?'
       entity.orgName = data != null 
       ? data[entity.companyId]?.orgName?? '?' : '?'
+    return entity
+  })
+
+}
+
+function mixWithCompanyAndOrgNamesById(entities) {
+  const data = companyAndOrgNamesByCompanyId.value ?? null
+  return [...entities].map(entity => {
+    entity.companyName = data != null 
+      ? data[entity.id]?.companyName?? entity.id : entity.id
+      entity.orgName = data != null 
+      ? data[entity.id]?.orgName?? '?' : '?'
     return entity
   })
 
@@ -516,10 +528,10 @@ onUnmounted(destroyMap)
                     <div class="count-bar-wrap">
                       <span
                         class="count-bar"
-                        :style="{ width: Math.min(100, Math.max(0, entry.orderCount / companyRanking[0].orderCount * 100)) + '%' }"
+                        :style="{ width: Math.min(100, Math.max(0, entry.count / companyRanking[0].count * 100)) + '%' }"
                       />
                     </div>
-                    {{ entry.orderCount }}
+                    {{ entry.count }}
                   </div>
                 </td>
               </tr>

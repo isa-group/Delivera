@@ -111,6 +111,7 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.GET, api + "/admin/orders").hasRole("GLOBAL_ADMIN");
                 auth.requestMatchers(HttpMethod.GET, api + "/admin/units").hasRole("GLOBAL_ADMIN");
                 auth.requestMatchers(HttpMethod.GET, api + "/admin/activity").hasRole("GLOBAL_ADMIN");
+                auth.requestMatchers(HttpMethod.GET, api + "/admin/activity/company-ranking").hasRole("GLOBAL_ADMIN");
                 auth.requestMatchers(HttpMethod.GET, api + "/admin/activity/orders").hasRole("GLOBAL_ADMIN");
                 auth.requestMatchers(HttpMethod.GET, api + "/admin/activity/orders-by-day").hasRole("GLOBAL_ADMIN");
 

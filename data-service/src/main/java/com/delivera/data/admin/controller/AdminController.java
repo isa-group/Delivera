@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.delivera.data.activity.dto.ActivityMetricsResponse;
 import com.delivera.data.activity.dto.OrdersByDayEntry;
 import com.delivera.data.admin.service.AdminService;
+import com.delivera.data.common.dto.IdCountProjection;
+import com.delivera.data.common.dto.IdNameProjection;
 import com.delivera.data.depot.dto.UnitAdminSummary;
 import com.delivera.data.order.dto.OrderAdminSummary;
 
@@ -71,6 +73,13 @@ public class AdminController {
     @GetMapping("/units")
     public ResponseEntity<List<UnitAdminSummary>> listUnits() {
         return ResponseEntity.ok(adminService.listUnits());
+    }
+
+    @Operation(summary = "Ranking de empresas por pedidos")
+    @GetMapping("/activity/company-ranking")
+    public ResponseEntity<List<IdCountProjection>> getCompanyRanking(
+            @RequestParam(defaultValue = "MONTH") String period) {
+        return ResponseEntity.ok(adminService.getCompanyRanking(period));
     }
 
 

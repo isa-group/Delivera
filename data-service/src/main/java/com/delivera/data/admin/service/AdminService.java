@@ -94,6 +94,13 @@ public class AdminService {
         return unitRepository.findAdminSummaries();
     }
 
+    
+    @Transactional(readOnly = true)
+    public List<IdCountProjection> getCompanyRanking(String period) {
+        Instant from = periodStart(period);
+        return orderRepository.rankCompaniesByOrderCount(from);
+    }
+
 
     private static Instant periodStart(String period) {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
