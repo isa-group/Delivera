@@ -16,6 +16,7 @@ import com.delivera.data.exception.UnitNameConflictException;
 import com.delivera.data.exception.UnitNotFoundException;
 import com.delivera.data.org.dto.OrgCheckRequest;
 import com.delivera.data.org.service.OrgClient;
+import com.delivera.data.vehicle.repository.VehicleRepository;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -32,18 +33,21 @@ public class UnitService {
     private final OrgClient orgClient;
     private final WorkerRepository workerRepository;
     private final SecurityUtils securityUtils;
+    private final VehicleRepository vehicleRepository;
     //private final SubscriptionService subscriptionService;
 
     public UnitService(OperationalUnitRepository unitRepository,
                        WorkerRepository workerRepository,
                        OrgClient orgClient,
-                       SecurityUtils securityUtils
+                       SecurityUtils securityUtils,
+                       VehicleRepository vehicleRepository
                        //SubscriptionService subscriptionService
                        ) {
         this.unitRepository = unitRepository;
         this.orgClient = orgClient;
         this.workerRepository = workerRepository;
         this.securityUtils = securityUtils;
+        this.vehicleRepository = vehicleRepository;
        // this.subscriptionService = subscriptionService;
     }
 
@@ -205,7 +209,9 @@ public class UnitService {
 
     @Transactional
     public void deleteByCompanyId(UUID companyId) {
+        vehicleRepository.deleteAllFromCompany(companyId);
         unitRepository.deleteAllFromCompany(companyId);
+        
     }
 
     private void applyRequest(OperationalUnit unit, UnitRequest request) {

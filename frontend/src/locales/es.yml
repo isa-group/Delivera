@@ -505,6 +505,7 @@ error:
   LAST_ADMIN: No puedes cambiar el rol del único administrador de la empresa
   VEHICLE_NOT_FOUND: Vehículo no encontrado
   VEHICLE_PLATE_CONFLICT: Ya existe un vehículo con esa matrícula en tu empresa
+  SERVICE_UNAVAILABLE: Servicio no disponible
 
 orgSelect:
   title: Selecciona tu organización

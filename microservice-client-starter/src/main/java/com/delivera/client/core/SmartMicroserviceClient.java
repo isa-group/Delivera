@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 
 import com.delivera.client.config.properties.DeliveraProperties;
@@ -116,6 +117,32 @@ public class SmartMicroserviceClient {
 
     }
 
+    public <R> Mono<ClientResponse<R>> execute(
+        ClientRequestBuilder builder,
+         ParameterizedTypeReference<R> responseType
+    ) {
+
+        AbstractMicroserviceClient client = resolveClient(builder);
+
+        addInternalHeaders(builder);
+
+        validateRequest(builder);
+
+        Map<String, String> headers = new HashMap<>(builder.getHeaders());
+        return extraRequestOptions(builder, 
+            client.exchange(
+                resolveUrl(builder),
+                builder.getMethod(),
+                builder.getBody(),
+                headers,
+                responseType,
+                builder.isFailOn4xx(),
+                builder.isFailOn5xx()
+            )
+        );
+
+    }
+
 
    
        
@@ -128,6 +155,20 @@ public class SmartMicroserviceClient {
             );
 
     }
+
+    public <R> Mono<R> excuteBasicRequest(ClientRequestBuilder builder, 
+        ParameterizedTypeReference<R> responseType) {
+
+        return execute(builder, responseType)
+            .flatMap(resp -> resp.getBody() != null
+                ? Mono.just(resp.getBody())
+                : Mono.empty()
+            );
+
+    }
+
+
+
 
 
 

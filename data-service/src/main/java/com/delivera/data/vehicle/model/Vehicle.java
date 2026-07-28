@@ -1,4 +1,4 @@
-package com.delivera.vehicle.model;
+package com.delivera.data.vehicle.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -8,8 +8,8 @@ import lombok.Setter;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.delivera.depot.model.OperationalUnit;
-import com.delivera.org.model.Company;
+import com.delivera.data.depot.model.OperationalUnit;
+
 
 @Getter
 @Setter
@@ -22,9 +22,8 @@ public class Vehicle {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "company_id", nullable = false)
-    private Company company;
+    private UUID companyId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "depot_id", nullable = false)

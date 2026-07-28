@@ -1,5 +1,6 @@
 package com.delivera.client.proxy;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 
 import com.delivera.client.core.SmartMicroserviceClient;
@@ -102,6 +103,15 @@ public class ClientRequestExecutor {
     
 
     public <R> Mono<ClientResponse<R>> execute(Class<R> responseType) {
+        return client.execute(builder, responseType);
+    }
+
+    public <R> Mono<R> executeBasicRequest(ParameterizedTypeReference<R> responseType) {
+        return client.excuteBasicRequest(builder, responseType);
+    }
+    
+
+    public <R> Mono<ClientResponse<R>> execute(ParameterizedTypeReference<R> responseType) {
         return client.execute(builder, responseType);
     }
 

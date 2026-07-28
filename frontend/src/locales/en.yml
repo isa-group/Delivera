@@ -505,6 +505,7 @@ error:
   LAST_ADMIN: You cannot change the role of the only company administrator
   VEHICLE_NOT_FOUND: Vehicle not found
   VEHICLE_PLATE_CONFLICT: A vehicle with this plate already exists in your company
+  SERVICE_UNAVAILABLE: Service unavailable
 
 orgSelect:
   title: Select your organization

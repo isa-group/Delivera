@@ -38,7 +38,6 @@ public class UnitInternalController {
         @Valid @PathVariable(name = "companyId") UUID companyId,
         @Valid @RequestBody UnitRequest request
     ) {
-        log.info("ENTRO AQUÍ");
         var unit = unitService.createSeed(request, orgId, companyId);
         return ResponseEntity.status(HttpStatus.CREATED).body(unit.id());
     }

@@ -4,18 +4,18 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'
 import { useFormatDate } from '@/composables/useFormatDate'
-import { useResourceList } from '@/composables/useResourceList'
-import { useApi } from '@/composables/useApi'
 import { useAuthStore } from '@/stores/auth'
 import { buildDeleteConfirmOptions } from '@/composables/useConfirmDelete'
+import { useServices } from '@/composables/useServices'
+import { useResourceListFromService } from '@/composables/useResourceListFromService'
 
 const { t } = useI18n()
 const auth = useAuthStore()
 const { formatDate } = useFormatDate()
 const router = useRouter()
-const api = useApi()
+const api = useServices("data-service")
 const confirm = useConfirm()
-const { items: vehicles, loading, error } = useResourceList('/vehicles')
+const { items: vehicles, loading, error } = useResourceListFromService('/vehicles',"data-service")
 
 const deleteError = ref('')
 const filterText = ref('')

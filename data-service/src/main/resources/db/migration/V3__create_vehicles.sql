@@ -1,6 +1,6 @@
 CREATE TABLE vehicles (
     id          UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id  UUID          NOT NULL REFERENCES companies(id),
+    company_id  UUID          NOT NULL ,
     depot_id    UUID          NOT NULL REFERENCES operational_units(id),
     plate       VARCHAR(20)   NOT NULL,
     capacity    INTEGER       NOT NULL,

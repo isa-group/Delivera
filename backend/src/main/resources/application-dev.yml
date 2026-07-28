@@ -88,7 +88,7 @@ server:
 
 app:
   gateway: 
-    enabled: false
+    enabled: true
   cors:
     allowed-origins: http://localhost:3000
   mail:

@@ -1,13 +1,13 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { useApi } from '@/composables/useApi'
 import { useValidation } from '@/composables/useValidation'
+import { useServices } from './useServices'
 
 export function useVehicleForm() {
   const { t } = useI18n()
   const router = useRouter()
-  const api = useApi()
+  const api = useServices("data-service")
   const { validate, required, errors, invalids } = useValidation()
 
   const plate = ref('')
