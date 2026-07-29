@@ -95,7 +95,7 @@ public interface OperationalUnitRepository extends JpaRepository<OperationalUnit
         FROM OperationalUnit u 
         WHERE u.companyId = :companyId
     """)
-    void deleteAllFromCompany(@Param("companyId") UUID companyId);
+    void deleteByCompanyId(@Param("companyId") UUID companyId);
 
     @Query("""
     SELECT new com.delivera.data.common.dto.IdNameProjection(

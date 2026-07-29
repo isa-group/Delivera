@@ -31,6 +31,14 @@ public interface WorkerRepository extends JpaRepository<UnitWorker, UUID>{
         @Param("companyId") UUID companyId
     );
 
+
+    @Modifying
+    @Query("""
+    DELETE FROM UnitWorker w
+    WHERE w.companyId = :companyId  
+    """)
+    void deleteByCompanyId(@Param("companyId") UUID companyId);
+
     @Query("""
         SELECT w.workerId 
         FROM UnitWorker w

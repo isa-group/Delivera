@@ -2,7 +2,7 @@ package com.delivera.org.service;
 
 
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.depot.service.UnitClient;
+import com.delivera.client.exception.ClientException;
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.CompanyHasActiveOrdersException;
 import com.delivera.exception.ForbiddenException;
@@ -28,11 +28,10 @@ import com.delivera.worker.model.WorkerRole;
 import com.delivera.worker.repository.WorkerRepository;
 
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import static com.delivera.order.model.OrderStatus.IN_TRANSIT;
-import static com.delivera.order.model.OrderStatus.PENDING;
 
 import java.util.List;
 import java.util.UUID;
@@ -47,7 +46,6 @@ public class SettingsService {
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
     private final LoyalUserRepository loyalUserRepository;
-    private final UnitClient unitClient;
     private final ActivityTypeRepository activityTypeRepository;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
     private final SecurityUtils securityUtils;
@@ -132,19 +130,26 @@ public class SettingsService {
         if (companyId.equals(current.getId())) {
             throw new ForbiddenException("Cannot delete the company you are currently logged into");
         }
+        /*TODO: DELETE 
         if (!force && orderRepository.existsByCompanyIdAndStatusIn(companyId, List.of(PENDING, IN_TRANSIT))) {
             throw new CompanyHasActiveOrdersException(companyId);
-        }
+        }*/
 
-        orderRepository.deleteEventsByCompanyId(companyId);
-        orderRepository.deleteByCompanyId(companyId);
+       /*  orderRepository.deleteEventsByCompanyId(companyId);
+        orderRepository.deleteByCompanyId(companyId);*/
         for (LoyalUser lu : loyalUserRepository.findByCompanyIdOrderByLinkCreatedAtDesc(companyId)) {
             lu.unlinkFrom(companyId);
             if (lu.getCompanyLinks().isEmpty()) loyalUserRepository.delete(lu);
             else loyalUserRepository.save(lu);
         }
         // TODO: WORKER REPOSITORY DOESN'T DELETE USER ACCOUNT IF IT'S THE WORKER ASSOCIATE TO THAT ACCOUNT.
-        unitClient.deleteAllFromCompany(companyId);
+        try {
+            settingsClient.deleteAllFromCompany(companyId, force);
+        } catch (ClientException e) {
+            throw new CompanyHasActiveOrdersException(companyId);
+           
+        }
+       
         workerRepository.deleteAll(workerRepository.findByCompanyId(companyId));
         companyRepository.delete(target);
     }

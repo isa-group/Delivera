@@ -25,7 +25,6 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
 
     long countByCompanyId(UUID companyId);
 
-    void deleteByCompanyId(UUID companyId);
 
     @Modifying
     @Query("""
@@ -33,5 +32,5 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
         FROM Vehicle v 
         WHERE v.companyId = :companyId
     """)
-    void deleteAllFromCompany(@Param("companyId") UUID companyId);
+    void deleteByCompanyId(@Param("companyId") UUID companyId);
 }

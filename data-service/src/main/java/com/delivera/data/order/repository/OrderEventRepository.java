@@ -15,6 +15,12 @@ public interface OrderEventRepository extends JpaRepository<OrderEvent, UUID> {
     @Query("DELETE FROM OrderEvent e WHERE e.order.id = :orderId")
     void deleteByOrderId(@Param("orderId") UUID orderId);
 
+
+    
+    @Modifying
+    @Query("DELETE FROM OrderEvent e WHERE e.order.companyId = :companyId")
+    void deleteByCompanyId(@Param("companyId") UUID companyId);
+
     @Modifying
     @Query("DELETE FROM OrderEvent e")
     void deleteAllEvents();

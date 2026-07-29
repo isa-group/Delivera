@@ -1,11 +1,11 @@
 package com.delivera.org.service;
 
+import java.util.UUID;
+
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
 import com.delivera.client.core.SmartMicroserviceClient;
-import com.delivera.order.dto.DataOrderRequest;
-import com.delivera.order.dto.OrderResponse;
 import com.delivera.org.dto.CompanySettingsDTO;
 
 import lombok.RequiredArgsConstructor;
@@ -48,5 +48,21 @@ public class SettingsClient {
         .log()
         .executeBasicRequest(Void.class)
         .block();
+    }
+
+    public void deleteAllFromCompany(UUID companyId, Boolean confirmation) {
+        client.request()
+        .service("data-service")
+        .path("/internal/settings/"+companyId)
+        .method(HttpMethod.DELETE)
+        .body(confirmation)
+        .mtls()
+        .internal()
+        .failOn4xx(true)
+        .failOn5xx(true)
+        .retry(RETRIRES)
+        .timeout(TIMEOUT)
+        .log()
+        .executeBasicRequest(Void.class).block();
     }
 }
