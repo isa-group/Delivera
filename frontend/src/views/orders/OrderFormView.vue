@@ -1,8 +1,18 @@
 <script setup>
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useOrderForm } from '@/composables/useOrderForm'
+import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM_REGION } from '@/constants/map'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
+import { customerIcon } from '@/composables/useDeliveraMap'
+
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow })
 
 const { t } = useI18n()
 const router = useRouter()
@@ -15,8 +25,96 @@ const {
   destinationOptions, organizations,companyUnits, handleSubmit,
 } = useOrderForm()
 
+const mapEl = ref(null)
+let map = null
+let marker = null
 const geocoding = ref(false)
 const geocodeError = ref('')
+const locationLocked = ref(false)
+
+function placeMarker(lat, lng) {
+  if (marker) map.removeLayer(marker)
+  marker = L.marker([lat, lng], { draggable: !locationLocked.value, icon: customerIcon() }).addTo(map)
+  marker.on('dragend', async (e) => {
+    if (locationLocked.value) return
+    const pos = e.target.getLatLng()
+    recipientLatitude.value = pos.lat.toFixed(6)
+    recipientLongitude.value = pos.lng.toFixed(6)
+    await reverseGeocode(pos.lat, pos.lng)
+  })
+}
+
+async function reverseGeocode(lat, lng) {
+  geocoding.value = true
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+      { headers: { 'Accept-Language': 'es' }, signal: AbortSignal.timeout(5000) }
+    )
+    if (res.ok) {
+      const data = await res.json()
+      if (data.display_name) {
+        recipientAddress.value = data.display_name
+      }
+    }
+  } catch {
+    // silencioso
+  } finally {
+    geocoding.value = false
+  }
+}
+
+
+function initMap() {
+  if (!mapEl.value || map) return
+  const initLat = recipientLatitude.value ? Number.parseFloat(recipientLatitude.value) : MAP_DEFAULT_CENTER[0]
+  const initLng = recipientLongitude.value ? Number.parseFloat(recipientLongitude.value) : MAP_DEFAULT_CENTER[1]
+  const initZoom = recipientLatitude.value ? 13 : MAP_DEFAULT_ZOOM_REGION
+
+  map = L.map(mapEl.value).setView([initLat, initLng], initZoom)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(map)
+
+  if (recipientLatitude.value && recipientLongitude.value) {
+    placeMarker(Number.parseFloat(recipientLatitude.value), Number.parseFloat(recipientLongitude.value))
+  }
+
+  // Click en el mapa para establecer coordenadas (solo si no está bloqueado)
+  
+  map.on('click', async (e) => {
+    if (locationLocked.value) return
+    const { lat, lng } = e.latlng
+    recipientLatitude.value = lat.toFixed(6)
+    recipientLongitude.value = lng.toFixed(6)
+    placeMarker(lat, lng)
+    await reverseGeocode(lat, lng)
+  })
+}
+
+// Cuando cambien lat/lon manualmente, mover el marcador
+watch([recipientLatitude, recipientLongitude], ([lat, lng]) => {
+  if (!map || !lat || !lng) return
+  const parsedLat = Number.parseFloat(lat)
+  const parsedLng = Number.parseFloat(lng)
+  if (Number.isNaN(parsedLat) || Number.isNaN(parsedLng)) return
+  placeMarker(parsedLat, parsedLng)
+  map.setView([parsedLat, parsedLng], map.getZoom() < 10 ? 13 : map.getZoom())
+})
+onMounted(async () => {
+  // Iniciar mapa primero, luego cargar datos
+  await new Promise(r => setTimeout(r, 50)) // aguardar el DOM
+  initMap()
+  // Cargar lock de prioridad de la empresa para deshabilitar el campo si procede
+})
+
+watch(orderType, async (value) => {
+  if (value !== 'B2C') return
+
+  setTimeout(() => {
+    map?.invalidateSize()
+  }, 100)
+})
 
 const typeOptions = computed(() => [
   { label: t('orders.type.INTERNAL'), value: 'INTERNAL' },
@@ -60,229 +158,258 @@ async function geocodeAddress() {
     geocoding.value = false
   }
 }
+
+onBeforeRouteLeave(() => { if (map) { map.remove(); map = null; marker = null } })
+
+onUnmounted(() => { if (map) { map.remove(); map = null; marker = null } })
 </script>
 
+
 <template>
-  <form class="surface-card card-wide"
-    :class="{'surface-card order-type-card': !orderType}"
-   @submit.prevent="handleSubmit">
-    <PButton
-      type="button"
-      text
-      severity="secondary"
-      icon="pi pi-arrow-left"
-      class="form-back-btn"
-      @click="router.push('/orders')"
-    />
-    
+  <div
+    :class="{'order-form-page' : orderType === 'B2C'}">
+    <div
+      :class="{'order-form-layout' : orderType === 'B2C'}"
+    >
 
-    <h1>{{ t('orders.title') }}</h1>
-
-    
-
-    <PMessage v-if="loadError" severity="error" :closable="false" class="form-message">{{ loadError }}</PMessage>
-    <PMessage v-else-if="units.length < 1 && !loadError" severity="warn" :closable="false" class="form-message">{{ t('orders.noUnits') }}</PMessage>
-      
-      <template v-else-if="orderType">
-      <!-- Tipo de pedido -->
-      <div class="form-field">
-        <label for="order-type">{{ t('orders.orderType') }}</label>
-        <SelectButton id="order-type" v-model="orderType" :options="typeOptions" option-label="label" option-value="value" />
-      </div>
-
-
-      <!-- Origen (siempre) -->
-  
-        <div class="form-field">
-          <label for="order-origin">{{ t('orders.origin') }}</label>
-          <PSelect
-            id="order-origin"
-            v-model="originId"
-            :options="units"
-            option-label="name"
-            option-value="id"
-            :placeholder="t('orders.originPlaceholder')"
-            :invalid="!!invalids.originId"
-            fluid
-          />
-        </div>
-      <!-- INTERNAL: unidad de destino -->
-      <template v-if="orderType === 'INTERNAL'">
-        <div class="form-field">
-          <label for="order-destination">{{ t('orders.destination') }}</label>
-          <PSelect
-            id="order-destination"
-            v-model="destinationId"
-            :options="destinationOptions"
-            option-label="name"
-            option-value="id"
-            :placeholder="t('orders.destinationPlaceholder')"
-            :empty-message="t('orders.noDestinationOptions')"
-            :invalid="!!invalids.destinationId"
-            fluid
-          />
-        </div>
-      </template>
-
-      <!-- B2C: email + nombre -->
-      <template v-else-if="orderType === 'B2C'">
-        <div class="form-field">
-          <label for="order-email">{{ t('orders.recipientEmail') }}</label>
-          <PInputText
-            id="order-email"
-            v-model="recipientEmail"
-            :placeholder="t('orders.recipientEmailPlaceholder')"
-            :invalid="!!invalids.recipientEmail"
-            type="email"
-            fluid
-          />
-          <small v-if="errors.recipientEmail" class="field-error">{{ errors.recipientEmail }}</small>
-          <small v-else-if="loyalUserMatch" class="field-hint">
-            <i class="pi pi-check-circle" /> {{ t('orders.loyalUserExists') }}
-          </small>
-        </div>
-        <div class="form-field">
-          <label for="order-name">{{ t('orders.recipientName') }}</label>
-          <PInputText
-            id="order-name"
-            v-model="recipientName"
-            :placeholder="t('orders.recipientNamePlaceholder')"
-            fluid
-          />
-        </div>
-        <div class="form-field">
-          <label for="order-address">{{ t('fields.address') }}</label>
-          <div class="address-row ">
-            <PInputText
-              id="order-address"
-              v-model="recipientAddress"
-              :placeholder="t('fields.addressPlaceholder')"
-              :invalid="!!invalids.recipientAddress"
-              maxlength="500"
-              fluid
-            />
-            <PButton
-                type="button"
-                icon="pi pi-search"
-                severity="secondary"
-                :loading="geocoding"
-                :disabled="locationLocked"
-                @click="geocodeAddress"
-                v-tooltip="t('units.geocodeSearch')"
-              />
-            <small v-if="errors.recipientAddress" class="field-error">{{ errors.recipientAddress }}</small>
-            <small v-if="geocodeError" class="field-error">{{ geocodeError }}</small>
-          </div>
-          <div class="addr-geo">
-            <PButton type="button" :label="t('profile.useCurrentLocation')" icon="pi pi-map-marker" severity="secondary" outlined size="small" :loading="locating" @click="captureLocation" />
-            <small v-if="recipientLatitude" class="field-hint">{{ recipientLatitude }}, {{ recipientLongitude }}</small>
-          </div>
-        </div>
-      </template>
-
-      <!-- B2B: organización destino + unidad destino -->
-      <template v-else>
-        <div class="form-field">
-          <label for="order-b2b-org">{{ t('orders.destinationOrg') }}</label>
-          <PSelect
-            id="order-b2b-org"
-            v-model="b2bOrgId"
-            :options="organizations"
-            option-label="name"
-            option-value="id"
-            :placeholder="t('orders.destinationOrgPlaceholder')"
-            :empty-message="t('orders.noB2bOrgs')"
-            :invalid="!!invalids.b2bOrgId"
-            fluid
-          />
-          <label for="order-b2b-company">{{ t('orders.destinationCompany') }}</label>
-          <PSelect 
-            id="order-b2b-company"
-            v-model="b2bCompanyId"
-            :options="organizationCompanies"
-            option-label="name"
-            option-value="id"
-            :placeholder="t('orders.destinationOrgPlaceholder')"
-            :empty-message="t('orders.noB2bOrgs')"
-            :invalid="!!invalids.b2bCompanyId"
-            :disabled="!(b2bOrgId)"
-            fluid
-          />
-        </div>
-        <div class="form-field">
-          <label for="order-b2b-unit">{{ t('orders.destinationUnit') }}</label>
-          <PSelect
-            id="order-b2b-unit"
-            v-model="b2bDestinationId"
-            :options="companyUnits"
-            option-label="name"
-            option-value="id"
-            :placeholder="t('orders.destinationUnitPlaceholder')"
-            :empty-message="t('orders.noDestinationOptions')"
-            :invalid="!!invalids.b2bDestinationId"
-            :disabled="!(b2bOrgId && b2bCompanyId)"
-            fluid
-          />
-        </div>
-      </template>
-
-      <!-- Prioridad -->
-      <template v-if="orderType">
-        <div class="form-field">
-          <label for="order-priority">{{ t('orders.priority.label') }}</label>
-          <PSelect
-            id="order-priority"
-            v-model="priority"
-            :options="priorityOptions"
-            option-label="label"
-            option-value="value"
-            fluid
-          />
-        </div>
-
-        <!-- Notas -->
-        <div class="form-field">
-          <label for="order-notes">{{ t('orders.notes') }}</label>
-          <PTextarea
-            id="order-notes"
-            v-model="notes"
-            :placeholder="t('orders.notesPlaceholder')"
-            rows="3"
-            fluid
-          />
-        </div>
-
-        <PMessage v-if="error" severity="error" :closable="false" class="form-message">{{ error }}</PMessage>
-
+      <!-- Formulario -->
+      <form  class="surface-card order-form-card"
+        :class="{
+          'surface-card order-form-card-map' : orderType === 'B2C',
+          'surface-card order-type-card': !orderType
+        }"
+        @submit.prevent="handleSubmit">
         <PButton
-          type="submit"
-          :label="loading ? t('common.loading') : t('common.save')"
-          :loading="loading"
-          fluid
-          class="submit-btn"
+          type="button"
+          text
+          severity="secondary"
+          icon="pi pi-arrow-left"
+          class="form-back-btn"
+          @click="router.push('/orders')"
         />
-      </template>
-    </template>
-    <template v-else>
-        <div class="wrapper-select-type-div">
-          <div class="select-type-div"
-            @click="orderType='INTERNAL'"
-          >
-            <h2>{{ t('orders.type.INTERNAL')}}</h2>
+        
+        <h1>{{ t('orders.title') }}</h1>
+
+        
+
+        <PMessage v-if="loadError" severity="error" :closable="false" class="form-message">{{ loadError }}</PMessage>
+        <PMessage v-else-if="units.length < 1 && !loadError" severity="warn" :closable="false" class="form-message">{{ t('orders.noUnits') }}</PMessage>
+          
+          <template v-else-if="orderType">
+          <!-- Tipo de pedido -->
+          <div class="form-field">
+            <label for="order-type">{{ t('orders.orderType') }}</label>
+            <SelectButton id="order-type" v-model="orderType" :options="typeOptions" option-label="label" option-value="value" />
           </div>
-          <div class="select-type-div"
-            @click="orderType='B2C'"
-          >
-            <h2>{{ t('orders.type.B2C')}}</h2>
-          </div>
-          <div class="select-type-div"
-            @click="orderType='B2B'"
-          >
-            <h2>{{ t('orders.type.B2B')}}</h2>
-          </div>
+
+
+          <!-- Origen (siempre) -->
+      
+            <div class="form-field">
+              <label for="order-origin">{{ t('orders.origin') }}</label>
+              <PSelect
+                id="order-origin"
+                v-model="originId"
+                :options="units"
+                option-label="name"
+                option-value="id"
+                :placeholder="t('orders.originPlaceholder')"
+                :invalid="!!invalids.originId"
+                fluid
+              />
+            </div>
+          <!-- INTERNAL: unidad de destino -->
+          <template v-if="orderType === 'INTERNAL'">
+            <div class="form-field">
+              <label for="order-destination">{{ t('orders.destination') }}</label>
+              <PSelect
+                id="order-destination"
+                v-model="destinationId"
+                :options="destinationOptions"
+                option-label="name"
+                option-value="id"
+                :placeholder="t('orders.destinationPlaceholder')"
+                :empty-message="t('orders.noDestinationOptions')"
+                :invalid="!!invalids.destinationId"
+                fluid
+              />
+            </div>
+          </template>
+
+          <!-- B2C: email + nombre -->
+          <template v-else-if="orderType === 'B2C'">
+            <div class="form-field">
+              <label for="order-email">{{ t('orders.recipientEmail') }}</label>
+              <PInputText
+                id="order-email"
+                v-model="recipientEmail"
+                :placeholder="t('orders.recipientEmailPlaceholder')"
+                :invalid="!!invalids.recipientEmail"
+                type="email"
+                fluid
+              />
+              <small v-if="errors.recipientEmail" class="field-error">{{ errors.recipientEmail }}</small>
+              <small v-else-if="loyalUserMatch" class="field-hint">
+                <i class="pi pi-check-circle" /> {{ t('orders.loyalUserExists') }}
+              </small>
+            </div>
+            <div class="form-field">
+              <label for="order-name">{{ t('orders.recipientName') }}</label>
+              <PInputText
+                id="order-name"
+                v-model="recipientName"
+                :placeholder="t('orders.recipientNamePlaceholder')"
+                fluid
+              />
+            </div>
+            <div class="form-field">
+              <label for="order-address">{{ t('fields.address') }}</label>
+              <div class="address-row ">
+                <PInputText
+                  id="order-address"
+                  v-model="recipientAddress"
+                  :placeholder="t('fields.addressPlaceholder')"
+                  :invalid="!!invalids.recipientAddress"
+                  maxlength="500"
+                  fluid
+                />
+                <PButton
+                    type="button"
+                    icon="pi pi-search"
+                    severity="secondary"
+                    :loading="geocoding"
+                    :disabled="locationLocked"
+                    @click="geocodeAddress"
+                    v-tooltip="t('units.geocodeSearch')"
+                  />
+                <small v-if="errors.recipientAddress" class="field-error">{{ errors.recipientAddress }}</small>
+                <small v-if="geocodeError" class="field-error">{{ geocodeError }}</small>
+              </div>
+              <div class="addr-geo">
+                <PButton type="button" :label="t('profile.useCurrentLocation')" icon="pi pi-map-marker" severity="secondary" outlined size="small" :loading="locating" @click="captureLocation" />
+                <small v-if="recipientLatitude" class="field-hint">{{ recipientLatitude }}, {{ recipientLongitude }}</small>
+              </div>
+            </div>
+          </template>
+
+          <!-- B2B: organización destino + unidad destino -->
+          <template v-else>
+            <div class="form-field">
+              <label for="order-b2b-org">{{ t('orders.destinationOrg') }}</label>
+              <PSelect
+                id="order-b2b-org"
+                v-model="b2bOrgId"
+                :options="organizations"
+                option-label="name"
+                option-value="id"
+                :placeholder="t('orders.destinationOrgPlaceholder')"
+                :empty-message="t('orders.noB2bOrgs')"
+                :invalid="!!invalids.b2bOrgId"
+                fluid
+              />
+              <label for="order-b2b-company">{{ t('orders.destinationCompany') }}</label>
+              <PSelect 
+                id="order-b2b-company"
+                v-model="b2bCompanyId"
+                :options="organizationCompanies"
+                option-label="name"
+                option-value="id"
+                :placeholder="t('orders.destinationOrgPlaceholder')"
+                :empty-message="t('orders.noB2bOrgs')"
+                :invalid="!!invalids.b2bCompanyId"
+                :disabled="!(b2bOrgId)"
+                fluid
+              />
+            </div>
+            <div class="form-field">
+              <label for="order-b2b-unit">{{ t('orders.destinationUnit') }}</label>
+              <PSelect
+                id="order-b2b-unit"
+                v-model="b2bDestinationId"
+                :options="companyUnits"
+                option-label="name"
+                option-value="id"
+                :placeholder="t('orders.destinationUnitPlaceholder')"
+                :empty-message="t('orders.noDestinationOptions')"
+                :invalid="!!invalids.b2bDestinationId"
+                :disabled="!(b2bOrgId && b2bCompanyId)"
+                fluid
+              />
+            </div>
+          </template>
+
+          <!-- Prioridad -->
+          <template v-if="orderType">
+            <div class="form-field">
+              <label for="order-priority">{{ t('orders.priority.label') }}</label>
+              <PSelect
+                id="order-priority"
+                v-model="priority"
+                :options="priorityOptions"
+                option-label="label"
+                option-value="value"
+                fluid
+              />
+            </div>
+
+            <!-- Notas -->
+            <div class="form-field">
+              <label for="order-notes">{{ t('orders.notes') }}</label>
+              <PTextarea
+                id="order-notes"
+                v-model="notes"
+                :placeholder="t('orders.notesPlaceholder')"
+                rows="3"
+                fluid
+              />
+            </div>
+
+            <PMessage v-if="error" severity="error" :closable="false" class="form-message">{{ error }}</PMessage>
+
+            <PButton
+              type="submit"
+              :label="loading ? t('common.loading') : t('common.save')"
+              :loading="loading"
+              fluid
+              class="submit-btn"
+            />
+          </template>
+        </template>
+        <template v-else>
+            <div class="wrapper-select-type-div">
+              <div class="select-type-div"
+                @click="orderType='INTERNAL'"
+              >
+                <h2>{{ t('orders.type.INTERNAL')}}</h2>
+              </div>
+              <div class="select-type-div"
+                @click="orderType='B2C'"
+              >
+                <h2>{{ t('orders.type.B2C')}}</h2>
+              </div>
+              <div class="select-type-div"
+                @click="orderType='B2B'"
+              >
+                <h2>{{ t('orders.type.B2B')}}</h2>
+              </div>
+            </div>
+        </template>
+      </form>
+
+      <!-- Mapa -->
+      
+      <div v-show="orderType === 'B2C'" class="order-map-panel">
+        <div ref="mapEl" class="order-map-el" />
+
+        <div class="map-hint-overlay">
+          <i class="pi pi-info-circle" />
+          {{ t('units.mapClickHint') }}
         </div>
-    </template>
-  </form>
+      </div>
+    </div>
+    
+  </div>
+  
 </template>
 
 <style scoped src="./OrderFormView.css"></style>
