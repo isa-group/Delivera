@@ -49,6 +49,7 @@ public class SecurityConfig {
                 auth.requestMatchers(api + "/internal/auth/seed/register").permitAll(); // Only in dev
                 auth.requestMatchers(api + "/internal/auth/register").permitAll();
                 auth.requestMatchers(HttpMethod.PUT,api + "/internal/auth/username").permitAll();
+                auth.requestMatchers(HttpMethod.DELETE,api + "/internal/auth/user").permitAll();
                 auth.requestMatchers(HttpMethod.DELETE,api + "/internal/auth/user/**").permitAll();
                 auth.requestMatchers(HttpMethod.POST,api + "/auth/switch-company").authenticated();
                 auth.requestMatchers(HttpMethod.PUT,api + "/auth/password").authenticated();

@@ -1,5 +1,6 @@
 package com.delivera.auth.service;
 
+import java.util.Set;
 import java.util.UUID;
 
 import com.delivera.auth.dto.DeliveraOrgContext;
@@ -28,4 +29,6 @@ public interface AuthService {
     Credential changeUsername(UUID userId, String username);
 
     void delete(UUID userId);
+
+    void deleteUsers(Set<UUID> userIds);
 }

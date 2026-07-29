@@ -1,6 +1,7 @@
 package com.delivera.auth.service;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -251,7 +252,12 @@ public class AuthServiceImpl implements AuthService {
      }
 
 
-
-
+     @Override
+     @Transactional
+     public void deleteUsers(Set<UUID> userIds) {
+        if (!userIds.isEmpty()) {
+            credentialRepository.deleteUsers(userIds);
+        }
+     }
    
 }

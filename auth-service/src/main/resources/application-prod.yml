@@ -44,6 +44,7 @@ delivera:
         allowed-paths: 
           - /internal/auth/register
           - /internal/auth/user/**
+          - /internal/auth/user
           - /internal/auth/username
           - /internal/auth/seed/register
           - /internal/auth/seed/register

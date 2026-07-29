@@ -1,7 +1,6 @@
 package com.delivera.service;
 
 import com.delivera.depot.repository.OperationalUnitRepository;
-import com.delivera.dto.activity.ActivityMetricsResponse;
 import com.delivera.dto.admin.*;
 import com.delivera.exception.ForbiddenException;
 import com.delivera.model.*;
@@ -23,7 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.sql.Date;
+
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -160,18 +159,6 @@ public class AdminService {
                         w.getCreatedAt()))
                 .toList();
     }
-
-   /*TODO:P009-ADMIN @Transactional(readOnly = true)
-    public ActivityMetricsResponse getGlobalActivityMetrics(String period) {
-        Instant from = periodStart(period);
-        return new ActivityMetricsResponse(
-                period,
-                orderRepository.countByCreatedAtAfter(from),
-                orderRepository.countByStatusAndCreatedAtAfter(OrderStatus.DELIVERED, from),
-                orderRepository.countByStatusAndCreatedAtAfter(OrderStatus.CANCELLED, from),
-                orderRepository.countByStatusInAndCreatedAtAfter(List.of(OrderStatus.PENDING, OrderStatus.IN_TRANSIT), from),
-                0L);
-    }*/
 
     @Transactional(readOnly = true)
     public List<UnitAdminSummary> listUnits() {

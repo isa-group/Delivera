@@ -1,6 +1,7 @@
 package com.delivera.org.service;
 
 
+import com.delivera.auth.service.AuthClient;
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.client.exception.ClientException;
 import com.delivera.exception.CompanyContextException;
@@ -9,7 +10,6 @@ import com.delivera.exception.ForbiddenException;
 import com.delivera.exception.HandleConflictException;
 import com.delivera.exception.UserNotFoundException;
 import com.delivera.model.*;
-import com.delivera.order.repository.OrderRepository;
 import com.delivera.org.dto.CompanyCreateRequest;
 import com.delivera.org.dto.CompanySettingsDTO;
 import com.delivera.org.dto.CompanySummary;
@@ -34,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -44,7 +45,6 @@ public class SettingsService {
     private final OrganizationRepository organizationRepository;
     private final WorkerRepository workerRepository;
     private final UserRepository userRepository;
-    private final OrderRepository orderRepository;
     private final LoyalUserRepository loyalUserRepository;
     private final ActivityTypeRepository activityTypeRepository;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
@@ -52,6 +52,7 @@ public class SettingsService {
     private final SubscriptionService subscriptionService;
     private final AppConfigService appConfigService;
     private final SettingsClient settingsClient;
+    private final AuthClient authClient;
 
     private Company currentCompany() {
         return companyRepository.findById(securityUtils.getCurrentCompanyId())
@@ -130,28 +131,21 @@ public class SettingsService {
         if (companyId.equals(current.getId())) {
             throw new ForbiddenException("Cannot delete the company you are currently logged into");
         }
-        /*TODO: DELETE 
-        if (!force && orderRepository.existsByCompanyIdAndStatusIn(companyId, List.of(PENDING, IN_TRANSIT))) {
-            throw new CompanyHasActiveOrdersException(companyId);
-        }*/
-
-       /*  orderRepository.deleteEventsByCompanyId(companyId);
-        orderRepository.deleteByCompanyId(companyId);*/
+       
         for (LoyalUser lu : loyalUserRepository.findByCompanyIdOrderByLinkCreatedAtDesc(companyId)) {
             lu.unlinkFrom(companyId);
             if (lu.getCompanyLinks().isEmpty()) loyalUserRepository.delete(lu);
             else loyalUserRepository.save(lu);
         }
-        // TODO: WORKER REPOSITORY DOESN'T DELETE USER ACCOUNT IF IT'S THE WORKER ASSOCIATE TO THAT ACCOUNT.
+        Set<UUID> userIds = workerRepository.findAccountsToDelete(target.getOrganization().getId(), target.getId());
+        workerRepository.deleteByCompanyId(companyId);
+        companyRepository.delete(target);
         try {
             settingsClient.deleteAllFromCompany(companyId, force);
         } catch (ClientException e) {
             throw new CompanyHasActiveOrdersException(companyId);
-           
         }
-       
-        workerRepository.deleteAll(workerRepository.findByCompanyId(companyId));
-        companyRepository.delete(target);
+        authClient.deleteUsers(userIds);
     }
 
     @Transactional(readOnly = true)
