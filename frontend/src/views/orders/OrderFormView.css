@@ -43,3 +43,6 @@
     min-height: 350px;
     padding: 2rem;
 }
+
+.address-row { display: flex; gap: 6px; align-items: center; }
+.address-row :deep(.p-inputtext) { flex: 1; }

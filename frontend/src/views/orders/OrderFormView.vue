@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useOrderForm } from '@/composables/useOrderForm'
@@ -15,6 +15,9 @@ const {
   destinationOptions, organizations,companyUnits, handleSubmit,
 } = useOrderForm()
 
+const geocoding = ref(false)
+const geocodeError = ref('')
+
 const typeOptions = computed(() => [
   { label: t('orders.type.INTERNAL'), value: 'INTERNAL' },
   { label: t('orders.type.B2C'),      value: 'B2C' },
@@ -26,9 +29,38 @@ const priorityOptions = computed(() => [
   { label: t('orders.priority.NORMAL'), value: 'NORMAL' },
   { label: t('orders.priority.LOW'),    value: 'LOW' },
 ])
+
+async function geocodeAddress() {
+  if (!recipientAddress.value.trim()) return
+  geocoding.value = true
+  geocodeError.value = ''
+  try {
+    const q = encodeURIComponent(recipientAddress.value.trim())
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`,
+      { headers: { 'Accept-Language': 'es' }, signal: AbortSignal.timeout(5000) }
+    )
+    if (res.ok) {
+      const data = await res.json()
+      if (data.length > 0) {
+        const { lat, lon } = data[0]
+        recipientLatitude.value = Number.parseFloat(lat).toFixed(6)
+        recipientLongitude.value = Number.parseFloat(lon).toFixed(6)
+        /*if (map) {
+          placeMarker(Number.parseFloat(lat), Number.parseFloat(lon))
+          map.setView([Number.parseFloat(lat), Number.parseFloat(lon)], 15)
+        }*/
+      } else {
+        geocodeError.value = 'units.geocodeNotFound'
+      }
+    }
+  } catch {
+    // silencioso
+  } finally {
+    geocoding.value = false
+  }
+}
 </script>
-
-
 
 <template>
   <form class="surface-card card-wide"
@@ -120,15 +152,27 @@ const priorityOptions = computed(() => [
         </div>
         <div class="form-field">
           <label for="order-address">{{ t('fields.address') }}</label>
-          <PInputText
-            id="order-address"
-            v-model="recipientAddress"
-            :placeholder="t('fields.addressPlaceholder')"
-            :invalid="!!invalids.recipientAddress"
-            maxlength="500"
-            fluid
-          />
-          <small v-if="errors.recipientAddress" class="field-error">{{ errors.recipientAddress }}</small>
+          <div class="address-row ">
+            <PInputText
+              id="order-address"
+              v-model="recipientAddress"
+              :placeholder="t('fields.addressPlaceholder')"
+              :invalid="!!invalids.recipientAddress"
+              maxlength="500"
+              fluid
+            />
+            <PButton
+                type="button"
+                icon="pi pi-search"
+                severity="secondary"
+                :loading="geocoding"
+                :disabled="locationLocked"
+                @click="geocodeAddress"
+                v-tooltip="t('units.geocodeSearch')"
+              />
+            <small v-if="errors.recipientAddress" class="field-error">{{ errors.recipientAddress }}</small>
+            <small v-if="geocodeError" class="field-error">{{ geocodeError }}</small>
+          </div>
           <div class="addr-geo">
             <PButton type="button" :label="t('profile.useCurrentLocation')" icon="pi pi-map-marker" severity="secondary" outlined size="small" :loading="locating" @click="captureLocation" />
             <small v-if="recipientLatitude" class="field-hint">{{ recipientLatitude }}, {{ recipientLongitude }}</small>
