@@ -6,12 +6,29 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
+import java.util.Map;
 
 public record RoutingRequest(
         @NotBlank String problemId,
         @NotEmpty @Valid List<DepotDto> depots,
         @NotEmpty @Valid List<CustomerDto> customers,
         @Valid List<VehicleDto> vehicles,
-        @NotNull double[][] distanceMatrix
+        @NotNull double[][] distanceMatrix,
+
+        // Parametros del solver. Este motor solo reconoce 'seed'.
+        Map<String, Object> parameters
 ) {
+
+    // Semilla del barajado, o null si no se ha fijado y cada ejecucion debe diferir.
+    public Long seed() {
+        Object raw = (parameters != null) ? parameters.get("seed") : null;
+        if (raw instanceof Number value) {
+            return value.longValue();
+        }
+        try {
+            return (raw != null) ? Long.valueOf(String.valueOf(raw)) : null;
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
 }
