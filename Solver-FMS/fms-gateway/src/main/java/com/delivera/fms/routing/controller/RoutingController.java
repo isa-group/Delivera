@@ -35,7 +35,9 @@ public class RoutingController {
     @Operation(summary = "Resolver problema de ruteo",
             description = "Resuelve un problema de ruteo de vehiculos con capacidad para multiples almacenes (MD-CVRP) " +
                     "utilizando el solver especificado en la solicitud. " +
-                    "Devuelve las rutas optimizadas con sus vehiculos, paradas, distancias y cargas.")
+                    "Devuelve las rutas optimizadas con sus vehiculos, paradas, distancias y cargas. " +
+                    "Los parametros del solver que no se envien se completan con los valores por defecto " +
+                    "declarados en sus metadatos.")
     @ApiResponse(responseCode = "200", description = "Problema resuelto correctamente",
             content = @Content(
                     mediaType = "application/json",
@@ -51,10 +53,15 @@ public class RoutingController {
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = RoutingRequest.class),
-                            examples = @ExampleObject(
-                                    name = "MD-CVRP (2 depositos, 5 clientes)",
-                                    description = "Instancia lista para ejecutar: matriz 7x7 consistente con los indices de los nodos",
-                                    value = OpenApiExamples.SOLVE_REQUEST)))
+                            examples = {
+                                    @ExampleObject(
+                                            name = "MD-CVRP (2 depositos, 5 clientes)",
+                                            description = "Instancia lista para ejecutar: matriz 7x7 consistente con los indices de los nodos",
+                                            value = OpenApiExamples.SOLVE_REQUEST),
+                                    @ExampleObject(
+                                            name = "MD-CVRP con parametros del solver",
+                                            description = "Misma instancia con duracion maxima y tiempos de servicio, resuelta por el motor genetico con parametros propios y semilla fija",
+                                            value = OpenApiExamples.SOLVE_REQUEST_TUNED)}))
             @Valid @RequestBody RoutingRequest request) {
         validateConsistency(request);
         RoutingResponse response = engineDispatcher.dispatch(request);

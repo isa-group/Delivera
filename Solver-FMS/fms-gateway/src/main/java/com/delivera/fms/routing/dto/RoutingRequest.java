@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
+import java.util.Map;
 
 @Schema(description = "Solicitud de resolucion de un problema de ruteo de vehiculos")
 public record RoutingRequest(
@@ -35,6 +36,23 @@ public record RoutingRequest(
         @NotNull double[][] distanceMatrix,
 
         @Schema(description = "Tipo de solver a utilizar para la resolucion")
-        @NotNull TypeSolver solverType
+        @NotNull TypeSolver solverType,
+
+        @Schema(description = "Parametros de invocacion del solver, por nombre. Los que no se envien " +
+                "toman su valor por defecto. Cada solver publica los que admite, con su significado, " +
+                "rango y valor por defecto, en GET /api/v1/fms/solvers/{type}: RANDOM acepta 'seed', " +
+                "GREEDY ninguno y GENETIC catorce (populationSize, maxEvaluations, minGenerations, " +
+                "crossoverProbability, intraDepotMutationProbability, interDepotMutationProbability, " +
+                "elitismCount, tournamentSize, localSearchFrequency, interDepotFrequency, " +
+                "restartStagnantGenerations, maxRestarts, heuristicSeedRatio y seed). " +
+                "Un parametro no declarado se ignora con un aviso; uno fuera de rango rechaza la peticion",
+                example = "{\"populationSize\": 200, \"seed\": 42}")
+        Map<String, Object> parameters
 ) {
+
+    /** Copia con los parametros ya resueltos contra los metadatos del solver. */
+    public RoutingRequest withParameters(Map<String, Object> resolved) {
+        return new RoutingRequest(problemId, depots, customers, vehicles, distanceMatrix,
+                solverType, resolved);
+    }
 }

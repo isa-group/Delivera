@@ -11,6 +11,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.time.Duration;
+import java.util.Map;
 
 @Service
 public class EngineDispatcher {
@@ -24,16 +25,28 @@ public class EngineDispatcher {
         this.registry = registry;
     }
 
+    /**
+     * Envia el problema al motor del solver indicado, con los parametros ya
+     * resueltos contra sus metadatos.
+     *
+     * La resolucion de parametros vive aqui y no en el controlador porque es un
+     * invariante del despacho: cualquier via de entrada (peticion directa o carga
+     * de instancia) llega al motor con la configuracion completa.
+     */
     public RoutingResponse dispatch(RoutingRequest request) {
         TypeSolver solverType = request.solverType();
         WebClient client = registry.clientFor(solverType);
 
-        log.info("Dispatching problem '{}' to {} engine", request.problemId(), solverType);
+        Map<String, Object> parameters = registry.resolveParameters(solverType, request.parameters());
+        RoutingRequest enriched = request.withParameters(parameters);
+
+        log.info("Dispatching problem '{}' to {} engine with parameters {}",
+                request.problemId(), solverType, parameters);
 
         try {
             RoutingResponse response = client.post()
                     .uri("/api/v1/engine/solve")
-                    .bodyValue(request)
+                    .bodyValue(enriched)
                     .retrieve()
                     .bodyToMono(RoutingResponse.class)
                     .timeout(TIMEOUT)

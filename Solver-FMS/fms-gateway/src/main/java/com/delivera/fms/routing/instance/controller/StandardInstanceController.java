@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/fms/instances")
@@ -39,7 +41,30 @@ public class StandardInstanceController {
 
     @Operation(summary = "Enviar instancia de benchmark al solver",
             description = "Carga un archivo de instancia MD-CVRP (JSON) desde el directorio de instancias, " +
-                    "lo parsea y lo envia al motor de ruteo correspondiente para su resolucion.")
+                    "lo parsea y lo envia al motor de ruteo correspondiente para su resolucion. " +
+                    "Admite en el cuerpo un mapa de parametros del solver: los que no se envien toman su " +
+                    "valor por defecto segun los metadatos, lo que permite repetir la misma instancia con " +
+                    "distintas configuraciones del mismo algoritmo.",
+            // Declarado en la operacion y no en el argumento: springdoc no genera
+            // cuerpo para un parametro de tipo Map, que reserva para los query params.
+            // Cualificado porque el nombre corto RequestBody ya lo ocupa el de Spring,
+            // que es el que necesita el argumento del metodo.
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Parametros del solver por nombre. Opcional: sin cuerpo se usan los " +
+                            "valores por defecto. La lista admitida por cada solver, con el significado " +
+                            "y el rango de cada parametro, esta en GET /api/v1/fms/solvers/{type}",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(type = "object"),
+                            examples = {
+                                    @ExampleObject(name = "Genetico: barrido de parametros",
+                                            description = "Poblacion y presupuesto mayores con semilla fija para poder repetir la ejecucion",
+                                            value = "{\"populationSize\": 300, \"maxEvaluations\": 150000, \"seed\": 42}"),
+                                    @ExampleObject(name = "Genetico: busqueda mas larga",
+                                            description = "maxRestarts es el parametro con mas recorrido para bajar el coste",
+                                            value = "{\"maxRestarts\": 10, \"restartStagnantGenerations\": 30, \"seed\": 42}"),
+                                    @ExampleObject(name = "Aleatorio reproducible",
+                                            description = "Linea base fija para comparar contra ella",
+                                            value = "{\"seed\": 42}")})))
     @ApiResponse(responseCode = "200", description = "Instancia resuelta correctamente",
             content = @Content(
                     mediaType = "application/json",
@@ -53,14 +78,16 @@ public class StandardInstanceController {
             @Parameter(description = "Nombre del archivo de instancia sin extension (ej. p01)", required = true)
             @RequestParam String fileName,
             @Parameter(description = "Tipo de solver a utilizar (RANDOM, GREEDY o GENETIC)")
-            @RequestParam(defaultValue = "GREEDY") TypeSolver solverType) throws IOException {
+            @RequestParam(defaultValue = "GREEDY") TypeSolver solverType,
+            @RequestBody(required = false) Map<String, Object> parameters) throws IOException {
         String jsonFileName = fileName.endsWith(".json") ? fileName : fileName + ".json";
         Path basePath = Paths.get(instancesDir).toAbsolutePath().normalize();
         Path filePath = basePath.resolve(jsonFileName).normalize();
         if (!filePath.startsWith(basePath)) {
             throw new IllegalArgumentException("Invalid file name: " + fileName);
         }
-        RoutingResponse response = client.sendInstance(filePath, solverType);
+        RoutingResponse response = client.sendInstance(
+                filePath, solverType, parameters != null ? parameters : Map.of());
         return ResponseEntity.ok(response);
     }
 }

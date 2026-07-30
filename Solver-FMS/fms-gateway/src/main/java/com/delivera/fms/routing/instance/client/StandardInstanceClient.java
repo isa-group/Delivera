@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class StandardInstanceClient {
@@ -39,7 +40,8 @@ public class StandardInstanceClient {
         this.engineDispatcher = engineDispatcher;
     }
 
-    public RoutingResponse sendInstance(Path file, TypeSolver solverType) throws IOException {
+    public RoutingResponse sendInstance(Path file, TypeSolver solverType,
+                                        Map<String, Object> parameters) throws IOException {
         log.info("Loading instance from file: {}", file);
         StandardInstance instance = parser.parse(file);
         StandardInstanceMapper.MappingResult mappingResult = mapper.map(instance);
@@ -57,7 +59,8 @@ public class StandardInstanceClient {
                 customers,
                 mappingResult.vehicles(),
                 distanceMatrix,
-                solverType
+                solverType,
+                parameters
         );
 
         log.info("Dispatching instance '{}' to {} engine", problemId, solverType);
