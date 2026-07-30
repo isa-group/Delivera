@@ -7,12 +7,14 @@ import org.springframework.data.repository.query.Param;
 
 import com.delivera.data.common.dto.IdCountProjection;
 import com.delivera.data.order.dto.OrderAdminSummary;
+import com.delivera.data.order.dto.RouteAdminEntry;
 import com.delivera.data.order.model.Order;
 import com.delivera.data.order.model.OrderStatus;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface OrderRepository extends JpaRepository<Order, UUID> {
@@ -226,4 +228,68 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
        FROM Order o
        """)
        List<OrderAdminSummary> findSummaryOfAll();
+
+
+       // COALESCE RETURNS THE FIRST NOT NULL VALUE
+       @Query("""
+       SELECT new com.delivera.data.order.dto.RouteAdminEntry(
+              o.id,
+              o.reference,
+              o.status,
+              o.origin.latitude,
+              o.origin.longitude,
+              o.origin.id,
+              o.origin.name,
+              CASE
+                     WHEN destination IS NOT NULL
+                     THEN destination.latitude
+                     ELSE o.recipientLatitude
+              END,
+              CASE
+                     WHEN destination IS NOT NULL
+                     THEN destination.longitude
+                     ELSE o.recipientLongitude
+              END,
+              CASE
+                     WHEN destination IS NOT NULL
+                     THEN destination.id
+                     ELSE NULL
+              END,
+              CASE
+                     WHEN destination IS NOT NULL
+                     THEN destination.name
+                     ELSE COALESCE(o.recipientName, o.recipientEmail)
+              END       
+       )
+       FROM Order o
+       LEFT JOIN o.destination destination
+       WHERE 
+              o.status IN (:activeSatus)
+              AND 
+              (
+                     o.origin IS NOT NULL
+                     AND
+                     o.origin.latitude IS NOT NULL
+                     AND 
+                     o.origin.longitude IS NOT NULL
+              )
+              AND 
+              (      
+                     (
+                            o.recipientLatitude IS NOT NULL
+                            AND
+                            o.recipientLongitude IS NOT NULL
+                     )
+                     OR
+                     (
+                            destination IS NOT NULL
+                            AND
+                            destination.latitude IS NOT NULL
+                            AND 
+                            destination.longitude IS NOT NULL
+
+                     )     
+              )
+       """)
+       List<RouteAdminEntry> findAllActiveWithPositions(@Param("activeSatus") Set<OrderStatus> activeSatus);
 }

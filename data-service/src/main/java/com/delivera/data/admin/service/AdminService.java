@@ -8,6 +8,7 @@ import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -20,6 +21,7 @@ import com.delivera.data.common.dto.IdCountProjection;
 import com.delivera.data.depot.dto.UnitAdminSummary;
 import com.delivera.data.depot.repository.OperationalUnitRepository;
 import com.delivera.data.order.dto.OrderAdminSummary;
+import com.delivera.data.order.dto.RouteAdminEntry;
 import com.delivera.data.order.model.OrderStatus;
 import com.delivera.data.order.repository.OrderRepository;
 
@@ -99,6 +101,11 @@ public class AdminService {
     public List<IdCountProjection> getCompanyRanking(String period) {
         Instant from = periodStart(period);
         return orderRepository.rankCompaniesByOrderCount(from);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RouteAdminEntry> getActiveRoutes() {
+        return orderRepository.findAllActiveWithPositions(Set.of(OrderStatus.PENDING, OrderStatus.IN_TRANSIT));
     }
 
 

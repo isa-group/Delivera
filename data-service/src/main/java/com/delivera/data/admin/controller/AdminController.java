@@ -14,9 +14,9 @@ import com.delivera.data.activity.dto.ActivityMetricsResponse;
 import com.delivera.data.activity.dto.OrdersByDayEntry;
 import com.delivera.data.admin.service.AdminService;
 import com.delivera.data.common.dto.IdCountProjection;
-import com.delivera.data.common.dto.IdNameProjection;
 import com.delivera.data.depot.dto.UnitAdminSummary;
 import com.delivera.data.order.dto.OrderAdminSummary;
+import com.delivera.data.order.dto.RouteAdminEntry;
 
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -82,5 +82,11 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getCompanyRanking(period));
     }
 
+
+    @Operation(summary = "Rutas activas (PENDING/IN_TRANSIT) con coordenadas de origen y destino")
+    @GetMapping("/routes")
+    public ResponseEntity<List<RouteAdminEntry>> getActiveRoutes() {
+        return ResponseEntity.ok(adminService.getActiveRoutes());
+    }
 
 }

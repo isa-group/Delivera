@@ -123,7 +123,7 @@ async function loadHome() {
       api.get('/admin/metrics'),
       dataApi.get('/admin/activity/orders-by-day?period=MONTH'),
       dataApi.get('/admin/units'),
-      api.get('/admin/routes'),
+      dataApi.get('/admin/routes'),
     ])
     if (companyAndOrgNamesRes.ok) companyAndOrgNamesByCompanyId.value = await companyAndOrgNamesRes.json()
     if (metricsRes.ok) metrics.value = await mixMetrics(ordersRes,metricsRes)
@@ -188,6 +188,22 @@ async function initHomeMap() {
 
   for (const r of mapRoutes.value) {
     if (!map) return
+    let destinationMarker = markerByKey.get('u:' + r.destinationId)
+
+    if (!destinationMarker && r.destinationLat && r.destinationLon) {
+      destinationMarker = addMarker(map, {
+      id: `customer-${r.id}`,
+      lat: r.destinationLat,
+      lon: r.destinationLon,
+      kind: 'CUSTOMER',
+      title: r.destinationName,
+      subtitle: r.reference
+      })
+      markerByKey.set('c:' +r.id, destinationMarker)
+      cluster.addLayer(destinationMarker)
+      bounds.push([ r.destinationLat, r.destinationLon])
+    }
+
     const entry = await addRoute(map, {
       orderId: null,
       origin: { lat: r.originLat, lon: r.originLon },
@@ -197,7 +213,7 @@ async function initHomeMap() {
       actionLabel: null,
       router: null,
       originMarker: markerByKey.get('u:' + r.originId) || null,
-      destMarker: markerByKey.get('u:' + r.destinationId) || null,
+      destMarker: destinationMarker, //markerByKey.get('u:' + r.destinationId) || null,
       status: r.status,
       currentLocation: null,
     })
