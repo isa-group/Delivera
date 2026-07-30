@@ -49,8 +49,9 @@ ruta puede violar la capacidad. Es un mecanismo para no perder clientes, no una 
 - Ignora `maxDuration`: las rutas pueden durar lo que sea.
 - Ignora el número de vehículos: usa multi-viaje sin límite.
 - La ruta de respaldo puede exceder la capacidad.
-- `Collections.shuffle` sin semilla: **no es reproducible**. Dos llamadas con la misma entrada dan
-  resultados distintos.
+- Sin el parámetro `seed`, el barajado **no es reproducible**: dos llamadas con la misma entrada dan
+  resultados distintos. Enviando `{"seed": 42}` en `parameters` la línea base queda fija y sirve como
+  referencia estable al comparar el resto de solvers sobre la misma instancia.
 
 ## Coste computacional
 

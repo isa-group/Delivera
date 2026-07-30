@@ -24,6 +24,11 @@ duración de ruta pero **no** suman al coste.
 | `vehicles` | `VehicleDto[]` | No | Flota. Si se omite, se asume capacidad y número ilimitados |
 | `distanceMatrix` | `double[][]` | Sí | Matriz cuadrada `[origen][destino]` |
 | `solverType` | `RANDOM \| GREEDY \| GENETIC` | Sí | Motor a usar. Solo en la pasarela |
+| `parameters` | `Map<String, Object>` | No | Parámetros del solver. Los ausentes toman el valor por defecto declarado en sus metadatos |
+
+`parameters` se resuelve contra los metadatos del solver antes de despachar: los que falten se
+completan, los no declarados se descartan con un aviso y uno fuera del rango declarado devuelve 400.
+Ver [metadatos-solvers.md](metadatos-solvers.md).
 
 ### `DepotDto`
 

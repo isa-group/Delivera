@@ -36,9 +36,10 @@ deba usarlo**, y omitirlo en los que no lo necesiten es una decisión, no un olv
 2. Validación de Bean Validation             @Valid sobre RoutingRequest
 3. Validación de consistencia                validateConsistency()
 4. Selección de WebClient por solverType     EngineDispatcher
-5. POST http://<motor>/api/v1/engine/solve   timeout 300 s
-6. El motor resuelve                         <X>RouteSolver.solve()
-7. La respuesta se devuelve sin transformar   ResponseEntity.ok(response)
+5. Resolución de parámetros del solver       SolverRegistry.resolveParameters()
+6. POST http://<motor>/api/v1/engine/solve   timeout 300 s
+7. El motor resuelve                         <X>RouteSolver.solve()
+8. La respuesta se devuelve sin transformar   ResponseEntity.ok(response)
 ```
 
 ### Validaciones de la pasarela
@@ -48,6 +49,11 @@ deba usarlo**, y omitirlo en los que no lo necesiten es una decisión, no un olv
 - La matriz de distancias es cuadrada y de tamaño exactamente `depots + customers`.
 - Los `matrixIndex` de depósitos y clientes son **únicos entre sí** y están dentro del rango.
 - Cada vehículo referencia un `startDepotId` que existe entre los depósitos.
+
+Superado eso, `EngineDispatcher` completa los **parámetros del solver** que no venían en la petición
+con los valores por defecto declarados en sus metadatos, de modo que el motor siempre recibe la
+configuración completa. Un parámetro no declarado se descarta con un aviso en el log; uno fuera del
+rango declarado devuelve 400. Ver [metadatos-solvers.md](metadatos-solvers.md).
 
 Los motores dan por hecho que esto ya se ha validado y **no lo vuelven a comprobar**. Si llamas a un
 motor directamente en el puerto 8091-8093, saltándote la pasarela, una matriz mal dimensionada
@@ -61,6 +67,8 @@ provocará un `ArrayIndexOutOfBoundsException`, no un error 400.
 |---|---|---|
 | `POST` | `/api/v1/fms/routing/solve` | Resuelve un problema enviado en el cuerpo de la petición |
 | `POST` | `/api/v1/fms/instances/send?fileName=p01&solverType=GREEDY` | Carga una instancia del disco, la mapea y la resuelve |
+| `GET` | `/api/v1/fms/solvers` | Catálogo de solvers con sus metadatos |
+| `GET` | `/api/v1/fms/solvers/{type}` | Metadatos de un solver concreto |
 | `GET` | `/api-docs` | Especificación OpenAPI |
 | `GET` | `/swagger-ui/index.html` | Swagger UI |
 | `GET` | `/actuator/health` | Estado |
@@ -79,14 +87,17 @@ instancias, para que un `fileName` con `../` no permita leer ficheros arbitrario
 | `POST` | `/api/v1/engine/solve` | Resuelve el problema recibido |
 | `GET` | `/actuator/health` | Estado |
 
-Los tres motores exponen exactamente el mismo contrato. Añadir un cuarto motor es: copiar la
-estructura, implementar `solve(RoutingRequest)`, añadir el valor al enum `TypeSolver`, añadir un
-`WebClient` en `EngineClientConfig` y registrarlo en el mapa de `EngineDispatcher`.
+Los tres motores exponen exactamente el mismo contrato. Añadir un cuarto motor es: implementar esos
+dos endpoints —en la tecnología que sea—, añadir el valor al enum `TypeSolver` y declarar su bloque
+bajo `fms.engines` en `application.yml`. Ninguna clase Java más cambia: el cliente HTTP, el despacho,
+el catálogo y los parámetros se derivan de esa configuración. El detalle de qué declarar está en
+[metadatos-solvers.md](metadatos-solvers.md).
 
 ## Configuración
 
-Las URL de los motores se resuelven por configuración, con las claves `fms.engines.<motor>.url`.
-En `docker-compose.yml` se sobrescriben por variables de entorno:
+Cada motor se declara bajo `fms.engines.<motor>`: además de la URL, ahí viven sus metadatos
+(descripción, familia algorítmica y parámetros con sus valores por defecto). En `docker-compose.yml`
+solo se sobrescriben las URL, por variables de entorno:
 
 | Variable | Valor por defecto |
 |---|---|
