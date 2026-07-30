@@ -16,6 +16,9 @@ import com.delivera.repository.*;
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.model.WorkerRole;
 import com.delivera.worker.repository.WorkerRepository;
+import com.delivera.worker.service.UnitWorkerClient;
+
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -32,6 +35,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class AdminService {
 
     /// TODO: ADAPT TO BE USE IN A MICROSERVICE ARCHITECTURE
@@ -48,30 +52,8 @@ public class AdminService {
     private final LoyalUserCompanyRepository loyalUserCompanyRepository;
     private final LoyalUserRepository loyalUserRepository;
     private final ApiKeyRepository apiKeyRepository;
-
-    public AdminService(OrganizationRepository organizationRepository,
-                        CompanyRepository companyRepository,
-                        OrderRepository orderRepository,
-                        UserRepository userRepository,
-                        WorkerRepository workerRepository,
-                        OperationalUnitRepository unitRepository,
-                        OrderMessageRepository orderMessageRepository,
-                        OrderEventRepository orderEventRepository,
-                        LoyalUserCompanyRepository loyalUserCompanyRepository,
-                        LoyalUserRepository loyalUserRepository,
-                        ApiKeyRepository apiKeyRepository) {
-        this.organizationRepository = organizationRepository;
-        this.companyRepository = companyRepository;
-        this.orderRepository = orderRepository;
-        this.userRepository = userRepository;
-        this.workerRepository = workerRepository;
-        this.unitRepository = unitRepository;
-        this.orderMessageRepository = orderMessageRepository;
-        this.orderEventRepository = orderEventRepository;
-        this.loyalUserCompanyRepository = loyalUserCompanyRepository;
-        this.loyalUserRepository = loyalUserRepository;
-        this.apiKeyRepository = apiKeyRepository;
-    }
+    private final UnitWorkerClient unitWorkerClient;
+    
 
     // ── Listing ──────────────────────────────────────────────────────────────
 
@@ -297,7 +279,7 @@ public class AdminService {
         if (worker.getRole() == WorkerRole.GLOBAL_ADMIN) {
             throw new ForbiddenException("FORBIDDEN");
         }
-        workerRepository.deleteUnitWorkersByWorkerId(workerId);
+        unitWorkerClient.unassignWorkerOfAllUnits(workerId);
         workerRepository.deleteById(workerId);
     }
 

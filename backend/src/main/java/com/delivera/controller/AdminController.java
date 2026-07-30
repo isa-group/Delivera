@@ -1,7 +1,6 @@
 package com.delivera.controller;
 
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.dto.activity.ActivityMetricsResponse;
 import com.delivera.dto.admin.*;
 import com.delivera.org.dto.CompanyAdminProjection.InnerCompanyAdminProjection;
 import com.delivera.org.service.CompanyService;
@@ -69,7 +68,7 @@ public class AdminController {
     public ResponseEntity<List<WorkerAdminSummary>> listWorkers() {
         return ResponseEntity.ok(adminService.listWorkers());
     }
-/*TODO:P009-ADMIN
+/*TODO:DELETE
     @Operation(summary = "Métricas globales de actividad por período")
     @GetMapping("/activity")
     public ResponseEntity<ActivityMetricsResponse> getGlobalActivity(
@@ -89,12 +88,12 @@ public class AdminController {
     public ResponseEntity<List<UnitAdminSummary>> listUnits() {
         return ResponseEntity.ok(adminService.listUnits());
     }
-
+    /* TODO: DELETE     
     @Operation(summary = "Rutas activas (PENDING/IN_TRANSIT) con coordenadas de origen y destino")
     @GetMapping("/routes")
     public ResponseEntity<List<RouteAdminEntry>> getActiveRoutes() {
         return ResponseEntity.ok(adminService.getActiveRoutes());
-    }
+    }*/
 
     @Operation(summary = "Ranking de empresas por pedidos")
     @GetMapping("/activity/company-ranking")
