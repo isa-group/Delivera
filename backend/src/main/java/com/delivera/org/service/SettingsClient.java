@@ -27,8 +27,8 @@ public class SettingsClient {
         .internal()
         .failOn4xx(true)
         .failOn5xx(true)
-        .retry(3)
-        .timeout(5000)
+        .retry(RETRIRES)
+        .timeout(TIMEOUT)
         .log()
         .executeBasicRequest(Void.class).block();
     }

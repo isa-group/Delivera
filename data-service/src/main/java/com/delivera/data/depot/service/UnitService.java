@@ -195,6 +195,14 @@ public class UnitService {
         return workerRepository.findWorkersIdByUnitIdAndCompanyId(unitId, companyId);
     }
 
+
+    
+    @Transactional
+    public void unassignWorkerOfAllUnits(UUID workerId) {
+        workerRepository.unassignWorkerOfAllUnits(workerId);
+    }
+
+
     
     @Transactional
     public UnitWorker assignWorkerSeed(UUID unitId, AssignRequest request ) {

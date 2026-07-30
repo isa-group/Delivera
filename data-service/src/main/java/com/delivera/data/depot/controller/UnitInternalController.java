@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.UUID;
 
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -52,4 +51,14 @@ public class UnitInternalController {
         unitService.assignWorkerSeed(unitId,request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+
+    @Operation(summary = "Unassign worker of a")
+    @DeleteMapping("/unassign/{workerId}")
+    public ResponseEntity<Void> unassignWorkerOfAllUnits(
+        @Valid @PathVariable(name = "workerId") UUID workerId
+    ) {
+        unitService.unassignWorkerOfAllUnits(workerId);
+        return ResponseEntity.status(204).build();
+    }
+
 }
