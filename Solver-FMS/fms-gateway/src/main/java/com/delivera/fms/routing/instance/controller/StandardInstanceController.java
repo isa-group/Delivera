@@ -57,14 +57,11 @@ public class StandardInstanceController {
                             schema = @Schema(type = "object"),
                             examples = {
                                     @ExampleObject(name = "Genetico: barrido de parametros",
-                                            description = "Poblacion y presupuesto mayores con semilla fija para poder repetir la ejecucion",
-                                            value = "{\"populationSize\": 300, \"maxEvaluations\": 150000, \"seed\": 42}"),
+                                            description = "Poblacion y presupuesto mayores que los de por defecto",
+                                            value = "{\"populationSize\": 300, \"maxEvaluations\": 150000}"),
                                     @ExampleObject(name = "Genetico: busqueda mas larga",
                                             description = "maxRestarts es el parametro con mas recorrido para bajar el coste",
-                                            value = "{\"maxRestarts\": 10, \"restartStagnantGenerations\": 30, \"seed\": 42}"),
-                                    @ExampleObject(name = "Aleatorio reproducible",
-                                            description = "Linea base fija para comparar contra ella",
-                                            value = "{\"seed\": 42}")})))
+                                            value = "{\"maxRestarts\": 10, \"restartStagnantGenerations\": 30}")})))
     @ApiResponse(responseCode = "200", description = "Instancia resuelta correctamente",
             content = @Content(
                     mediaType = "application/json",

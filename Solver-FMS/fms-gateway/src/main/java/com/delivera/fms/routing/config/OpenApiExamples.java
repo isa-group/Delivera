@@ -48,7 +48,7 @@ public final class OpenApiExamples {
     /**
      * Misma instancia resuelta con el motor genetico, ajustando parte de sus
      * parametros. Los que no aparecen toman el valor por defecto declarado en los
-     * metadatos del solver; la semilla fija hace la ejecucion reproducible.
+     * metadatos del solver.
      */
     public static final String SOLVE_REQUEST_TUNED = """
             {
@@ -80,8 +80,7 @@ public final class OpenApiExamples {
               "solverType": "GENETIC",
               "parameters": {
                 "populationSize": 200,
-                "maxEvaluations": 120000,
-                "seed": 42
+                "maxEvaluations": 120000
               }
             }
             """;

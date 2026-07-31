@@ -52,14 +52,13 @@ la pasarela cuando el cliente no lo envía:
 `type` es `INTEGER` o `DECIMAL`, y dice si el parámetro admite decimales: es lo que `min`/`max` no
 pueden expresar, porque `elitismCount` (0–100) y `crossoverProbability` (0–1) se ven iguales en el
 descriptor y no lo son. Un parámetro sin `defaultValue` y con `required: true` obliga al cliente a
-enviarlo; sin `defaultValue` y sin `required`, el solver decide internamente (es el caso de `seed`).
+enviarlo; sin `defaultValue` y sin `required`, el solver decide internamente.
 
 El cliente envía los que quiera cambiar en el mapa `parameters` de la petición; el resto se completan
 solos antes de despachar al motor, de forma que la ejecución siempre parte de una configuración
 completa y conocida.
 
-Qué acepta cada motor hoy: `RANDOM` solo `seed`, `GREEDY` ninguno (es determinista y no tiene ajustes)
-y `GENETIC` catorce, documentados uno a uno en
+Qué acepta cada motor hoy: `RANDOM` y `GREEDY` ninguno, y `GENETIC` trece, documentados uno a uno en
 [engines/genetic-engine.md](engines/genetic-engine.md#parámetros).
 
 ## Resolución de parámetros
@@ -117,17 +116,20 @@ el descriptor estaría describiendo una ejecución que no es la que ocurre.
 
 ## Uso en experimentación y benchmarking
 
-- **Reproducibilidad.** Los motores no deterministas exponen `seed`. Fijarla hace que dos ejecuciones
-  den el mismo resultado; la semilla más el resto de parámetros y la `version` del solver describen el
-  experimento por completo.
-- **Barridos de parámetros.** La misma instancia se puede lanzar con configuraciones distintas del
-  mismo algoritmo sin recompilar nada:
+Lo que aportan los parámetros es poder lanzar la misma instancia con configuraciones distintas del
+mismo algoritmo sin recompilar nada:
 
 ```bash
 curl -X POST "http://localhost:8090/api/v1/fms/instances/send?fileName=p01&solverType=GENETIC" \
   -H "Content-Type: application/json" \
-  -d '{"populationSize": 300, "maxEvaluations": 150000, "seed": 42}'
+  -d '{"populationSize": 300, "maxEvaluations": 150000}'
 ```
+
+Con una salvedad importante: **el genético y el aleatorio no son reproducibles**. Dos ejecuciones con
+los mismos parámetros sobre la misma instancia dan resultados distintos, porque su generador aleatorio
+arranca de una semilla que no se puede fijar ni consultar. Al comparar dos configuraciones, una
+diferencia pequeña de coste puede ser azar y no mejora: conviene repetir cada una varias veces y
+comparar medias, no ejecuciones sueltas.
 
 Lo que el descriptor **no** dice es qué restricciones del problema respeta cada motor: que el voraz
 ignora la duración máxima de ruta y el número de vehículos, o que el genético sí los tiene en cuenta.

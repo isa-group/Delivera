@@ -16,7 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "Tipo de dato de un parametro de solver", enumAsRef = true)
 public enum ParameterType {
 
-    // Numero sin parte decimal. Se normaliza a Long para admitir semillas de 64 bits.
+    // Numero sin parte decimal. Se normaliza a Long para no acotar el rango a 32 bits.
     INTEGER,
 
     // Numero con decimales. Se normaliza a Double.

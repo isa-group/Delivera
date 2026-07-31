@@ -44,12 +44,6 @@ public class GeneticRouteSolver {
                 request.problemId(), SOLVER_TYPE, params);
         long startTime = System.currentTimeMillis();
 
-        // JMetalRandom es un singleton: fijar la semilla hace reproducible la
-        // ejecucion, a costa de que dos peticiones simultaneas comparten el flujo.
-        if (params.seed() != null) {
-            JMetalRandom.getInstance().setSeed(params.seed());
-        }
-
         RouteSplitter splitter = new RouteSplitter(
                 request.customers(), request.distanceMatrix(),
                 capacityByDepot(request), fleetByDepot(request));

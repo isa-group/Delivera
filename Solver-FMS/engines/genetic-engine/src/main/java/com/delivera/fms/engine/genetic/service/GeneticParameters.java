@@ -7,11 +7,11 @@ import java.util.Map;
  *
  * Los valores de {@link #DEFAULTS} son los que la pasarela declara como valores
  * por defecto en los metadatos del solver: ambos lados deben coincidir para que
- * el informe de validacion describa la ejecucion que realmente ocurre.
+ * el descriptor no anuncie una ejecucion distinta de la que ocurre.
  *
  * La conversion es tolerante con el tipo numerico recibido porque un mismo
  * parametro puede llegar como entero JSON, decimal o cadena segun el cliente; un
- * valor no convertible se rechaza antes, en la validacion previa de la pasarela.
+ * valor no convertible se rechaza antes, al resolver los parametros en la pasarela.
  */
 public record GeneticParameters(
         int populationSize,
@@ -26,12 +26,11 @@ public record GeneticParameters(
         int interDepotFrequency,
         int restartStagnantGenerations,
         int maxRestarts,
-        double heuristicSeedRatio,
-        Long seed
+        double heuristicSeedRatio
 ) {
 
     public static final GeneticParameters DEFAULTS = new GeneticParameters(
-            150, 75000, 100, 0.9, 0.2, 0.3, 5, 3, 10, 5, 20, 3, 0.2, null);
+            150, 75000, 100, 0.9, 0.2, 0.3, 5, 3, 10, 5, 20, 3, 0.2);
 
     public static GeneticParameters from(Map<String, Object> parameters) {
         if (parameters == null || parameters.isEmpty()) {
@@ -50,8 +49,7 @@ public record GeneticParameters(
                 integer(parameters, "interDepotFrequency", DEFAULTS.interDepotFrequency),
                 integer(parameters, "restartStagnantGenerations", DEFAULTS.restartStagnantGenerations),
                 integer(parameters, "maxRestarts", DEFAULTS.maxRestarts),
-                decimal(parameters, "heuristicSeedRatio", DEFAULTS.heuristicSeedRatio),
-                seed(parameters));
+                decimal(parameters, "heuristicSeedRatio", DEFAULTS.heuristicSeedRatio));
     }
 
     // Individuos preservados en un reinicio: nunca menos de uno, o se perderia el mejor encontrado.
@@ -67,11 +65,6 @@ public record GeneticParameters(
     private static double decimal(Map<String, Object> parameters, String name, double fallback) {
         Number value = number(parameters, name);
         return value != null ? value.doubleValue() : fallback;
-    }
-
-    private static Long seed(Map<String, Object> parameters) {
-        Number value = number(parameters, "seed");
-        return value != null ? value.longValue() : null;
     }
 
     private static Number number(Map<String, Object> parameters, String name) {

@@ -40,17 +40,17 @@ public record RoutingRequest(
 
         @Schema(description = "Parametros de invocacion del solver, por nombre. Los que no se envien " +
                 "toman su valor por defecto. Cada solver publica los que admite, con su significado, " +
-                "rango y valor por defecto, en GET /api/v1/fms/solvers/{type}: RANDOM acepta 'seed', " +
-                "GREEDY ninguno y GENETIC catorce (populationSize, maxEvaluations, minGenerations, " +
+                "rango y valor por defecto, en GET /api/v1/fms/solvers/{type}: RANDOM y GREEDY no " +
+                "admiten ninguno y GENETIC admite trece (populationSize, maxEvaluations, minGenerations, " +
                 "crossoverProbability, intraDepotMutationProbability, interDepotMutationProbability, " +
                 "elitismCount, tournamentSize, localSearchFrequency, interDepotFrequency, " +
-                "restartStagnantGenerations, maxRestarts, heuristicSeedRatio y seed). " +
+                "restartStagnantGenerations, maxRestarts y heuristicSeedRatio). " +
                 "Un parametro no declarado se ignora con un aviso; uno fuera de rango rechaza la peticion",
-                example = "{\"populationSize\": 200, \"seed\": 42}")
+                example = "{\"populationSize\": 200, \"maxEvaluations\": 120000}")
         Map<String, Object> parameters
 ) {
 
-    /** Copia con los parametros ya resueltos contra los metadatos del solver. */
+    // Copia con los parametros ya resueltos contra los metadatos del solver.
     public RoutingRequest withParameters(Map<String, Object> resolved) {
         return new RoutingRequest(problemId, depots, customers, vehicles, distanceMatrix,
                 solverType, resolved);

@@ -55,7 +55,7 @@ public class SolverController {
     @Operation(summary = "Obtener un solver concreto",
             description = "Devuelve la metainformacion del solver indicado: descripcion, parametros " +
                     "admitidos con sus valores por defecto y restricciones sobre los problemas que soporta. " +
-                    "El ejemplo de respuesta es el descriptor real del solver GENETIC, con los 14 parametros " +
+                    "El ejemplo de respuesta es el descriptor real del solver GENETIC, con los 13 parametros " +
                     "que acepta y para que sirve cada uno; son los que pueden enviarse en el mapa 'parameters' " +
                     "al resolver un problema.")
     @ApiResponses({
@@ -211,15 +211,6 @@ public class SolverController {
                   "min": 0.0,
                   "max": 1.0,
                   "required": false
-                },
-                {
-                  "name": "seed",
-                  "description": "Semilla del generador aleatorio. Fijarla hace reproducible la ejecucion, que sin ella difiere en cada llamada; imprescindible para comparar configuraciones",
-                  "type": "INTEGER",
-                  "defaultValue": null,
-                  "min": null,
-                  "max": null,
-                  "required": false
                 }
               ],
               "status": "UNKNOWN"
@@ -257,15 +248,6 @@ public class SolverController {
                       "defaultValue": 150,
                       "min": 10.0,
                       "max": 2000.0,
-                      "required": false
-                    },
-                    {
-                      "name": "seed",
-                      "description": "Semilla del generador aleatorio. Fijarla hace reproducible la ejecucion",
-                      "type": "INTEGER",
-                      "defaultValue": null,
-                      "min": null,
-                      "max": null,
                       "required": false
                     }
                   ],

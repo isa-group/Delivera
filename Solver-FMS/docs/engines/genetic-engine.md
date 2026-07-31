@@ -296,7 +296,6 @@ en los dos sitios**: el descriptor estaría anunciando una ejecución que no es 
 | `restartStagnantGenerations` | 20 | 1–10000 | Generaciones sin mejora antes de reiniciar |
 | `maxRestarts` | 3 | 0–100 | Reinicios permitidos; al siguiente estancamiento se corta |
 | `heuristicSeedRatio` | 0,2 | 0–1 | Fracción de población inicial construida con heurística |
-| `seed` | — | — | Semilla de `JMetalRandom`. Sin ella cada ejecución difiere |
 
 Siguen siendo constantes de [`GeneticRouteSolver`](../../engines/genetic-engine/src/main/java/com/delivera/fms/engine/genetic/service/GeneticRouteSolver.java),
 por no tener recorrido experimental medido:
@@ -353,9 +352,9 @@ El motor es **secuencial**: no aprovecha más de un núcleo.
 
 ## Limitaciones conocidas
 
-- **Reproducible solo con `seed`**: sin ella, `JMetalRandom` arranca con una semilla arbitraria. Como
-  es un singleton global, fijarla hace que dos peticiones simultáneas compartan el flujo aleatorio: para
-  una tanda de benchmark reproducible, lanzar las ejecuciones en serie.
+- **No es reproducible**: `JMetalRandom` arranca con una semilla derivada del reloj y no se puede fijar
+  desde la petición. Dos ejecuciones idénticas dan costes distintos, así que una diferencia pequeña
+  entre dos configuraciones puede ser azar; para comparar, repetir varias veces y mirar medias.
 - **No soporta ventanas de tiempo.**
 - **Flota heterogénea**: toma la capacidad mayor de cada depósito, así que no respeta capacidades
   distintas cliente a cliente.

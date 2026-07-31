@@ -60,7 +60,7 @@ public class RoutingController {
                                             value = OpenApiExamples.SOLVE_REQUEST),
                                     @ExampleObject(
                                             name = "MD-CVRP con parametros del solver",
-                                            description = "Misma instancia con duracion maxima y tiempos de servicio, resuelta por el motor genetico con parametros propios y semilla fija",
+                                            description = "Misma instancia con duracion maxima y tiempos de servicio, resuelta por el motor genetico con parametros propios",
                                             value = OpenApiExamples.SOLVE_REQUEST_TUNED)}))
             @Valid @RequestBody RoutingRequest request) {
         validateConsistency(request);

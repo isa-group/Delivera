@@ -32,12 +32,7 @@ fms:
       version: 1.0.0
       deterministic: false
       order: 10
-      parameters:
-        - name: seed
-          description: >-
-            Semilla del barajado de clientes. Fijarla hace reproducible la linea base, que
-            sin ella varia en cada llamada
-          type: INTEGER
+      parameters: []
     greedy:
       url: http://greedy-engine:8091
       display-name: Voraz
@@ -164,11 +159,6 @@ fms:
           default-value: 0.2
           min: 0
           max: 1
-        - name: seed
-          description: >-
-            Semilla del generador aleatorio. Fijarla hace reproducible la ejecucion, que sin
-            ella difiere en cada llamada; imprescindible para comparar configuraciones
-          type: INTEGER
 
 springdoc:
   api-docs:
