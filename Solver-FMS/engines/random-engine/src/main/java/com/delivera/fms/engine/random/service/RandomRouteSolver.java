@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 @Service
@@ -45,14 +44,7 @@ public class RandomRouteSolver {
 
     private List<RouteDto> performRouting(RoutingRequest request) {
         List<CustomerDto> customers = new ArrayList<>(request.customers());
-        // Con semilla fija la linea base es reproducible y sirve como referencia
-        // estable al comparar el resto de solvers sobre la misma instancia.
-        Long seed = request.seed();
-        if (seed != null) {
-            Collections.shuffle(customers, new Random(seed));
-        } else {
-            Collections.shuffle(customers);
-        }
+        Collections.shuffle(customers);
 
         List<DepotDto> depots = request.depots();
         double[][] dist = request.distanceMatrix();
