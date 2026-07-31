@@ -41,7 +41,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AdminService {
 
-    /// TODO: ADAPT TO BE USE IN A MICROSERVICE ARCHITECTURE
     private static final String SYSTEM_ORG_HANDLE = "delivera";
 
     private final OrganizationRepository organizationRepository;
@@ -208,19 +207,6 @@ public class AdminService {
                         ((Number) row[3]).longValue()))
                 .toList();
     }
-/* 
-    @Transactional(readOnly = true)
-    public List<OrdersByDayEntry> getGlobalOrdersByDay(String period) {
-        Instant from = periodStart(period);
-        return orderRepository.countByDayGlobal(from).stream()
-                .map(row -> {
-                    LocalDate date = row[0] instanceof LocalDate d ? d : ((Date) row[0]).toLocalDate();
-                    return new OrdersByDayEntry(date, ((Number) row[1]).longValue());
-                })
-                .toList();
-    }
-                */
-
     // ── Delete operations ─────────────────────────────────────────────────────
 
     @Transactional
@@ -230,12 +216,6 @@ public class AdminService {
         if (SYSTEM_ORG_HANDLE.equals(org.getHandle())) {
             throw new ForbiddenException("FORBIDDEN");
         }
-        /*
-        List<Company> companies = companyRepository.findByOrganizationId(orgId);
-        
-        for (Company company : companies) {
-            deleteCompanyCascade(company.getId());
-        }*/
         Set<UUID> companyIds = companyRepository.findIdsByOrganization(orgId);
         Set<UUID> userIds = workerRepository.findWorkersAccounts(companyIds);
    
@@ -314,18 +294,11 @@ public class AdminService {
         UUID adminCompanyId = adminWorker.getCompany().getId();
         UUID adminOrgId = adminWorker.getCompany().getOrganization().getId();
 
-        // Delete all order-related data (JPQL bulk deletes — evitan el flush diferido de JPA)
-        // SETTINGS orderMessageRepository.deleteAllMessages();
-        // SETTINGS orderEventRepository.deleteAllEvents();
-        // SETTINGS orderRepository.deleteAllOrders();
+     
 
         // Delete loyal user data
         loyalUserCompanyRepository.deleteAllLinks();
         loyalUserRepository.deleteAllLoyalUsers();
-
-        // Delete unit assignments and units
-        // SETTINGS workerRepository.deleteAllUnitWorkers();
-        // SETTINGS unitRepository.deleteAllUnits();
 
         // Delete API keys except admin's company
         apiKeyRepository.deleteAllExceptCompany(adminCompanyId);
