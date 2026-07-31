@@ -114,18 +114,33 @@ public class RandomRouteSolver {
             if (!visited.contains(c.id())) remaining.add(c);
         }
 
+        double durationLimit = depot.durationLimit();
+
         while (!remaining.isEmpty()) {
             List<String> stops = new ArrayList<>();
             double totalDistance = 0.0;
             int totalLoad = 0;
+            double totalService = 0.0;
             int currentIndex = depot.matrixIndex();
 
             List<CustomerDto> tripCustomers = new ArrayList<>();
             for (CustomerDto c : remaining) {
                 if (totalLoad + c.demand() > maxCapacity) break;
+
+                // La duracion se mide sobre la ruta cerrada, con la vuelta al deposito.
+                // Un cliente que no cabe ni el solo se acepta igualmente: dejarlo fuera
+                // seria peor que pasarse, porque quedaria sin servir.
+                double closed = totalDistance + dist[currentIndex][c.matrixIndex()]
+                        + dist[c.matrixIndex()][depot.matrixIndex()]
+                        + totalService + c.service();
+                if (closed > durationLimit && !tripCustomers.isEmpty()) {
+                    break;
+                }
+
                 totalDistance += dist[currentIndex][c.matrixIndex()];
                 stops.add(c.id());
                 totalLoad += c.demand();
+                totalService += c.service();
                 currentIndex = c.matrixIndex();
                 tripCustomers.add(c);
             }

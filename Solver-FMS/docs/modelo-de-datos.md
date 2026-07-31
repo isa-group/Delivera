@@ -169,7 +169,7 @@ Están ahí para no perder información al parsear, de cara a soportar esas vari
 |---|---|---|---|---|
 | Cada cliente exactamente una vez | Definición del problema | Sí | Sí | Sí |
 | Capacidad del vehículo | `VehicleDto.capacity` | Sí | Sí | Sí |
-| Duración máxima de ruta | `DepotDto.maxDuration` | No | No | Sí |
+| Duración máxima de ruta | `DepotDto.maxDuration` | Sí | Sí | Sí |
 | Número de vehículos por depósito | Recuento de `vehicles` | No | No | Sí |
 | Ventanas de tiempo | No se propaga | No | No | No |
 

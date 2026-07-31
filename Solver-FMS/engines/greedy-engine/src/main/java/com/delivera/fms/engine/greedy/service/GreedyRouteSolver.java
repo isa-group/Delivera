@@ -118,12 +118,14 @@ public class GreedyRouteSolver {
         List<CustomerDto> unvisited = new ArrayList<>(customers);
         unvisited.removeIf(c -> visited.contains(c.id()));
 
+        double durationLimit = depot.durationLimit();
         int totalStopsAssigned = 0;
 
         while (!unvisited.isEmpty() && totalStopsAssigned < maxStops) {
             List<String> stops = new ArrayList<>();
             double totalDistance = 0.0;
             int totalLoad = 0;
+            double totalService = 0.0;
             int currentIndex = depot.matrixIndex();
 
             List<CustomerDto> tripCustomers = new ArrayList<>();
@@ -148,9 +150,21 @@ public class GreedyRouteSolver {
                     continue;
                 }
 
+                // La duracion se mide sobre la ruta cerrada: hay que contar la vuelta
+                // al deposito, o el ultimo tramo se colaria siempre.
+                double closed = totalDistance + bestDist
+                        + dist[best.matrixIndex()][depot.matrixIndex()]
+                        + totalService + best.service();
+                if (closed > durationLimit && !tripCustomers.isEmpty()) {
+                    // Cabe, pero no en este viaje: se cierra y el vehiculo sale de nuevo.
+                    currentUnvisited.remove(best);
+                    continue;
+                }
+
                 totalDistance += bestDist;
                 stops.add(best.id());
                 totalLoad += best.demand();
+                totalService += best.service();
                 currentIndex = best.matrixIndex();
                 tripCustomers.add(best);
                 currentUnvisited.remove(best);
