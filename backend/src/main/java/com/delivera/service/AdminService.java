@@ -331,20 +331,8 @@ public class AdminService {
     }
 
     private void deleteCompanyCascade(UUID orgId, UUID companyId) {
-        // Own orders
-        // SETTINGS orderMessageRepository.deleteByCompanyId(companyId);
-        // SETTINGS orderRepository.deleteEventsByCompanyId(companyId);
-        // SETTINGS orderRepository.deleteByCompanyId(companyId);
-        // Cross-company orders whose origin unit belongs to this company (origin is NOT NULL)
-         // SETTINGS orderMessageRepository.deleteByOriginCompanyId(companyId);
-         // SETTINGS orderRepository.deleteEventsByOriginCompanyId(companyId);
-         // SETTINGS orderRepository.deleteByOriginCompanyId(companyId);
-        // Null out destinations pointing to this company's units (destination is nullable)
-         // SETTINGS  orderRepository.nullifyDestinationByCompanyId(companyId);
         loyalUserCompanyRepository.deleteByCompanyId(companyId);
         apiKeyRepository.deleteByCompanyId(companyId);
-        // SETTINGS workerRepository.deleteUnitWorkersByCompanyId(companyId);
-        // SETTINGS unitRepository.deleteByCompanyId(companyId);
         Set<UUID> userIds = workerRepository.findAccountsToDelete(orgId, companyId);
         workerRepository.deleteByCompanyId(companyId);
         userRepository.deleteByUserIds(userIds);
