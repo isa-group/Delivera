@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import com.delivera.data.order.model.OrderMessage;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public interface OrderMessageRepository extends JpaRepository<OrderMessage, UUID> {
@@ -16,6 +17,14 @@ public interface OrderMessageRepository extends JpaRepository<OrderMessage, UUID
     @Modifying
     @Query("DELETE FROM OrderMessage m WHERE m.order.companyId = :companyId")
     void deleteByCompanyId(@Param("companyId") UUID companyId);
+
+    @Modifying
+    @Query("DELETE FROM OrderMessage m WHERE m.order.companyId <> :companyId")
+    void deleteAllExceptCompanyId(@Param("companyId") UUID companyId);
+
+    @Modifying
+    @Query("DELETE FROM OrderMessage m WHERE m.order.companyId IN :companyIds")
+    void deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
 
     @Modifying
     @Query("DELETE FROM OrderMessage m WHERE m.order.id = :orderId")

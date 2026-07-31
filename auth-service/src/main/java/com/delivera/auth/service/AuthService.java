@@ -31,4 +31,6 @@ public interface AuthService {
     void delete(UUID userId);
 
     void deleteUsers(Set<UUID> userIds);
+
+    void deleteAllExceptUserId(UUID userId);
 }

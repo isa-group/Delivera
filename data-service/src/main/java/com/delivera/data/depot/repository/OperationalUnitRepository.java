@@ -14,6 +14,7 @@ import com.delivera.data.depot.model.OperationalUnit;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface OperationalUnitRepository extends JpaRepository<OperationalUnit, UUID> {
@@ -96,6 +97,23 @@ public interface OperationalUnitRepository extends JpaRepository<OperationalUnit
         WHERE u.companyId = :companyId
     """)
     void deleteByCompanyId(@Param("companyId") UUID companyId);
+
+    @Modifying
+    @Query("""
+        DELETE 
+        FROM OperationalUnit u 
+        WHERE u.companyId <> :companyId
+    """)
+    void deleteAllExceptCompanyId(@Param("companyId") UUID companyId);
+
+    @Modifying
+    @Query("""
+        DELETE 
+        FROM OperationalUnit u 
+        WHERE u.companyId IN :companyIds
+    """)
+    void deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
+
 
     @Query("""
     SELECT new com.delivera.data.common.dto.IdNameProjection(

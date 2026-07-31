@@ -111,6 +111,14 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
        @Query("DELETE FROM Order o WHERE o.companyId = :companyId")
        void deleteByCompanyId(@Param("companyId") UUID companyId);
 
+       @Modifying
+       @Query("DELETE FROM Order o WHERE o.companyId <> :companyId")
+       void deleteAllExceptCompanyId(@Param("companyId") UUID companyId);
+
+       @Modifying
+       @Query("DELETE FROM Order o WHERE o.companyId IN :companyIds")
+       void deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
+
        long countByCompanyIdAndCreatedAtAfter(UUID companyId, Instant after);
 
        long countByCompanyIdAndStatusAndCreatedAtAfter(UUID companyId, OrderStatus status, Instant after);
@@ -175,6 +183,10 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
        @Modifying
        @Query("UPDATE Order o SET o.destination = null WHERE o.destination IS NOT NULL AND o.destination.companyId = :companyId")
        void nullifyDestinationByCompanyId(@Param("companyId") UUID companyId);
+
+       @Modifying
+       @Query("UPDATE Order o SET o.destination = null WHERE o.destination IS NOT NULL AND o.destination.companyId IN :companyIds")
+       void nullifyDestinationByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
 
 
 

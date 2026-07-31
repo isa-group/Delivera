@@ -67,6 +67,10 @@ public interface WorkerRepository extends JpaRepository<Worker, UUID> {
     @Query("DELETE FROM Worker w WHERE w.company.id = :companyId")
     void deleteByCompanyId(@Param("companyId") UUID companyId);
 
+    @Modifying
+    @Query("DELETE FROM Worker w WHERE w.company.id IN :companyIds")
+    void deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
+
     boolean existsByUser_IdAndRole(UUID userId, WorkerRole role);
 
     @Query("SELECT w FROM Worker w WHERE w.user.id = :userId")
@@ -99,6 +103,16 @@ public interface WorkerRepository extends JpaRepository<Worker, UUID> {
     @Modifying
     @Query(value = "DELETE FROM unit_workers", nativeQuery = true)
     void deleteAllUnitWorkers();
+
+    @Query("""
+    SELECT DISTINCT w.user.id
+    FROM Worker w
+    WHERE w.company.id IN :companyIds
+    """)
+    Set<UUID> findWorkersAccounts(
+        @Param("companyIds") Set<UUID> companyIds 
+    );
+    
 
 
     

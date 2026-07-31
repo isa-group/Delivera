@@ -47,6 +47,7 @@ delivera:
           - /internal/auth/seed/register
           - /internal/auth/seed/register
           - /internal/auth/user
+          - /internal/admin/auth-service/*
 
 
   mtls:

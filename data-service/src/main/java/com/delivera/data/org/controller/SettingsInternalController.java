@@ -1,6 +1,7 @@
 package com.delivera.data.org.controller;
 
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -50,6 +51,14 @@ public class SettingsInternalController {
         @PathVariable(name = "companyId") UUID companyId
     ) {
         settingsService.deleteCompany(companyId,confirmation);
+        return ResponseEntity.status(204).build();
+    }
+
+    @DeleteMapping("/organization")
+    public ResponseEntity<Void> deleteOrganization(
+        @RequestBody Set<UUID> companyIds
+    ) {
+        settingsService.deleteOrganization(companyIds);
         return ResponseEntity.status(204).build();
     }
 

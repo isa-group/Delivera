@@ -141,7 +141,7 @@ public class SettingsService {
         workerRepository.deleteByCompanyId(companyId);
         companyRepository.delete(target);
         try {
-            settingsClient.deleteAllFromCompany(companyId, force);
+            settingsClient.deleteAllByCompany(companyId, force);
         } catch (ClientException e) {
             throw new CompanyHasActiveOrdersException(companyId);
         }

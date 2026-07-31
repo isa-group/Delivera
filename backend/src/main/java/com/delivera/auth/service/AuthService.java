@@ -142,7 +142,7 @@ public class AuthService {
             lu.setUser(user);
             loyalUserRepository.save(lu);
         });
-        WorkerRole role = loyalUsers.isEmpty() ? null : LOYAL_USER_ROLE;
+        WorkerRole role = LOYAL_USER_ROLE;
         LoginResponse loginResponse = authClient.register(
             savedUser.getId(), 
             request.email(),

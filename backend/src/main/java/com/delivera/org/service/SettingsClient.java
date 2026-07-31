@@ -1,5 +1,6 @@
 package com.delivera.org.service;
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.http.HttpMethod;
@@ -50,12 +51,43 @@ public class SettingsClient {
         .block();
     }
 
-    public void deleteAllFromCompany(UUID companyId, Boolean confirmation) {
+    public void deleteAllByCompany(UUID companyId, Boolean confirmation) {
         client.request()
         .service("data-service")
         .path("/internal/settings/"+companyId)
         .method(HttpMethod.DELETE)
         .body(confirmation)
+        .mtls()
+        .internal()
+        .failOn4xx(true)
+        .failOn5xx(true)
+        .retry(RETRIRES)
+        .timeout(TIMEOUT)
+        .log()
+        .executeBasicRequest(Void.class).block();
+    }
+
+    public void deleteOrganization(Set<UUID> companyIds) {
+        client.request()
+        .service("data-service")
+        .path("/internal/settings/organization")
+        .method(HttpMethod.DELETE)
+        .body(companyIds)
+        .mtls()
+        .internal()
+        .failOn4xx(true)
+        .failOn5xx(true)
+        .retry(RETRIRES)
+        .timeout(TIMEOUT)
+        .log()
+        .executeBasicRequest(Void.class).block();
+    }
+
+    public void cleanDataServiceDB(UUID adminCompanyId) {
+        client.request()
+        .service("data-service")
+        .path("/internal/admin/data-service/"+adminCompanyId)
+        .method(HttpMethod.DELETE)
         .mtls()
         .internal()
         .failOn4xx(true)

@@ -17,7 +17,8 @@ import com.delivera.data.exception.UnitNameConflictException;
 import com.delivera.data.exception.UnitNotFoundException;
 import com.delivera.data.org.dto.OrgCheckRequest;
 import com.delivera.data.org.service.OrgClient;
-import com.delivera.data.vehicle.repository.VehicleRepository;
+
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -30,29 +31,16 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UnitService {
 
     private final OperationalUnitRepository unitRepository;
     private final OrgClient orgClient;
     private final WorkerRepository workerRepository;
     private final SecurityUtils securityUtils;
-    private final VehicleRepository vehicleRepository;
     //private final SubscriptionService subscriptionService;
 
-    public UnitService(OperationalUnitRepository unitRepository,
-                       WorkerRepository workerRepository,
-                       OrgClient orgClient,
-                       SecurityUtils securityUtils,
-                       VehicleRepository vehicleRepository
-                       //SubscriptionService subscriptionService
-                       ) {
-        this.unitRepository = unitRepository;
-        this.orgClient = orgClient;
-        this.workerRepository = workerRepository;
-        this.securityUtils = securityUtils;
-        this.vehicleRepository = vehicleRepository;
-       // this.subscriptionService = subscriptionService;
-    }
+  
 
     @Transactional
     public UnitResponse createSeed(UnitRequest request, UUID orgId, UUID companyId) {
@@ -82,7 +70,7 @@ public class UnitService {
 
         Boolean orgCheck = orgClient.checkOrgData(new OrgCheckRequest(companyId, orgId)).block();
         if (!orgCheck) {
-                throw new CompanyContextException();
+            throw new CompanyContextException();
         }
         OperationalUnit unit = new OperationalUnit();
         unit.setCompanyId(companyId);

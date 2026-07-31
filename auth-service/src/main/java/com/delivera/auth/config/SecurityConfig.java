@@ -45,12 +45,15 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers(SWAGGER_PATHS).permitAll();
+                // Internal
                 auth.requestMatchers(HttpMethod.POST, api + "/internal/auth/register").permitAll();
                 auth.requestMatchers(api + "/internal/auth/seed/register").permitAll(); // Only in dev
                 auth.requestMatchers(api + "/internal/auth/register").permitAll();
                 auth.requestMatchers(HttpMethod.PUT,api + "/internal/auth/username").permitAll();
                 auth.requestMatchers(HttpMethod.DELETE,api + "/internal/auth/user").permitAll();
                 auth.requestMatchers(HttpMethod.DELETE,api + "/internal/auth/user/**").permitAll();
+                auth.requestMatchers(HttpMethod.DELETE,api +"/internal/admin/auth-service/*").permitAll();
+
                 auth.requestMatchers(HttpMethod.POST,api + "/auth/switch-company").authenticated();
                 auth.requestMatchers(HttpMethod.PUT,api + "/auth/password").authenticated();
                 auth.requestMatchers(HttpMethod.DELETE,api + "/auth/device/others").permitAll();

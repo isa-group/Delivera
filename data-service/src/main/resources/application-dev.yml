@@ -55,7 +55,9 @@ delivera:
           - /internal/orders/*/seed/events
           - /internal/settings
           - /internal/settings/*
+          - /internal/settings/organization
           - /internal/units/unassign/*
+          - /internal/admin/data-service/*
       data-service: 
         api-internal-key: data-internal-key
         allowed-paths: 

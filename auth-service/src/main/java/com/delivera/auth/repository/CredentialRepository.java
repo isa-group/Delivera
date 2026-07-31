@@ -34,6 +34,13 @@ public interface CredentialRepository extends CrudRepository<Credential,UUID> {
     """)
     void deleteUsers(@Param("userIds") Set<UUID> userIds);
 
+    @Modifying
+    @Query("""
+    DELETE FROM Credential c
+    WHERE c.userId <> :userId
+    """)
+    void deleteAllExceptUserId(@Param("userId") UUID userId);
+
 
 
 }

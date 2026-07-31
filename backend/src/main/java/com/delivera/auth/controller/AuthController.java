@@ -7,12 +7,9 @@ import com.delivera.auth.service.AuthService;
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.auth.CompanyRegisterRequest;
 import com.delivera.dto.auth.CompanyRegisterResponse;
-import com.delivera.dto.auth.LoginRequest;
-import com.delivera.dto.auth.LoginResponse;
 import com.delivera.dto.auth.RegisterRequest;
 import com.delivera.dto.auth.RegisterResponse;
 import com.delivera.dto.common.AvailabilityCheckResponse;
-import com.delivera.dto.auth.SwitchCompanyRequest;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

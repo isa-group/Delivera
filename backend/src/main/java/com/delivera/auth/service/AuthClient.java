@@ -147,4 +147,21 @@ public class AuthClient {
         
     }
 
+    public void cleanAuthServiceDB(UUID adminUserId) {
+        client.request()
+        .service("auth-service")
+        .path("/internal/admin/auth-service/"+adminUserId)
+        .method(HttpMethod.DELETE)
+        .mtls()
+        .internal()
+        .failOn4xx(true)
+        .failOn5xx(true)
+        .retry(RETRIES)
+        .timeout(TIMEOUT)
+        .log()
+        .executeBasicRequest(Void.class)
+        .block();
+        
+    }
+
 }

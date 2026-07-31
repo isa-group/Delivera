@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
@@ -20,4 +21,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Modifying
     @Query("DELETE FROM User u WHERE u.id <> :keepId")
     void deleteAllExcept(@Param("keepId") UUID keepId);
+
+
+    @Modifying
+    @Query("""
+    DELETE FROM User u WHERE u.id IN :userIds        
+    """)
+    void deleteByUserIds(@Param("userIds") Set<UUID> userIds);
 }

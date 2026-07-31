@@ -15,6 +15,13 @@ import java.util.UUID;
 
 public interface CompanyRepository extends JpaRepository<Company, UUID> {
     List<Company> findByOrganizationId(UUID organizationId);
+
+    @Query("""
+    SELECT c.id
+    FROM Company c
+    WHERE c.organization.id = :organizationId        
+    """)
+    Set<UUID> findIdsByOrganization(@Param("organizationId") UUID organizationId);
     List<Company> findByOrganizationIdOrderByCreatedAtDesc(UUID organizationId);
 
     long countByOrganizationId(UUID organizationId);

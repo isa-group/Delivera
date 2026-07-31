@@ -259,5 +259,12 @@ public class AuthServiceImpl implements AuthService {
             credentialRepository.deleteUsers(userIds);
         }
      }
+
+     @Override
+     @Transactional
+     public void deleteAllExceptUserId(UUID userId) {
+        credentialRepository.deleteAllExceptUserId(userId);
+      
+     }
    
 }

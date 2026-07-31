@@ -50,9 +50,25 @@ public class SettingsService {
         orderEventRepository.deleteByCompanyId(companyId);
         orderMessageRepository.deleteByCompanyId(companyId);
         orderRepository.deleteByCompanyId(companyId);
+        orderRepository.nullifyDestinationByCompanyId(companyId);
         workerRepository.deleteByCompanyId(companyId);
         unitRepository.deleteByCompanyId(companyId);
         repository.deleteById(companyId);
+    }
+
+
+    @Transactional
+    public void deleteOrganization(Set<UUID> companyIds) {
+        
+
+        vehicleRepository.deleteByCompanyIds(companyIds);
+        orderEventRepository.deleteByCompanyIds(companyIds);
+        orderMessageRepository.deleteByCompanyIds(companyIds);
+        orderRepository.deleteByCompanyIds(companyIds);
+        orderRepository.nullifyDestinationByCompanyIds(companyIds);
+        workerRepository.deleteByCompanyIds(companyIds);
+        unitRepository.deleteByCompanyIds(companyIds);
+        repository.deleteByCompanyIds(companyIds);
     }
 
     @Transactional(readOnly = true)

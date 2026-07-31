@@ -20,10 +20,15 @@ import com.delivera.data.activity.dto.OrdersByDayEntry;
 import com.delivera.data.common.dto.IdCountProjection;
 import com.delivera.data.depot.dto.UnitAdminSummary;
 import com.delivera.data.depot.repository.OperationalUnitRepository;
+import com.delivera.data.depot.repository.WorkerRepository;
 import com.delivera.data.order.dto.OrderAdminSummary;
 import com.delivera.data.order.dto.RouteAdminEntry;
 import com.delivera.data.order.model.OrderStatus;
+import com.delivera.data.order.repository.OrderEventRepository;
+import com.delivera.data.order.repository.OrderMessageRepository;
 import com.delivera.data.order.repository.OrderRepository;
+import com.delivera.data.org.repository.SettingsRepository;
+import com.delivera.data.vehicle.repository.VehicleRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,6 +38,11 @@ public class AdminService {
 
     private final OrderRepository orderRepository;
     private final OperationalUnitRepository unitRepository;
+    private final VehicleRepository vehicleRepository;
+    private final OrderEventRepository orderEventRepository;
+    private final OrderMessageRepository orderMessageRepository;
+    private final WorkerRepository workerRepository;
+    private final SettingsRepository settingsRepository;
 
     @Transactional(readOnly = true)
     public Map<UUID,Long> countByOrganization() {
@@ -106,6 +116,18 @@ public class AdminService {
     @Transactional(readOnly = true)
     public List<RouteAdminEntry> getActiveRoutes() {
         return orderRepository.findAllActiveWithPositions(Set.of(OrderStatus.PENDING, OrderStatus.IN_TRANSIT));
+    }
+
+    @Transactional
+    public void deleteAllDataExcept(UUID companyId) {
+        vehicleRepository.deleteAllExceptCompanyId(companyId);
+        orderEventRepository.deleteAllExceptCompanyIds(companyId);
+        orderMessageRepository.deleteAllExceptCompanyId(companyId);
+        orderRepository.deleteAllExceptCompanyId(companyId);
+        workerRepository.deleteAllExceptCompanyId(companyId);
+        unitRepository.deleteAllExceptCompanyId(companyId);
+        settingsRepository.deleteAllExceptCompanyId(companyId);
+
     }
 
 

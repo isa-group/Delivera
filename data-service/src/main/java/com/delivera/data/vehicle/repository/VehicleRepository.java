@@ -10,6 +10,7 @@ import com.delivera.data.vehicle.model.Vehicle;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -33,4 +34,22 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
         WHERE v.companyId = :companyId
     """)
     void deleteByCompanyId(@Param("companyId") UUID companyId);
+
+
+    @Modifying
+    @Query("""
+        DELETE 
+        FROM Vehicle v 
+        WHERE v.companyId IN :companyIds
+    """)
+    void deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
+
+
+    @Modifying
+    @Query("""
+        DELETE 
+        FROM Vehicle v 
+        WHERE v.companyId <> :companyId
+    """)
+    void deleteAllExceptCompanyId(@Param("companyId") UUID companyId);
 }
