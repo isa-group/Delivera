@@ -1,4 +1,4 @@
-package com.delivera.fms.config;
+package com.delivera.data.fms.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

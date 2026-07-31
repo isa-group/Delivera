@@ -1,8 +1,8 @@
-package com.delivera.fms.service;
-
-import com.delivera.fms.dto.RoutingResponse;
+package com.delivera.data.fms.service;
 
 import java.util.UUID;
+
+import com.delivera.data.fms.dto.RoutingResponse;
 
 public interface FmsRoutingService {
 

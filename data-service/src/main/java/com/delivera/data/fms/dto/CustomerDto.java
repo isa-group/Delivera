@@ -1,7 +1,8 @@
-package com.delivera.fms.dto;
+package com.delivera.data.fms.dto;
 
-public record DepotDto(
+public record CustomerDto(
         String id,
+        Integer demand,
         Double lat,
         Double lng,
         Integer matrixIndex

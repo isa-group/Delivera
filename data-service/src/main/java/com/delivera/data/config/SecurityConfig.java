@@ -93,7 +93,6 @@ public class SecurityConfig {
 
 
                 // ORDERS
-                //      TODO: LOYAL-USER --> ORDERS
                 auth.requestMatchers(HttpMethod.POST, api + "/orders").hasAnyRole(ADMIN, ANALYST);
                 auth.requestMatchers(HttpMethod.GET, api + "/orders/me").hasAnyRole(LOYAL_USER);
                 auth.requestMatchers(HttpMethod.GET, api + "/orders/*/me").hasAnyRole(LOYAL_USER);
@@ -119,6 +118,8 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.GET, api + "/admin/activity/orders").hasRole("GLOBAL_ADMIN");
                 auth.requestMatchers(HttpMethod.GET, api + "/admin/activity/orders-by-day").hasRole("GLOBAL_ADMIN");
 
+                // FMS
+                auth.requestMatchers(api + "/fms/routing/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
 
                 auth.anyRequest().denyAll();
             });

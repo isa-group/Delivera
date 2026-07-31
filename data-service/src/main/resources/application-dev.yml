@@ -103,6 +103,9 @@ app:
     from: noreply@delivera.app
   frontend-url: http://localhost:3000
   contact-email: contact@delivera.com
+  fms:
+    routing:
+      base-url: ${FMS_ROUTING_URL:http://localhost:8082}
 
 
 

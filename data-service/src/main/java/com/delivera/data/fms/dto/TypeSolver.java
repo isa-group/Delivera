@@ -1,4 +1,4 @@
-package com.delivera.fms.dto;
+package com.delivera.data.fms.dto;
 
 public enum TypeSolver {
     RANDOM

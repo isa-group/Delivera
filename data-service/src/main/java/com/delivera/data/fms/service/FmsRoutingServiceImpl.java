@@ -1,16 +1,18 @@
-package com.delivera.fms.service;
+package com.delivera.data.fms.service;
 
-import com.delivera.depot.model.OperationalUnit;
-import com.delivera.depot.repository.OperationalUnitRepository;
-import com.delivera.fms.dto.CustomerDto;
-import com.delivera.fms.dto.DepotDto;
-import com.delivera.fms.dto.RoutingRequest;
-import com.delivera.fms.dto.RoutingResponse;
-import com.delivera.fms.dto.VehicleDto;
-import com.delivera.order.model.Order;
-import com.delivera.order.model.OrderStatus;
-import com.delivera.order.repository.OrderRepository;
-import com.delivera.vehicle.service.VehicleClient;
+import com.delivera.data.depot.model.OperationalUnit;
+import com.delivera.data.depot.repository.OperationalUnitRepository;
+import com.delivera.data.fms.dto.CustomerDto;
+import com.delivera.data.fms.dto.DepotDto;
+import com.delivera.data.fms.dto.RoutingRequest;
+import com.delivera.data.fms.dto.RoutingResponse;
+import com.delivera.data.fms.dto.VehicleDto;
+import com.delivera.data.order.model.Order;
+import com.delivera.data.order.model.OrderStatus;
+import com.delivera.data.order.repository.OrderRepository;
+import com.delivera.data.vehicle.repository.VehicleRepository;
+
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -21,22 +23,14 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
+@RequiredArgsConstructor
 public class FmsRoutingServiceImpl implements FmsRoutingService {
 
     private final RestClient fmsRoutingClient;
     private final OperationalUnitRepository unitRepository;
     private final OrderRepository orderRepository;
-    private final VehicleClient vehicleClient;
+    private final VehicleRepository vehicleRepository;
 
-    public FmsRoutingServiceImpl(RestClient fmsRoutingClient,
-                                  OperationalUnitRepository unitRepository,
-                                  OrderRepository orderRepository,
-                                  VehicleClient vehicleClient) {
-        this.fmsRoutingClient = fmsRoutingClient;
-        this.unitRepository = unitRepository;
-        this.orderRepository = orderRepository;
-        this.vehicleClient = vehicleClient;
-    }
 
     @Override
     public RoutingResponse solveForCompany(UUID companyId) {
@@ -92,7 +86,7 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
                 .toList();
 
 
-        List<VehicleDto> vehicleDtos = vehicleClient.getAllByCompanyId(companyId);
+        List<VehicleDto> vehicleDtos = vehicleRepository.findDTOsByCompanyId(companyId);
                 
         int totalNodes = depotDtos.size() + customerDtos.size();
         double[][] distanceMatrix = buildMockDistanceMatrix(totalNodes);

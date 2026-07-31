@@ -1,4 +1,4 @@
-package com.delivera.fms.dto;
+package com.delivera.data.fms.dto;
 
 import java.util.List;
 

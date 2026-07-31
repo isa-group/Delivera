@@ -1,8 +1,8 @@
-package com.delivera.fms.controller;
+package com.delivera.data.fms.controller;
 
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.fms.dto.RoutingResponse;
-import com.delivera.fms.service.FmsRoutingService;
+import com.delivera.data.fms.dto.RoutingResponse;
+import com.delivera.data.fms.service.FmsRoutingService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

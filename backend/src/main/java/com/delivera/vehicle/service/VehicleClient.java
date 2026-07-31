@@ -9,7 +9,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
 import com.delivera.client.core.SmartMicroserviceClient;
-import com.delivera.fms.dto.VehicleDto;
 import com.delivera.vehicle.dto.VehicleRequest;
 
 @Service
@@ -38,6 +37,7 @@ public class VehicleClient {
         .executeBasicRequest(Void.class).block();
     }
 
+    /*
     public List<VehicleDto> getAllByCompanyId(UUID companyId) {
         return client.request()
         .service("data-service")
@@ -53,7 +53,7 @@ public class VehicleClient {
         .executeBasicRequest(
             new ParameterizedTypeReference<List<VehicleDto>>() {})
         .block();
-    }
+    } */
 
 
 }
