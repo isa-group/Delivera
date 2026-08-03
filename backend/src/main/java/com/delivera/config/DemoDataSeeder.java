@@ -22,6 +22,7 @@ import com.delivera.org.repository.CompanyRepository;
 import com.delivera.org.repository.OrganizationRepository;
 import com.delivera.org.service.SettingsClient;
 import com.delivera.repository.*;
+import com.delivera.service.AdminService;
 import com.delivera.vehicle.dto.VehicleRequest;
 import com.delivera.vehicle.service.VehicleClient;
 import com.delivera.worker.model.Worker;
@@ -81,7 +82,8 @@ public class DemoDataSeeder implements CommandLineRunner {
     @Value("${app.demo.seed.data.prefix}")
     private String dataPrefix;
 
-
+    @Value("${app.demo.populate:false}")
+    private boolean demoPopulate = false;
 
     @Value("${app.demo.reset-on-start:false}")
     private boolean resetOnStart;
@@ -101,6 +103,9 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final UnitClient unitClient;
     private final SettingsClient settingsClient;
     private final OrderClient orderClient;
+    private final AdminService adminService;
+
+    private String adminEmail = "admin@delivera.com";
 
     @PersistenceContext
     private EntityManager em;
@@ -119,6 +124,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                            UnitClient unitClient,
                            SettingsClient settingsClient,
                            OrderClient orderClient,
+                           AdminService adminService,
                            AuthClient authClient) {
         this.users = users;
         this.organizations = organizations;
@@ -135,13 +141,15 @@ public class DemoDataSeeder implements CommandLineRunner {
         this.authClient = authClient;
         this.settingsClient = settingsClient;
         this.orderClient = orderClient;
+        this.adminService = adminService;
     }
 
-    //TODO: DLETE /internal/vehicles/seed/companies/*/units/*
     @Override
     @Transactional
     public void run(String... args) {
-        if (resetOnStart) {
+        if (!demoPopulate){
+            return;
+        }else if (resetOnStart) {
             log.warn("DemoDataSeeder: app.demo.reset-on-start=true -> vaciando tablas de datos antes de re-sembrar.");
             wipeData();
         } else if (users.count() > 0) {
@@ -151,7 +159,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         log.info("DemoDataSeeder: cargando datos de demo...");
 
         // --- 1. Usuarios ---
-        User admin  = createUser("admin@delivera.com",    "admin",   "Ana",    "Navarro",   "+34600000001",
+        User admin  = createUser(adminEmail,    "admin",   "Ana",    "Navarro",   "+34600000001",
                 "Paseo de la Castellana 100, Madrid", 40.4430, -3.6900);
         User carlos = createUser("carlos@rapidlog.com",   "carlos",  "Carlos", "García",    "+34600000002",
                 "Calle Goya 60, Madrid",              40.4250, -3.6780);
@@ -607,14 +615,6 @@ public class DemoDataSeeder implements CommandLineRunner {
         orderRequest.setReference(nextReference(daysAgo));
         orderRequest.setClaimed(false);
 
-        /* TODO: DELETE
-        Order o = new Order();
-        o.setCompany(c);
-        o.setOrigin(origin);
-        o.setOrderType(type);
-        o.setStatus(status);
-        o.setPriority(priority);
-        o.setReference();*/
         return orderRequest;
     }
 
@@ -658,17 +658,7 @@ public class DemoDataSeeder implements CommandLineRunner {
      * Reinicia la secuencia de referencias de pedido.
      */
     private void wipeData() {
-        em.createNativeQuery("TRUNCATE TABLE " +
-                "order_events, order_messages, api_keys, orders, unit_workers, " +
-                "loyal_user_companies, workers, operational_units, loyal_users, " +
-                "companies, organizations, users " +
-                "RESTART IDENTITY CASCADE").executeUpdate();
-        em.createNativeQuery("ALTER SEQUENCE IF EXISTS order_ref_seq RESTART WITH 1").executeUpdate();
-    }
-
-    private String randomToken() {
-        byte[] buf = new byte[24];
-        RNG.nextBytes(buf);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(buf);
+        // TODO: RESET DB USES mTLS --> CAN'T COMUNICATE WHEN SERVER STARTS
+        //adminService.resetDatabase(adminEmail);
     }
 }

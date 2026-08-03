@@ -1,19 +1,5 @@
 package com.delivera.data.order.controller;
 
-/* 
-import com.delivera.auth.dto.RefreshCookieData;
-import com.delivera.auth.dto.RequestClientData;
-import com.delivera.auth.service.AuthService;
-import com.delivera.dto.auth.ClaimRegisterRequest;
-import com.delivera.dto.auth.LoginResponse;
-import com.delivera.security.AuthRateLimiter;
-import com.delivera.order.dto.OrderDetailResponse;
-import com.delivera.order.dto.OrderRequest;
-import com.delivera.order.dto.OrderResponse;
-import com.delivera.order.dto.OrderStatusRequest;
-import com.delivera.order.dto.PublicOrderResponse;
-import com.delivera.order.service.OrderService;
-*/
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

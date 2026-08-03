@@ -68,32 +68,12 @@ public class AdminController {
     public ResponseEntity<List<WorkerAdminSummary>> listWorkers() {
         return ResponseEntity.ok(adminService.listWorkers());
     }
-/*TODO:DELETE
-    @Operation(summary = "Métricas globales de actividad por período")
-    @GetMapping("/activity")
-    public ResponseEntity<ActivityMetricsResponse> getGlobalActivity(
-            @RequestParam(defaultValue = "MONTH") String period) {
-        return ResponseEntity.ok(adminService.getGlobalActivityMetrics(period));
-    }
-
-    @Operation(summary = "Pedidos por día (global)")
-    @GetMapping("/activity/orders-by-day")
-    public ResponseEntity<List<OrdersByDayEntry>> getGlobalOrdersByDay(
-            @RequestParam(defaultValue = "MONTH") String period) {
-        return ResponseEntity.ok(adminService.getGlobalOrdersByDay(period));
-    }*/
 
     @Operation(summary = "Lista de unidades con coordenadas (global)")
     @GetMapping("/units")
     public ResponseEntity<List<UnitAdminSummary>> listUnits() {
         return ResponseEntity.ok(adminService.listUnits());
     }
-    /* TODO: DELETE     
-    @Operation(summary = "Rutas activas (PENDING/IN_TRANSIT) con coordenadas de origen y destino")
-    @GetMapping("/routes")
-    public ResponseEntity<List<RouteAdminEntry>> getActiveRoutes() {
-        return ResponseEntity.ok(adminService.getActiveRoutes());
-    }*/
 
     @Operation(summary = "Ranking de empresas por pedidos")
     @GetMapping("/activity/company-ranking")

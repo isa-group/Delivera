@@ -101,6 +101,7 @@ app:
   file:
     max-upload-bytes: 2097152
   demo:
+    populate: true
     seed:
       auth:
         prefix: /api/v2 

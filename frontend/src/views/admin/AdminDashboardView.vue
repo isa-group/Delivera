@@ -114,7 +114,6 @@ async function loadHome() {
   metricsLoading.value = true
   homeChartData.value = null
   try {
-    // TODO: P009-ADMIN
     const [companyAndOrgNamesRes,
       ordersRes,metricsRes, chartRes, unitsRes, routesRes
     ] = await Promise.all([

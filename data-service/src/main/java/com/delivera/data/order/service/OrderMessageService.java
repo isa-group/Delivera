@@ -20,16 +20,13 @@ public class OrderMessageService {
 
     private final OrderMessageRepository messageRepository;
     private final OrderRepository orderRepository;
-    // TODO:P006-User private final UserRepository userRepository;
     private final SecurityUtils securityUtils;
 
     public OrderMessageService(OrderMessageRepository messageRepository,
                                OrderRepository orderRepository,
-                               //TODO UserRepository userRepository,
                                SecurityUtils securityUtils) {
         this.messageRepository = messageRepository;
         this.orderRepository = orderRepository;
-        // TODO:P006-User this.userRepository = userRepository;
         this.securityUtils = securityUtils;
     }
 
@@ -47,8 +44,6 @@ public class OrderMessageService {
 
         String email = securityUtils.getCurrentEmail();
         UUID senderId = securityUtils.getCurrentUserId();
-        /* TODO:P006-User * User sender = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ForbiddenException("Sender not found"));  */
         // TODO: PENSAR SI QUEREMOS GUARDAR UUID Y EMAIL DEL SENDER 
         OrderMessage message = new OrderMessage();
 

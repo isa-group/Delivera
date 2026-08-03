@@ -22,7 +22,6 @@ public record PublicOrderResponse(
         String priority,
         Instant createdAt,
         List<OrderEventResponse> events,
-        // TODO:P001-LoyalUser SE PREGUNTA EN EL FORNTEND AL DELIVERA-SRVICE
         boolean claimable, 
         String recipientEmailHint,
         Double originLat,
@@ -32,7 +31,6 @@ public record PublicOrderResponse(
 
     public static PublicOrderResponse from(Order order) {
         boolean claimable = !order.getClaimed();
-        // TODO:P007-LoyalUser-email EL OTRO MICROSERVICIO
         String hint = claimable && order.getRecipientEmail() != null 
                ? maskEmail(order.getRecipientEmail()) : null;
 

@@ -113,7 +113,6 @@ public class SettingsService {
         worker.setCompany(newCompany);
         worker.setRole(WorkerRole.COMPANY_ADMIN);
         workerRepository.save(worker);
-        // TODO
 
         settingsClient.createSettings(new CompanySettingsDTO(savedCompany.getId(),null, false));
 

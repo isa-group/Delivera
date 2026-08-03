@@ -1,6 +1,5 @@
 package com.delivera.data.order.dto;
 
-// TODO: AQUÍ ME QUEDO.....
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -25,7 +24,6 @@ public record OrderResponse(
         String priority,
         String notes,
         String trackingToken,
-        //TODO:P001-LoyalUser TODO: OTRO SERVICIO
         boolean claimed, 
         UUID loyalUserId,
         Instant createdAt,
@@ -41,7 +39,6 @@ public record OrderResponse(
         UUID lu = order.getLoyalUserId();
         OperationalUnit dest = order.getDestination();
         OperationalUnit origin = order.getOrigin();
-        //boolean claimed = lu != null; // TODO
         Double destLat = resolveDestCoord(dest != null ? dest.getLatitude() : null, order.getRecipientLatitude());
         Double destLon = resolveDestCoord(dest != null ? dest.getLongitude() : null, order.getRecipientLongitude());
         return new OrderResponse(
@@ -62,7 +59,6 @@ public record OrderResponse(
                 order.getNotes(),
                 order.getTrackingToken(),
                 order.getClaimed(),
-                //lu != null ? lu.getId() : null,
                 lu,
                 order.getCreatedAt(),
                 origin.getLatitude() != null ? origin.getLatitude().doubleValue() : null,

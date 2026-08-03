@@ -94,6 +94,7 @@ server:
 
 
 app:
+  tracking-url-base: ${TRACKING_URL_BASE:https://delivera.app/track/}
   gateway: 
     enabled: false
   cors:

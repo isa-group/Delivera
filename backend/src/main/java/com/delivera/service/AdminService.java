@@ -255,14 +255,12 @@ public class AdminService {
 
     @Transactional
     public void deleteUser(UUID userId) {
+        // THIS IS PLANNED TO BE USED WITH LOYAL_USER NOT ORGANIZATIONS USER
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (workerRepository.existsByUser_IdAndRole(userId, WorkerRole.GLOBAL_ADMIN)) {
             throw new ForbiddenException("FORBIDDEN");
         }
-        //orderMessageRepository.deleteBySenderId(userId); TODO: USER || WORKER IN FRONTEND
-        //workerRepository.deleteUnitWorkersByUserId(userId);
-        //workerRepository.deleteByUserId(userId);
         loyalUserRepository.findByUserId(userId).ifPresent(lu -> {
             lu.setUser(null);
             loyalUserRepository.save(lu);

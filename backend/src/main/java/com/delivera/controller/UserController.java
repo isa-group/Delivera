@@ -57,21 +57,4 @@ public class UserController {
         ProfileResponse profile = userService.updateAvatar(authentication.getName(), body.get("data"));
         return ResponseEntity.ok(profile);
     }
-
-    // TODO: DELETE
-    /*
-    @Operation(summary = "Cambiar contraseña", description = "Cambia la contraseña del usuario autenticado")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Contraseña cambiada exitosamente"),
-        @ApiResponse(responseCode = "400", description = "Contraseña actual incorrecta"),
-        @ApiResponse(responseCode = "401", description = "No autenticado")
-    })
-    
-
-    @PutMapping("/password")
-    public ResponseEntity<MessageResponse> changePassword(Authentication authentication,
-                                                          @Valid @RequestBody ChangePasswordRequest request) {
-        userService.changePassword(authentication.getName(), request);
-        return ResponseEntity.ok(new MessageResponse("PASSWORD_CHANGED"));
-    }*/
 }
