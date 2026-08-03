@@ -1,0 +1,32 @@
+# ==========================
+# Build
+# ==========================
+FROM maven:3.9-eclipse-temurin-21 AS build
+
+WORKDIR /build
+
+# Copiar código
+COPY microservice-client-starter ./microservice-client-starter
+COPY backend ./backend
+
+# Instalar dependencia común
+RUN cd microservice-client-starter && \
+    mvn clean install -DskipTests
+
+# Construir auth-service
+RUN cd backend && \
+    mvn clean package -DskipTests
+
+# ==========================
+# Runtime
+# ==========================
+FROM eclipse-temurin:21-jre
+
+WORKDIR /app
+
+COPY --from=build /build/backend/target/*.jar app.jar
+
+EXPOSE 8080
+EXPOSE 8081
+
+ENTRYPOINT ["java","-jar","app.jar"]
