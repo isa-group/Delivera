@@ -18,7 +18,7 @@ estrategia distinta, para poder comparar algoritmos sobre las mismas instancias.
 | [engines/random-engine.md](engines/random-engine.md) | Motor aleatorio: línea base de referencia |
 | [engines/greedy-engine.md](engines/greedy-engine.md) | Motor voraz: vecino más cercano |
 | [engines/genetic-engine.md](engines/genetic-engine.md) | Motor genético: representación, operadores, troceado y parámetros |
-| [benchmark.md](benchmark.md) | Cómo medir contra las instancias Cordeau y resultados actuales |
+| [benchmark.md](benchmark.md) | Cómo medir contra las instancias Cordeau, comparar los solvers y resultados actuales |
 | [decisiones-y-correcciones.md](decisiones-y-correcciones.md) | Qué se corrigió en el motor genético y por qué |
 
 ## Vista rápida
@@ -53,15 +53,16 @@ ficha de cada uno: es la referencia a tener delante al comparar costes.
 | Estrategia | Orden aleatorio | Vecino más cercano | Algoritmo genético con búsqueda local |
 | Determinista | No | Sí | No |
 | Respeta capacidad | Sí | Sí | Sí |
-| Respeta duración máxima | No | No | **Sí** |
+| Respeta duración máxima | Sí | Sí | Sí |
 | Respeta número de vehículos | No (multi-viaje) | No (multi-viaje) | **Sí** |
 | Tiempo en p22 (360 clientes) | milisegundos | milisegundos | ~3 s |
 | Calidad en p22 (BKS 5702) | — | — | ~5960 (+4,5 %) |
 | Para qué sirve | Cota superior de referencia | Solución rápida razonable | Solución de producción |
 
-Solo el motor genético produce soluciones factibles respecto a **todas** las restricciones de la
-instancia. Los otros dos sirven como referencia de comparación y como respuesta rápida cuando el
-tiempo importa más que el coste. Ver los detalles y limitaciones en la ficha de cada motor.
+Los tres respetan la capacidad del vehículo y la duración máxima de ruta, así que sus costes son
+comparables entre sí. La diferencia está en la calidad: el aleatorio es una cota superior de
+referencia, el voraz una solución rápida razonable y el genético el de producción. Ver los detalles y
+limitaciones en la ficha de cada motor.
 
 ## Puesta en marcha
 
