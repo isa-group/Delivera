@@ -6,6 +6,7 @@ import com.delivera.data.fms.dto.CustomerDto;
 import com.delivera.data.fms.dto.DepotDto;
 import com.delivera.data.fms.dto.RoutingRequest;
 import com.delivera.data.fms.dto.RoutingResponse;
+import com.delivera.data.fms.dto.TypeSolver;
 import com.delivera.data.fms.dto.VehicleDto;
 import com.delivera.data.order.model.Order;
 import com.delivera.data.order.model.OrderStatus;
@@ -33,7 +34,7 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
 
 
     @Override
-    public RoutingResponse solveForCompany(UUID companyId) {
+    public RoutingResponse solveForCompany(UUID companyId, TypeSolver solverType) {
         List<OperationalUnit> units = unitRepository.findAllByCompanyId(companyId);
         List<OperationalUnit> depots = units.stream()
                 .filter(u -> u.getLatitude() != null && u.getLongitude() != null)
@@ -96,7 +97,8 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
                 depotDtos,
                 customerDtos,
                 vehicleDtos,
-                distanceMatrix
+                distanceMatrix,
+                solverType
         );
 
         return fmsRoutingClient.post()

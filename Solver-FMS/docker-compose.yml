@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  fms-gateway:
+    build:
+      context: ./fms-gateway
+      dockerfile: Dockerfile
+    container_name: fms-gateway
+    ports:
+      - "8090:8090"
+    environment:
+      - FMS_ENGINES_GREEDY_URL=http://greedy-engine:8091
+      - FMS_ENGINES_RANDOM_URL=http://random-engine:8092
+      - FMS_INSTANCES_DIR=/app/instances-MD-CVRP
+    volumes:
+      - ./instances-MD-CVRP:/app/instances-MD-CVRP:ro
+    depends_on:
+      greedy-engine:
+        condition: service_healthy
+      random-engine:
+        condition: service_healthy
+    networks:
+      - fms-network
+    restart: unless-stopped
+
+  greedy-engine:
+    build:
+      context: ./engines/greedy-engine
+      dockerfile: Dockerfile
+    container_name: greedy-engine
+    ports:
+      - "8091:8091"
+    networks:
+      - fms-network
+    restart: unless-stopped
+
+  random-engine:
+    build:
+      context: ./engines/random-engine
+      dockerfile: Dockerfile
+    container_name: random-engine
+    ports:
+      - "8092:8092"
+    networks:
+      - fms-network
+    restart: unless-stopped
+
+networks:
+  fms-network:
+    driver: bridge

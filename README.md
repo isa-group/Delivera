@@ -97,7 +97,9 @@ npm run dev
 |---|---|
 | PostgreSQL (host) | 5433 |
 | Spring Boot | 8080 |
-|FMS | 8082 |
+| FMS Gateway | 8090 |
+| FMS Greedy Engine | 8091 |
+| FMS Random Engine | 8092 |
 |Core Spring Boot | 8080 |
 |Core Spring Boot mTLS | 8081 |
 |Auth Spring Boot | 9090 |

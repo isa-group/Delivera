@@ -59,6 +59,11 @@ frontend/blob-report/
 *.timestamp-*-*.mjs
 
 # =====================
+# SOLVER
+# =====================
+Solver-FMS/instances-MD-CVRP/
+
+# =====================
 # ENVIRONMENT
 # =====================
 .env.local
