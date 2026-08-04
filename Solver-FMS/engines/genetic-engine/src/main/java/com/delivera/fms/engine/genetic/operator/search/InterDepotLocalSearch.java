@@ -15,15 +15,15 @@ import java.util.Map;
 /**
  * Reasigna clientes entre depositos. Hace dos cosas distintas y las mantiene separadas:
  *
- * <ol>
- *   <li><b>Reparar</b>: si un deposito necesita mas rutas que vehiculos tiene, se le saca carga
+ *
+ *   Reparar: si un deposito necesita mas rutas que vehiculos tiene, se le saca carga
  *       aunque cueste distancia. Como criterio de mejora de coste puede no existir ningun
  *       movimiento individual que compense, la reparacion se acepta sin condicion de coste.
- *   <li><b>Mejorar</b>: reubicar clientes frontera cuando reduce el coste real de los dos
+ *   Mejorar: reubicar clientes frontera cuando reduce el coste real de los dos
  *       depositos implicados.
- * </ol>
  *
- * <p>Los deltas se miden dentro de la secuencia de cada deposito y todo movimiento se confirma con
+ *
+ * Los deltas se miden dentro de la secuencia de cada deposito y todo movimiento se confirma con
  * el troceado real, de modo que nunca se acepta por una arista que no existe en ninguna ruta.
  */
 public class InterDepotLocalSearch {
@@ -81,7 +81,7 @@ public class InterDepotLocalSearch {
         return changed;
     }
 
-    /** Vacia los depositos que superan su flota, al menor coste posible pero sin exigir mejora. */
+    // Vacia los depositos que superan su flota, al menor coste posible pero sin exigir mejora.
     private boolean repairFleet(Map<DepotDto, List<Integer>> depotOrder,
                                  Map<Integer, DepotDto> depotMap,
                                  Map<DepotDto, Double> costs,
@@ -229,7 +229,7 @@ public class InterDepotLocalSearch {
         return false;
     }
 
-    /** Confirma el movimiento con el troceado real de ambos depositos y lo deshace si no mejora. */
+    // Confirma el movimiento con el troceado real de ambos depositos y lo deshace si no mejora
     private boolean tryApply(Move move,
                               Map<DepotDto, List<Integer>> depotOrder,
                               Map<Integer, DepotDto> depotMap,
@@ -275,7 +275,7 @@ public class InterDepotLocalSearch {
         return nearestOther / (distanceToAssigned + 1e-10) < BORDER_RATIO;
     }
 
-    /** Coste penalizado y numero de rutas del deposito, la misma cuenta que hace la funcion objetivo. */
+    // Coste penalizado y numero de rutas del deposito, la misma cuenta que hace la funcion objetivo
     private void measure(DepotDto depot, List<Integer> order,
                          Map<DepotDto, Double> costs, Map<DepotDto, Integer> routeCounts) {
         RouteSplitter.Split split = splitter.evaluate(depot, order);
