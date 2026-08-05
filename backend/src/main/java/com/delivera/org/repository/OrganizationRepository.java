@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.delivera.org.dto.IdNameProjection;
 import com.delivera.org.model.Organization;
 
 import java.util.List;
@@ -30,5 +31,16 @@ public interface OrganizationRepository extends JpaRepository<Organization, UUID
     @Modifying
     @Query("DELETE FROM Organization o WHERE o.id <> :keepId")
     void deleteAllExcept(@Param("keepId") UUID keepId);
+
+    
+
+    @Query("""
+        SELECT new com.delivera.org.dto.IdNameProjection(
+            o.id,
+            o.name
+        )
+        FROM Organization o
+    """)
+   List<IdNameProjection> findNames();
 
 }

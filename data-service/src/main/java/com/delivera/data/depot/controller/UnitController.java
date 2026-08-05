@@ -18,6 +18,7 @@ import com.delivera.data.depot.dto.UnitResponse;
 import com.delivera.data.depot.service.UnitService;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -48,6 +49,15 @@ public class UnitController {
         return ResponseEntity.ok(unitService.getExternalCompanies());
     }
     */
+
+    @GetMapping("/names")
+    public ResponseEntity<Map<UUID,String>> getByOrganization(
+        @RequestParam(required = true, name = "companyId") UUID companyId 
+    ) {
+        return ResponseEntity.ok().body(
+            unitService.getByCompanyId(companyId)
+        );
+    }
 
     @Operation(summary = "Crear unidad operativa")
     @PostMapping

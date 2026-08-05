@@ -22,4 +22,6 @@ public class LoginResponse {
         private String orgName;
         @JsonInclude(JsonInclude.Include.NON_NULL)
         private RefreshCookieData refreshCookie;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        private UUID LoyalUserId; 
 }

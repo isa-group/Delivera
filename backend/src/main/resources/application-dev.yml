@@ -54,7 +54,8 @@ delivera:
       data-service:
         api-internal-key: data-internal-key
         allowed-paths:
-          - /internal/organization/check 
+          - /internal/organization/check
+          - /internal/auth/claim/register
       
   mtls:
     enabled: true
@@ -100,6 +101,7 @@ app:
   file:
     max-upload-bytes: 2097152
   demo:
+    populate: true
     seed:
       auth:
         prefix: /api/v2 

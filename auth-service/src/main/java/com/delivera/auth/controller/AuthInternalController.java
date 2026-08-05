@@ -1,5 +1,6 @@
 package com.delivera.auth.controller;
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -124,6 +125,19 @@ public class AuthInternalController {
         return ResponseEntity.status(HttpStatus.resolve(204)).build();
     }
 
+
+    @DeleteMapping("/user")
+    public ResponseEntity<Void> deleteUsers(
+        @RequestBody Set<UUID> userIds
+    ) {
+        authService.deleteUsers(userIds);
+        return ResponseEntity.status(HttpStatus.resolve(204)).build();
+    }
+
+
+
+
+    
 
 
 

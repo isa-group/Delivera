@@ -1,5 +1,6 @@
 package com.delivera.auth.service;
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,18 +14,18 @@ import com.delivera.auth.dto.RequestClientData;
 import com.delivera.client.core.SmartMicroserviceClient;
 import com.delivera.dto.auth.LoginResponse;
 
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
 
 @Service
+@RequiredArgsConstructor
 public class AuthClient {
 
     private final SmartMicroserviceClient client;
+    private final Integer RETRIES = 3;
+    private final Integer TIMEOUT = 5000;
 
-    @Autowired
-    public AuthClient(SmartMicroserviceClient client) {
-        this.client = client;
-    }
 
     public  Mono<LoginResponse> registerBase(RegisterRequestAuth registerRequest) {
         return client.request()
@@ -36,8 +37,8 @@ public class AuthClient {
         .internal()
         .failOn4xx(true)
         .failOn5xx(true)
-        .retry(3)
-        .timeout(5000)
+        .retry(RETRIES)
+        .timeout(TIMEOUT)
         .log()
         .executeBasicRequest(LoginResponse.class);
 
@@ -56,8 +57,8 @@ public class AuthClient {
         .internal()
         .failOn4xx(true)
         .failOn5xx(true)
-        .retry(3)
-        .timeout(5000)
+        .retry(RETRIES)
+        .timeout(TIMEOUT)
         .log()
         .executeBasicRequest(Void.class);
     } 
@@ -105,10 +106,28 @@ public class AuthClient {
         .internal()
         .failOn4xx(true)
         .failOn5xx(true)
-        .retry(3)
-        .timeout(5000)
+        .retry(RETRIES)
+        .timeout(TIMEOUT)
         .log()
         .executeBasicRequest(Void.class);
+        
+    }
+
+    public void deleteUsers(Set<UUID> userIds) {
+        client.request()
+        .service("auth-service")
+        .path("/internal/auth/user")
+        .method(HttpMethod.DELETE)
+        .body(userIds)
+        .mtls()
+        .internal()
+        .failOn4xx(true)
+        .failOn5xx(true)
+        .retry(RETRIES)
+        .timeout(TIMEOUT)
+        .log()
+        .executeBasicRequest(Void.class)
+        .block();
         
     }
 
@@ -121,10 +140,27 @@ public class AuthClient {
         .internal()
         .failOn4xx(true)
         .failOn5xx(true)
-        .retry(3)
-        .timeout(5000)
+        .retry(RETRIES)
+        .timeout(TIMEOUT)
         .log()
         .executeBasicRequest(Void.class);
+        
+    }
+
+    public void cleanAuthServiceDB(UUID adminUserId) {
+        client.request()
+        .service("auth-service")
+        .path("/internal/admin/auth-service/"+adminUserId)
+        .method(HttpMethod.DELETE)
+        .mtls()
+        .internal()
+        .failOn4xx(true)
+        .failOn5xx(true)
+        .retry(RETRIES)
+        .timeout(TIMEOUT)
+        .log()
+        .executeBasicRequest(Void.class)
+        .block();
         
     }
 

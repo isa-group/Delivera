@@ -16,6 +16,7 @@ import { useServices } from '@/composables/useServices.js'
 const { t } = useI18n()
 const router = useRouter()
 const api = useApi()
+const dataApi = useServices("data-service")
 const authApi = useServices("auth-service")
 const auth = useAuthStore()
 const { validate, required, errors: vErrors, invalids } = useValidation()
@@ -45,6 +46,8 @@ const defaultPriorityLocked = ref(false)
 const companySaving = ref(false)
 const companyError = ref('')
 const companySuccess = ref(false)
+const prioritySettingsSaving = ref(false)
+const priorityError = ref('')
 
 // Búsqueda y paginación de empresas
 const companySearch = ref('')
@@ -257,17 +260,34 @@ async function reloadSubscription() {
   if (res.ok) subscription.value = await res.json()
 }
 
+async function  combineSettings(sett,dataSett) {
+  sett.defaultPriority = dataSett.defaultPriority
+  sett.defaultPriorityLocked = dataSett.defaultPriorityLocked
+  return sett
+}
+
 async function load() {
   loadError.value = ''
   try {
-    const [settRes, compRes, subRes] = await Promise.all([
+    const [settRes, compRes, subRes, dataSettRes ] = await Promise.all([
       api.get('/settings'),
       api.get('/settings/companies'),
       api.get('/settings/subscription'),
+      dataApi.get('/settings')
     ])
-    if (settRes.ok) settings.value = await settRes.json()
+    if (settRes.ok && dataSettRes.ok) settings.value = await combineSettings(
+        await settRes.json(), await dataSettRes.json()
+    )
     else loadError.value = t('error.connection')
     if (compRes.ok) allCompanies.value = await compRes.json()
+    // TODO: PROVISONAL FIX
+    allCompanies.value = [...allCompanies.value].map((company) => {
+      if (company.id === settings.value.companyId) {
+        company.defaultPriority = settings.value.defaultPriority
+        company.defaultPriorityLocked = settings.value.defaultPriorityLocked
+      }
+      return company
+    })
     if (subRes.ok) subscription.value = await subRes.json()
   } catch {
     loadError.value = t('error.connection')
@@ -335,6 +355,8 @@ function startEditCompany(company) {
   defaultPriorityLocked.value = !!company.defaultPriorityLocked
   companyError.value = ''
   companySuccess.value = false
+  prioritySettingsSaving.value = false
+  priorityError.value = false
 }
 
 function cancelEditCompany() {
@@ -349,6 +371,7 @@ async function saveCompany() {
   companyError.value = ''
   try {
     const res = await api.put('/settings/company', { name: companyName.value, activityType: activityType.value, defaultPriority: defaultPriority.value, defaultPriorityLocked: defaultPriorityLocked.value })
+
     if (res.ok) {
       const updated = await res.json()
       settings.value = updated
@@ -368,6 +391,57 @@ async function saveCompany() {
     companySaving.value = false
   }
 }
+
+async function savePrioritySettings() {
+  prioritySettingsSaving.value = true
+  priorityError.value = ''
+
+  try {
+    const res = await dataApi.put('/settings', {
+      defaultPriority: defaultPriority.value,
+      defaultPriorityLocked: defaultPriorityLocked.value
+    })
+    if (res.status == 204) {
+      settings.value.defaultPriority =
+        defaultPriority.value
+
+      settings.value.defaultPriorityLocked =
+        defaultPriorityLocked.value
+
+      const idx = allCompanies.value.findIndex(
+        c => c.id === editingCompanyId.value
+      )
+
+      if (idx !== -1) {
+        allCompanies.value[idx] = {
+          ...allCompanies.value[idx],
+          defaultPriority:defaultPriority.value,
+          defaultPriorityLocked: defaultPriorityLocked.value
+        }
+      }
+
+      priorityError.value = ''
+      companySuccess.value = true
+      editingCompanyId.value = null
+      
+      setTimeout(() => {
+        companySuccess.value = false
+      }, 3000)
+
+    } else {
+      const data = await res.json()
+      priorityError.value =
+        dataApi.translateError(data, 'error.saveFailed')
+    }
+
+  } catch {
+    priorityError.value = t('error.connection')
+  } finally {
+    prioritySettingsSaving.value = false
+  }
+}
+  
+
 
 function startDeleteCompany(id) {
   editingCompanyId.value = null
@@ -397,11 +471,11 @@ async function confirmDeleteCompany(id) {
     }
     const url = force ? `/settings/companies/${id}?force=true` : `/settings/companies/${id}`
     const res = await api.del(url)
-    console.log(res.status
-    )
     if (res.status === 204) {
       if (isCurrent) {
-        router.push('/settings')
+        router.push('/home')
+        auth.loadCompanies()
+        reloadSubscription()
       } else {
         allCompanies.value = allCompanies.value.filter(c => c.id !== id)
         auth.loadCompanies()
@@ -573,32 +647,43 @@ async function copyHandle() {
                         </div>
                         <input ref="logoFileInput" type="file" accept="image/jpeg,image/png" style="display:none" @change="handleLogoFileChange" />
                       </div>
-                      <div class="form-field">
-                        <label for="settings-company-name">{{ t('fields.companyName') }}</label>
-                        <InputText id="settings-company-name" v-model="companyName" :placeholder="t('fields.companyNamePlaceholder')" maxlength="255" :invalid="!!invalids.companyName" fluid />
-                        <small v-if="vErrors.companyName" class="field-error">{{ vErrors.companyName }}</small>
+                      <div class="company-edit-form-section">
+                        <h2>{{t('settings.companyInfo')}}</h2>
+                        <div class="form-field">
+                          <label for="settings-company-name">{{ t('fields.companyName') }}</label>
+                          <InputText id="settings-company-name" v-model="companyName" :placeholder="t('fields.companyNamePlaceholder')" maxlength="255" :invalid="!!invalids.companyName" fluid />
+                          <small v-if="vErrors.companyName" class="field-error">{{ vErrors.companyName }}</small>
+                        </div>
+                        <div class="form-field">
+                          <label for="settings-activity-type">{{ t('fields.type') }}</label>
+                          <PSelect input-id="settings-activity-type" v-model="activityType" :options="activityOptions" option-label="label" option-value="value" fluid />
+                        </div>
+                        <div class="form-actions">
+                            <PButton :label="t('common.cancel')" icon="pi pi-times" severity="secondary" outlined size="small" @click="cancelEditCompany" />
+                            <PButton :label="t('common.save')" icon="pi pi-check" :loading="companySaving" size="small" @click="saveCompany" />
+                        </div>
                       </div>
-                      <div class="form-field">
-                        <label for="settings-activity-type">{{ t('fields.type') }}</label>
-                        <PSelect input-id="settings-activity-type" v-model="activityType" :options="activityOptions" option-label="label" option-value="value" fluid />
+                      <div class="company-edit-form-section">
+                        <h2>{{t('settings.prioritySettings')}}</h2>
+                        <div class="form-field">
+                          <label for="settings-default-priority">{{ t('settings.defaultPriority') }}</label>
+                          <PSelect input-id="settings-default-priority" v-model="defaultPriority" :options="defaultPriorityOptions" option-label="label" option-value="value" fluid show-clear />
+                          <small class="field-help">{{ t('settings.defaultPriorityHelp') }}</small>
+                        </div>
+                        <div class="form-field">
+                          <label for="settings-priority-lock" class="lock-checkbox">
+                            <PCheckbox input-id="settings-priority-lock" v-model="defaultPriorityLocked" :binary="true" />
+                            {{ t('settings.defaultPriorityLock') }}
+                          </label>
+                          <small class="field-help">{{ t('settings.defaultPriorityLockHelp') }}</small>
+                        </div>
+                        <PMessage v-if="priorityError" severity="error" :closable="false" class="form-message">{{ priorityError }}</PMessage>
+                        <div class="form-actions">
+                          <PButton :label="t('common.cancel')" icon="pi pi-times" severity="secondary" outlined size="small" @click="cancelEditCompany" />
+                          <PButton :label="t('common.save')" icon="pi pi-check" :loading="prioritySettingsSaving" size="small" @click="savePrioritySettings" />
+                        </div>
                       </div>
-                      <div class="form-field">
-                        <label for="settings-default-priority">{{ t('settings.defaultPriority') }}</label>
-                        <PSelect input-id="settings-default-priority" v-model="defaultPriority" :options="defaultPriorityOptions" option-label="label" option-value="value" fluid show-clear />
-                        <small class="field-help">{{ t('settings.defaultPriorityHelp') }}</small>
-                      </div>
-                      <div class="form-field">
-                        <label for="settings-priority-lock" class="lock-checkbox">
-                          <PCheckbox input-id="settings-priority-lock" v-model="defaultPriorityLocked" :binary="true" />
-                          {{ t('settings.defaultPriorityLock') }}
-                        </label>
-                        <small class="field-help">{{ t('settings.defaultPriorityLockHelp') }}</small>
-                      </div>
-                      <PMessage v-if="companyError" severity="error" :closable="false" class="form-message">{{ companyError }}</PMessage>
-                      <div class="form-actions">
-                        <PButton :label="t('common.cancel')" icon="pi pi-times" severity="secondary" outlined size="small" @click="cancelEditCompany" />
-                        <PButton :label="t('common.save')" icon="pi pi-check" :loading="companySaving" size="small" @click="saveCompany" />
-                      </div>
+                      
                     </div>
                   </template>
                   <template v-else>

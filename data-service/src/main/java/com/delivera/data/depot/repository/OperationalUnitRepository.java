@@ -6,12 +6,15 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.delivera.data.common.dto.IdNameProjection;
 import com.delivera.data.depot.dto.B2BUnitResponse;
+import com.delivera.data.depot.dto.UnitAdminSummary;
 import com.delivera.data.depot.model.OperationalUnit;
 /*import com.delivera.data.worker.model.Worker;*/
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface OperationalUnitRepository extends JpaRepository<OperationalUnit, UUID> {
@@ -93,5 +96,53 @@ public interface OperationalUnitRepository extends JpaRepository<OperationalUnit
         FROM OperationalUnit u 
         WHERE u.companyId = :companyId
     """)
-    void deleteAllFromCompany(@Param("companyId") UUID companyId);
+    void deleteByCompanyId(@Param("companyId") UUID companyId);
+
+    @Modifying
+    @Query("""
+        DELETE 
+        FROM OperationalUnit u 
+        WHERE u.companyId <> :companyId
+    """)
+    void deleteAllExceptCompanyId(@Param("companyId") UUID companyId);
+
+    @Modifying
+    @Query("""
+        DELETE 
+        FROM OperationalUnit u 
+        WHERE u.companyId IN :companyIds
+    """)
+    void deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
+
+
+    @Query("""
+    SELECT new com.delivera.data.common.dto.IdNameProjection(
+        u.id,
+        u.name
+    )
+    FROM OperationalUnit u 
+    WHERE u.companyId = :companyId
+    """)
+   List<IdNameProjection> findNamesByCompanyId(@Param("companyId") UUID companyId);
+
+
+
+   @Query("""
+    SELECT new com.delivera.data.depot.dto.UnitAdminSummary(
+        u.id,
+        u.name,
+        u.type,
+        u.latitude,
+        u.longitude,
+        u.companyId,
+        u.orgId
+
+    )
+    FROM OperationalUnit u
+    WHERE 
+        u.latitude IS NOT NULL
+        AND
+        u.longitude IS NOT NULL
+    """)
+   List<UnitAdminSummary> findAdminSummaries();
 }

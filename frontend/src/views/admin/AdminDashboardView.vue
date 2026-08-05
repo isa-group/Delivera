@@ -10,9 +10,11 @@ import {
   attachRouteVisibilityHandler,
 } from '@/composables/useDeliveraMap'
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM_COUNTRY } from '@/constants/map'
+import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const api = useApi()
+const dataApi = useServices("data-service")
 const { formatDate } = useFormatDate()
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -27,6 +29,7 @@ const METRIC_ICONS = {
   totalOrdersThisMonth: 'pi-send',
   totalActiveUsers: 'pi-users',
 }
+const companyAndOrgNamesByCompanyId = ref(null)
 const metrics = ref(null)
 const metricsLoading = ref(false)
 const homeChartData = ref(null)
@@ -95,17 +98,34 @@ const resetError = ref('')
 const resetSuccess = ref(false)
 
 // ── Load functions ────────────────────────────────────────────────────────────
+async function mixMetrics(ordersRes, metricsRes) {
+  const metrics = await metricsRes.json()
+  let ordersThisMonth = '?'
+  if (ordersRes.ok) {
+    ordersThisMonth = await ordersRes.json()
+    metrics.totalOrdersThisMonth = ordersThisMonth
+  } 
+  return metrics
+}
+
+
+
 async function loadHome() {
   metricsLoading.value = true
   homeChartData.value = null
   try {
-    const [metricsRes, chartRes, unitsRes, routesRes] = await Promise.all([
+    const [companyAndOrgNamesRes,
+      ordersRes,metricsRes, chartRes, unitsRes, routesRes
+    ] = await Promise.all([
+      api.get(`/admin/organizations/companies`),
+      dataApi.get('/admin/activity/orders'),
       api.get('/admin/metrics'),
-      api.get('/admin/activity/orders-by-day?period=MONTH'),
-      api.get('/admin/units'),
-      api.get('/admin/routes'),
+      dataApi.get('/admin/activity/orders-by-day?period=MONTH'),
+      dataApi.get('/admin/units'),
+      dataApi.get('/admin/routes'),
     ])
-    if (metricsRes.ok) metrics.value = await metricsRes.json()
+    if (companyAndOrgNamesRes.ok) companyAndOrgNamesByCompanyId.value = await companyAndOrgNamesRes.json()
+    if (metricsRes.ok) metrics.value = await mixMetrics(ordersRes,metricsRes)
     if (chartRes.ok) {
       const raw = await chartRes.json()
       const entries = fillDateRange(raw, 'MONTH')
@@ -121,7 +141,7 @@ async function loadHome() {
         }
       }
     }
-    if (unitsRes.ok) mapUnits.value = await unitsRes.json()
+    if (unitsRes.ok) mapUnits.value = mixWithCompanyAndOrgNames(await unitsRes.json())
     if (routesRes.ok) mapRoutes.value = await routesRes.json()
   } finally {
     metricsLoading.value = false
@@ -167,6 +187,22 @@ async function initHomeMap() {
 
   for (const r of mapRoutes.value) {
     if (!map) return
+    let destinationMarker = markerByKey.get('u:' + r.destinationId)
+
+    if (!destinationMarker && r.destinationLat && r.destinationLon) {
+      destinationMarker = addMarker(map, {
+      id: `customer-${r.id}`,
+      lat: r.destinationLat,
+      lon: r.destinationLon,
+      kind: 'CUSTOMER',
+      title: r.destinationName,
+      subtitle: r.reference
+      })
+      markerByKey.set('c:' +r.id, destinationMarker)
+      cluster.addLayer(destinationMarker)
+      bounds.push([ r.destinationLat, r.destinationLon])
+    }
+
     const entry = await addRoute(map, {
       orderId: null,
       origin: { lat: r.originLat, lon: r.originLon },
@@ -176,7 +212,7 @@ async function initHomeMap() {
       actionLabel: null,
       router: null,
       originMarker: markerByKey.get('u:' + r.originId) || null,
-      destMarker: markerByKey.get('u:' + r.destinationId) || null,
+      destMarker: destinationMarker, //markerByKey.get('u:' + r.destinationId) || null,
       status: r.status,
       currentLocation: null,
     })
@@ -198,9 +234,9 @@ async function loadActivity() {
   companyRanking.value = []
   try {
     const [metricsRes, chartRes, rankingRes] = await Promise.all([
-      api.get(`/admin/activity?period=${period.value}`),
-      api.get(`/admin/activity/orders-by-day?period=${period.value}`),
-      api.get(`/admin/activity/company-ranking?period=${period.value}`),
+      dataApi.get(`/admin/activity?period=${period.value}`),
+      dataApi.get(`/admin/activity/orders-by-day?period=${period.value}`),
+      dataApi.get(`/admin/activity/company-ranking?period=${period.value}`),
     ])
     if (metricsRes.ok) activityMetrics.value = await metricsRes.json()
     else activityError.value = t('error.connection')
@@ -217,7 +253,7 @@ async function loadActivity() {
         }],
       }
     }
-    if (rankingRes.ok) companyRanking.value = await rankingRes.json()
+    if (rankingRes.ok) companyRanking.value = mixWithCompanyAndOrgNamesById(await rankingRes.json())
   } catch {
     activityError.value = t('error.connection')
   } finally {
@@ -225,17 +261,65 @@ async function loadActivity() {
   }
 }
 
+function mixCountOrdersWithEntity(dataCount = null, dataEntity) {
+
+    return [...dataEntity].map(entity => {
+       entity.orderCount =  dataCount!=null? dataCount[entity.id]?? '?':'?'
+       return entity
+    })
+   
+    
+}
+
+function mixWithCompanyAndOrgNames(entities) {
+  const data = companyAndOrgNamesByCompanyId.value ?? null
+  return [...entities].map(entity => {
+    entity.companyName = data != null 
+      ? data[entity.companyId]?.companyName?? '?' : '?'
+      entity.orgName = data != null 
+      ? data[entity.companyId]?.orgName?? '?' : '?'
+    return entity
+  })
+
+}
+
+function mixWithCompanyAndOrgNamesById(entities) {
+  const data = companyAndOrgNamesByCompanyId.value ?? null
+  return [...entities].map(entity => {
+    entity.companyName = data != null 
+      ? data[entity.id]?.companyName?? entity.id : entity.id
+      entity.orgName = data != null 
+      ? data[entity.id]?.orgName?? '?' : '?'
+    return entity
+  })
+
+}
+
 async function loadEntity(entity) {
   entityLoading.value = true
   entityError.value = ''
   deleteConfirmId.value = null
+  let dataCount = null
+  let res
+  let countRequest
   try {
-    const res = await api.get(`/admin/${entity}`)
-    if (res.ok) {
+    if (entity === 'organizations' || entity === 'companies') {
+      [countRequest, res] = await Promise.all([
+        dataApi.get(`/admin/${entity}/orders`),
+        api.get(`/admin/${entity}`)
+      ])
+      dataCount = countRequest.ok? await countRequest.json() : null
+    }else if (entity === 'orders'){ 
+      res = await dataApi.get(`/admin/${entity}`)
+    }else {
+      res = await api.get(`/admin/${entity}`)
+    }
+    
+    if (res?.ok) {
       const data = await res.json()
-      if (entity === 'organizations') organizations.value = data
-      else if (entity === 'companies') companies.value = data
-      else if (entity === 'orders') orders.value = data
+      if (entity === 'organizations') organizations.value = mixCountOrdersWithEntity(dataCount,data)
+      else if (entity === 'companies') companies.value = mixCountOrdersWithEntity(dataCount,data)
+      else if (entity === 'orders') orders.value = mixWithCompanyAndOrgNames(data)
       else if (entity === 'users') users.value = data
       else if (entity === 'workers') workers.value = data
     } else {
@@ -459,10 +543,10 @@ onUnmounted(destroyMap)
                     <div class="count-bar-wrap">
                       <span
                         class="count-bar"
-                        :style="{ width: Math.min(100, Math.max(0, entry.orderCount / companyRanking[0].orderCount * 100)) + '%' }"
+                        :style="{ width: Math.min(100, Math.max(0, entry.count / companyRanking[0].count * 100)) + '%' }"
                       />
                     </div>
-                    {{ entry.orderCount }}
+                    {{ entry.count }}
                   </div>
                 </td>
               </tr>

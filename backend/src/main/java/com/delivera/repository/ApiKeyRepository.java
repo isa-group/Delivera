@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface ApiKeyRepository extends JpaRepository<ApiKey, UUID> {
@@ -21,6 +22,10 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, UUID> {
     @Modifying
     @Query("DELETE FROM ApiKey a WHERE a.company.id = :companyId")
     void deleteByCompanyId(@Param("companyId") UUID companyId);
+
+    @Modifying
+    @Query("DELETE FROM ApiKey a WHERE a.company.id IN :companyIds")
+    void deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
 
     @Modifying
     @Query("DELETE FROM ApiKey a WHERE a.company.id <> :keepCompanyId")

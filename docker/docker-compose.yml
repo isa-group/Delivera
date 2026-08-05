@@ -1,7 +1,7 @@
 name: Delivera
 
 services:
-  postgres:
+  delivera-postgres:
     image: postgres:16
     container_name: delivera_postgres
     restart: unless-stopped
@@ -19,30 +19,6 @@ services:
       timeout: 5s
       retries: 5
     command: postgres -c 'max_connections=200'
-  
-  auth-service:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.auth
-
-    container_name: auth-service
-
-    restart: unless-stopped
-
-    env_file:
-      - .env
-
-    ports:
-      - "9090:9090"
-
-    expose:
-      - "9091"
-
-    volumes:
-      - ../auth-service/src/main/resources/keys:/app/keys:ro
-      - ../auth-service/src/main/resources/certs:/app/certs:ro
-
-   
     
   auth-postgres:
     image: postgres:16
@@ -81,6 +57,79 @@ services:
       timeout: 5s
       retries: 5
     command: postgres -c 'max_connections=200'
+
+  auth-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.auth
+
+    container_name: auth-service
+
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    ports:
+      - "9090:9090"
+      - "9091:9091"
+
+    expose:
+      - "9091"
+      - "9090"
+
+    volumes:
+      - ../auth-service/src/main/resources/keys:/app/keys:ro
+      - ../auth-service/src/main/resources/certs:/app/certs:ro
+  
+  data-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.data
+
+    container_name: data-service
+
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+
+    expose:
+      - "9092"
+      - "9093"
+
+    volumes:
+      - ../data-service/src/main/resources/keys:/app/keys:ro
+      - ../data-service/src/main/resources/certs:/app/certs:ro
+  
+  delivera-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.delivera
+
+    container_name: delivera-service
+
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+
+    expose:
+      - "8080"
+      - "8081"
+
+    volumes:
+      - ../backend/src/main/resources/keys:/app/keys:ro
+      - ../backend/src/main/resources/certs:/app/certs:ro
+      
 
 volumes:
   delivera_pg_data:

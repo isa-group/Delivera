@@ -65,7 +65,15 @@ cd auth-service
 mvn spring-boot:run -D spring-boot.run.profiles=dev
 ```
 
-**4. Backend**
+**54 Data service**
+
+```bash
+cd data-service
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+
+```
+
+**5. Backend**
 
 ```bash
 cd backend
@@ -75,7 +83,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 
 
-**4. Frontend**
+**6. Frontend**
 
 ```bash
 cd frontend
@@ -93,11 +101,19 @@ npm run dev
 | FMS Greedy Engine | 8091 |
 | FMS Random Engine | 8092 |
 |Core Spring Boot | 8080 |
+|Core Spring Boot mTLS | 8081 |
 |Auth Spring Boot | 9090 |
+|Auth Spring Boot mTLS | 9091 |
+|Data Spring Boot | 9092 |
+|Data Spring Boot mTLS | 9093 |
 | Vite dev server | 3000 |
 | Swagger UI | http://localhost:8080/swagger-ui/index.html |
 
 El proxy de Vite reenvía `/api/*` al backend, por lo que no hace falta configurar CORS en desarrollo. Si cambias el puerto de Spring Boot, actualiza también el `target` del proxy en `vite.config.js`.
+
+## Certificados
+Para poder utilizar la aplicación correctamente vaya a doc/config/crear_certificados.md y siga las instrucciones.
+
 
 ### Generación de claves públicas y privadas
 

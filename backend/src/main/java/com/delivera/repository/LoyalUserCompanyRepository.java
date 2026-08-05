@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Set;
 import java.util.UUID;
 
 public interface LoyalUserCompanyRepository extends JpaRepository<LoyalUserCompany, LoyalUserCompany.Id> {
@@ -13,6 +14,10 @@ public interface LoyalUserCompanyRepository extends JpaRepository<LoyalUserCompa
     @Modifying
     @Query("DELETE FROM LoyalUserCompany luc WHERE luc.id.companyId = :companyId")
     void deleteByCompanyId(@Param("companyId") UUID companyId);
+
+    @Modifying
+    @Query("DELETE FROM LoyalUserCompany luc WHERE luc.id.companyId IN :companyIds")
+    void deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
 
     @Modifying
     @Query("DELETE FROM LoyalUserCompany luc")

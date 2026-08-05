@@ -462,6 +462,7 @@ validation:
   orgCodeTaken: This code is already in use, please choose another
 
 error:
+  unreachable: Unreachable information at this moment
   connection: Connection error with the server
   invalidCredentials: Incorrect credentials
   registerFailed: Registration failed
@@ -563,6 +564,8 @@ settings:
   noCompaniesFound: No companies found matching that criteria
   searchByName: Search by name
   filterAll: All
+  prioritySettings: Priority Settings
+  companyInfo: Company Information
   devices: 
     name: Devices
     message: Manage your active devices

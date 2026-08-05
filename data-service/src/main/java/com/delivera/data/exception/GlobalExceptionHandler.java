@@ -3,8 +3,8 @@ package com.delivera.data.exception;
 import com.delivera.client.exception.ApiException;
 import com.delivera.client.exception.ClientException;
 import com.delivera.client.exception.NetworkException;
-import com.delivera.data.dto.common.ErrorResponse;
-import com.delivera.data.dto.common.ValidationErrorResponse;
+import com.delivera.data.common.dto.ErrorResponse;
+import com.delivera.data.common.dto.ValidationErrorResponse;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,6 +52,8 @@ public class GlobalExceptionHandler {
         Map.entry(LoyalUserNotFoundException.class,        new Mapping(NOT_FOUND,            "LOYAL_USER_NOT_FOUND")),
         Map.entry(LoyalUserConflictException.class,       new Mapping(CONFLICT,             "LOYAL_USER_ALREADY_EXISTS")),
         Map.entry(CompanyHasActiveOrdersException.class,  new Mapping(CONFLICT,             "COMPANY_HAS_ACTIVE_ORDERS")),
+        Map.entry(SettingsNotFoundException.class,  new Mapping(NOT_FOUND,             "SETTINGS_NOT_FOUND")),
+        Map.entry(SettingsAlreadyExistsException .class,  new Mapping(CONFLICT,             "SETTINGS_ALREADY_EXISTS")),
         Map.entry(HandleConflictException.class,          new Mapping(CONFLICT,             "HANDLE_CONFLICT")),
         Map.entry(OrderAlreadyClaimedException.class,     new Mapping(CONFLICT,             "ORDER_ALREADY_CLAIMED")),
         Map.entry(OrderClaimEmailMismatchException.class, new Mapping(UNPROCESSABLE_ENTITY, "ORDER_CLAIM_EMAIL_MISMATCH")),
@@ -62,6 +64,7 @@ public class GlobalExceptionHandler {
         Map.entry(LoyalUserCannotBeWorkerException.class,   new Mapping(CONFLICT,             "LOYAL_USER_CANNOT_BE_WORKER")),
         Map.entry(WorkerCannotBeLoyalUserException.class,   new Mapping(CONFLICT,             "WORKER_CANNOT_BE_LOYAL_USER")),
         Map.entry(MissingRecipientAddressException.class, new Mapping(UNPROCESSABLE_ENTITY, "MISSING_RECIPIENT_ADDRESS")),
+        Map.entry(MissingClientEmailException.class, new Mapping(UNPROCESSABLE_ENTITY, "MISSING_CLIENT_EMAIL")),
         Map.entry(RateLimitExceededException.class,       new Mapping(TOO_MANY_REQUESTS,    "RATE_LIMIT_EXCEEDED")),
         Map.entry(ApiKeyNotFoundException.class,          new Mapping(NOT_FOUND,            "API_KEY_NOT_FOUND")),
         Map.entry(FileTooLargeException.class,            new Mapping(PAYLOAD_TOO_LARGE,    "FILE_TOO_LARGE"))

@@ -1,6 +1,7 @@
 package com.delivera.data.depot.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.data.common.dto.IdNameProjection;
 import com.delivera.data.depot.dto.AssignRequest;
 import com.delivera.data.depot.dto.B2BUnitResponse;
 import com.delivera.data.depot.dto.UnitDetailResponse;
@@ -16,40 +17,30 @@ import com.delivera.data.exception.UnitNameConflictException;
 import com.delivera.data.exception.UnitNotFoundException;
 import com.delivera.data.org.dto.OrgCheckRequest;
 import com.delivera.data.org.service.OrgClient;
-import com.delivera.data.vehicle.repository.VehicleRepository;
+
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UnitService {
 
     private final OperationalUnitRepository unitRepository;
     private final OrgClient orgClient;
     private final WorkerRepository workerRepository;
     private final SecurityUtils securityUtils;
-    private final VehicleRepository vehicleRepository;
     //private final SubscriptionService subscriptionService;
 
-    public UnitService(OperationalUnitRepository unitRepository,
-                       WorkerRepository workerRepository,
-                       OrgClient orgClient,
-                       SecurityUtils securityUtils,
-                       VehicleRepository vehicleRepository
-                       //SubscriptionService subscriptionService
-                       ) {
-        this.unitRepository = unitRepository;
-        this.orgClient = orgClient;
-        this.workerRepository = workerRepository;
-        this.securityUtils = securityUtils;
-        this.vehicleRepository = vehicleRepository;
-       // this.subscriptionService = subscriptionService;
-    }
+  
 
     @Transactional
     public UnitResponse createSeed(UnitRequest request, UUID orgId, UUID companyId) {
@@ -79,7 +70,7 @@ public class UnitService {
 
         Boolean orgCheck = orgClient.checkOrgData(new OrgCheckRequest(companyId, orgId)).block();
         if (!orgCheck) {
-                throw new CompanyContextException();
+            throw new CompanyContextException();
         }
         OperationalUnit unit = new OperationalUnit();
         unit.setCompanyId(companyId);
@@ -121,7 +112,23 @@ public class UnitService {
         return unitRepository.findAllByCompanyId(companyId).stream()
                 .map(UnitResponse::from).toList();
     } 
-            
+
+    @Transactional(readOnly = true)
+    public Map<UUID,String> getByCompanyId(UUID companyId) {        
+        return unitRepository.findNamesByCompanyId(companyId)
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    IdNameProjection::getId,
+                    IdNameProjection::getName
+                )
+            );
+        
+    } 
+      
+      
+    
+
 
 
    
@@ -176,6 +183,14 @@ public class UnitService {
         return workerRepository.findWorkersIdByUnitIdAndCompanyId(unitId, companyId);
     }
 
+
+    
+    @Transactional
+    public void unassignWorkerOfAllUnits(UUID workerId) {
+        workerRepository.unassignWorkerOfAllUnits(workerId);
+    }
+
+
     
     @Transactional
     public UnitWorker assignWorkerSeed(UUID unitId, AssignRequest request ) {
@@ -205,15 +220,7 @@ public class UnitService {
                 .orElseThrow(() -> new UnitNotFoundException(id));
         unitRepository.delete(unit);
     }
-
-
-    @Transactional
-    public void deleteByCompanyId(UUID companyId) {
-        vehicleRepository.deleteAllFromCompany(companyId);
-        unitRepository.deleteAllFromCompany(companyId);
-        
-    }
-
+    
     private void applyRequest(OperationalUnit unit, UnitRequest request) {
         unit.setName(request.getName());
         unit.setType(request.getType());

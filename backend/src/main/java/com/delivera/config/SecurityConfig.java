@@ -61,6 +61,8 @@ public class SecurityConfig {
                 auth.requestMatchers(api + "/external/**").hasRole("API_KEY");
                 auth.requestMatchers(api + "/admin/**").hasRole("GLOBAL_ADMIN");
                 auth.requestMatchers(api + "/settings/**").hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.POST,api + "/companies/names").authenticated();
+                auth.requestMatchers(HttpMethod.GET,api + "/companies/names").hasAnyRole(ADMIN, ANALYST);
 
                 auth.requestMatchers(HttpMethod.GET, api + "/units/external").hasAnyRole(ADMIN, ANALYST);
                 auth.requestMatchers(HttpMethod.GET, api + "/units/external-companies").hasAnyRole(ADMIN, ANALYST);
@@ -74,7 +76,7 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.PUT, api + "/vehicles/**").hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.DELETE, api + "/vehicles/**").hasRole(ADMIN);
 
-                auth.requestMatchers(HttpMethod.POST, api + "/orders").hasAnyRole(ADMIN, ANALYST);
+                auth.requestMatchers(HttpMethod.POST, api + "/orders/B2C").hasAnyRole(ADMIN, ANALYST);
                 auth.requestMatchers(HttpMethod.PATCH, api + "/orders/*/status").hasAnyRole(ADMIN, ANALYST, OPERATOR);
                 auth.requestMatchers(HttpMethod.DELETE, api + "/orders/**").hasRole(ADMIN);
 
@@ -95,7 +97,6 @@ public class SecurityConfig {
                 auth.requestMatchers(api + "/vehicles/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
                 auth.requestMatchers(api + "/orders/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
                 auth.requestMatchers(api + "/loyal-users/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
-                auth.requestMatchers(api + "/fms/routing/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
                 auth.requestMatchers(api + "/user/**").authenticated();
                 auth.requestMatchers(api + "/activity/**").hasAnyRole(ADMIN, ANALYST);
 

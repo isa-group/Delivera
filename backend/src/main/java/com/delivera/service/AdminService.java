@@ -1,8 +1,7 @@
 package com.delivera.service;
 
+import com.delivera.auth.service.AuthClient;
 import com.delivera.depot.repository.OperationalUnitRepository;
-import com.delivera.dto.activity.ActivityMetricsResponse;
-import com.delivera.dto.activity.OrdersByDayEntry;
 import com.delivera.dto.admin.*;
 import com.delivera.exception.ForbiddenException;
 import com.delivera.model.*;
@@ -14,29 +13,34 @@ import com.delivera.org.model.Company;
 import com.delivera.org.model.Organization;
 import com.delivera.org.repository.CompanyRepository;
 import com.delivera.org.repository.OrganizationRepository;
+import com.delivera.org.service.SettingsClient;
 import com.delivera.repository.*;
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.model.WorkerRole;
 import com.delivera.worker.repository.WorkerRepository;
+import com.delivera.worker.service.UnitWorkerClient;
+
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.sql.Date;
+
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class AdminService {
 
-    /// TODO: ADAPT TO BE USE IN A MICROSERVICE ARCHITECTURE
     private static final String SYSTEM_ORG_HANDLE = "delivera";
 
     private final OrganizationRepository organizationRepository;
@@ -50,30 +54,9 @@ public class AdminService {
     private final LoyalUserCompanyRepository loyalUserCompanyRepository;
     private final LoyalUserRepository loyalUserRepository;
     private final ApiKeyRepository apiKeyRepository;
-
-    public AdminService(OrganizationRepository organizationRepository,
-                        CompanyRepository companyRepository,
-                        OrderRepository orderRepository,
-                        UserRepository userRepository,
-                        WorkerRepository workerRepository,
-                        OperationalUnitRepository unitRepository,
-                        OrderMessageRepository orderMessageRepository,
-                        OrderEventRepository orderEventRepository,
-                        LoyalUserCompanyRepository loyalUserCompanyRepository,
-                        LoyalUserRepository loyalUserRepository,
-                        ApiKeyRepository apiKeyRepository) {
-        this.organizationRepository = organizationRepository;
-        this.companyRepository = companyRepository;
-        this.orderRepository = orderRepository;
-        this.userRepository = userRepository;
-        this.workerRepository = workerRepository;
-        this.unitRepository = unitRepository;
-        this.orderMessageRepository = orderMessageRepository;
-        this.orderEventRepository = orderEventRepository;
-        this.loyalUserCompanyRepository = loyalUserCompanyRepository;
-        this.loyalUserRepository = loyalUserRepository;
-        this.apiKeyRepository = apiKeyRepository;
-    }
+    private final UnitWorkerClient unitWorkerClient;
+    private final AuthClient authClient;
+    private final SettingsClient settingsClient;
 
     // ── Listing ──────────────────────────────────────────────────────────────
 
@@ -163,18 +146,6 @@ public class AdminService {
     }
 
     @Transactional(readOnly = true)
-    public ActivityMetricsResponse getGlobalActivityMetrics(String period) {
-        Instant from = periodStart(period);
-        return new ActivityMetricsResponse(
-                period,
-                orderRepository.countByCreatedAtAfter(from),
-                orderRepository.countByStatusAndCreatedAtAfter(OrderStatus.DELIVERED, from),
-                orderRepository.countByStatusAndCreatedAtAfter(OrderStatus.CANCELLED, from),
-                orderRepository.countByStatusInAndCreatedAtAfter(List.of(OrderStatus.PENDING, OrderStatus.IN_TRANSIT), from),
-                0L);
-    }
-
-    @Transactional(readOnly = true)
     public List<UnitAdminSummary> listUnits() {
         return unitRepository.findAll().stream()
                 .filter(u -> u.getLatitude() != null && u.getLongitude() != null)
@@ -236,18 +207,6 @@ public class AdminService {
                         ((Number) row[3]).longValue()))
                 .toList();
     }
-
-    @Transactional(readOnly = true)
-    public List<OrdersByDayEntry> getGlobalOrdersByDay(String period) {
-        Instant from = periodStart(period);
-        return orderRepository.countByDayGlobal(from).stream()
-                .map(row -> {
-                    LocalDate date = row[0] instanceof LocalDate d ? d : ((Date) row[0]).toLocalDate();
-                    return new OrdersByDayEntry(date, ((Number) row[1]).longValue());
-                })
-                .toList();
-    }
-
     // ── Delete operations ─────────────────────────────────────────────────────
 
     @Transactional
@@ -257,12 +216,20 @@ public class AdminService {
         if (SYSTEM_ORG_HANDLE.equals(org.getHandle())) {
             throw new ForbiddenException("FORBIDDEN");
         }
-        List<Company> companies = companyRepository.findByOrganizationId(orgId);
-        for (Company company : companies) {
-            deleteCompanyCascade(company.getId());
-        }
+        Set<UUID> companyIds = companyRepository.findIdsByOrganization(orgId);
+        Set<UUID> userIds = workerRepository.findWorkersAccounts(companyIds);
+   
+
+        loyalUserCompanyRepository.deleteByCompanyIds(companyIds);
+        apiKeyRepository.deleteByCompanyIds(companyIds);
+        workerRepository.deleteByCompanyIds(companyIds);
+
         companyRepository.deleteByOrganizationId(orgId);
         organizationRepository.deleteById(orgId);
+        userRepository.deleteByUserIds(userIds);
+
+        settingsClient.deleteOrganization(companyIds);
+        authClient.deleteUsers(userIds);
     }
 
     @Transactional
@@ -272,7 +239,7 @@ public class AdminService {
         if (SYSTEM_ORG_HANDLE.equals(company.getOrganization().getHandle())) {
             throw new ForbiddenException("FORBIDDEN");
         }
-        deleteCompanyCascade(companyId);
+        deleteCompanyCascade(company.getOrganization().getId(),companyId);
         companyRepository.deleteById(companyId);
     }
 
@@ -288,18 +255,17 @@ public class AdminService {
 
     @Transactional
     public void deleteUser(UUID userId) {
+        // THIS IS PLANNED TO BE USED WITH LOYAL_USER NOT ORGANIZATIONS USER
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (workerRepository.existsByUser_IdAndRole(userId, WorkerRole.GLOBAL_ADMIN)) {
             throw new ForbiddenException("FORBIDDEN");
         }
-        orderMessageRepository.deleteBySenderId(userId);
-        workerRepository.deleteUnitWorkersByUserId(userId);
-        workerRepository.deleteByUserId(userId);
         loyalUserRepository.findByUserId(userId).ifPresent(lu -> {
             lu.setUser(null);
             loyalUserRepository.save(lu);
         });
+        authClient.deleteUser(userId);
         userRepository.delete(user);
     }
 
@@ -310,7 +276,8 @@ public class AdminService {
         if (worker.getRole() == WorkerRole.GLOBAL_ADMIN) {
             throw new ForbiddenException("FORBIDDEN");
         }
-        workerRepository.deleteUnitWorkersByWorkerId(workerId);
+        unitWorkerClient.unassignWorkerOfAllUnits(workerId);
+        authClient.deleteUser(worker.getUser().getId());
         workerRepository.deleteById(workerId);
     }
 
@@ -325,18 +292,11 @@ public class AdminService {
         UUID adminCompanyId = adminWorker.getCompany().getId();
         UUID adminOrgId = adminWorker.getCompany().getOrganization().getId();
 
-        // Delete all order-related data (JPQL bulk deletes — evitan el flush diferido de JPA)
-        orderMessageRepository.deleteAllMessages();
-        orderEventRepository.deleteAllEvents();
-        orderRepository.deleteAllOrders();
+     
 
         // Delete loyal user data
         loyalUserCompanyRepository.deleteAllLinks();
         loyalUserRepository.deleteAllLoyalUsers();
-
-        // Delete unit assignments and units
-        workerRepository.deleteAllUnitWorkers();
-        unitRepository.deleteAllUnits();
 
         // Delete API keys except admin's company
         apiKeyRepository.deleteAllExceptCompany(adminCompanyId);
@@ -352,6 +312,9 @@ public class AdminService {
 
         // Delete users except admin
         userRepository.deleteAllExcept(adminUserId);
+
+        settingsClient.cleanDataServiceDB(adminCompanyId);
+        authClient.cleanAuthServiceDB(adminUserId);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -365,21 +328,13 @@ public class AdminService {
         };
     }
 
-    private void deleteCompanyCascade(UUID companyId) {
-        // Own orders
-        orderMessageRepository.deleteByCompanyId(companyId);
-        orderRepository.deleteEventsByCompanyId(companyId);
-        orderRepository.deleteByCompanyId(companyId);
-        // Cross-company orders whose origin unit belongs to this company (origin is NOT NULL)
-        orderMessageRepository.deleteByOriginCompanyId(companyId);
-        orderRepository.deleteEventsByOriginCompanyId(companyId);
-        orderRepository.deleteByOriginCompanyId(companyId);
-        // Null out destinations pointing to this company's units (destination is nullable)
-        orderRepository.nullifyDestinationByCompanyId(companyId);
+    private void deleteCompanyCascade(UUID orgId, UUID companyId) {
         loyalUserCompanyRepository.deleteByCompanyId(companyId);
         apiKeyRepository.deleteByCompanyId(companyId);
-        workerRepository.deleteUnitWorkersByCompanyId(companyId);
-        unitRepository.deleteByCompanyId(companyId);
+        Set<UUID> userIds = workerRepository.findAccountsToDelete(orgId, companyId);
         workerRepository.deleteByCompanyId(companyId);
+        userRepository.deleteByUserIds(userIds);
+        settingsClient.deleteAllByCompany(companyId, true);
+        authClient.deleteUsers(userIds);
     }
 }

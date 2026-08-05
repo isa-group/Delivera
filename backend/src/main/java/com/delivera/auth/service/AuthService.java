@@ -1,6 +1,7 @@
 package com.delivera.auth.service;
 
 
+import com.delivera.auth.dto.ClaimData;
 import com.delivera.auth.dto.DeliveraOrgContext;
 import com.delivera.auth.dto.RefreshCookieData;
 import com.delivera.auth.dto.RequestClientData;
@@ -12,8 +13,8 @@ import com.delivera.dto.auth.RegisterRequest;
 import com.delivera.dto.auth.RegisterResponse;
 import com.delivera.exception.*;
 import com.delivera.model.*;
-import com.delivera.order.model.Order;
 import com.delivera.order.repository.OrderRepository;
+import com.delivera.order.service.OrderClient;
 import com.delivera.org.model.Company;
 import com.delivera.org.model.Organization;
 import com.delivera.org.repository.CompanyRepository;
@@ -32,6 +33,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 import java.time.Duration;
 import java.util.List;
 
@@ -40,17 +42,17 @@ import java.util.List;
 @Service
 public class AuthService {
 
-    private static final String LOYAL_USER_ROLE = "LOYAL_USER";
+    private static final WorkerRole LOYAL_USER_ROLE = WorkerRole.LOYAL_USER;
 
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
     private final CompanyRepository companyRepository;
     private final WorkerRepository workerRepository;
-    private final OrderRepository orderRepository;
     private final LoyalUserRepository loyalUserRepository;
     private final ActivityTypeRepository activityTypeRepository;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
-    private final AuthClient client;
+    private final AuthClient authClient;
+
 
     
     @Value("${app.gateway.enabled}")
@@ -65,16 +67,16 @@ public class AuthService {
                        ActivityTypeRepository activityTypeRepository,
                        SubscriptionPlanRepository subscriptionPlanRepository,
                        PasswordEncoder passwordEncoder,
-                       AuthClient client) {
+                       OrderClient orderClient,
+                       AuthClient authClient) {
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
         this.companyRepository = companyRepository;
         this.workerRepository = workerRepository;
-        this.orderRepository = orderRepository;
         this.loyalUserRepository = loyalUserRepository;
         this.activityTypeRepository = activityTypeRepository;
         this.subscriptionPlanRepository = subscriptionPlanRepository;
-        this.client = client;
+        this.authClient = authClient;
     }
 
     public String getIp(HttpServletRequest httpRequest) {
@@ -140,13 +142,13 @@ public class AuthService {
             lu.setUser(user);
             loyalUserRepository.save(lu);
         });
-        String role = loyalUsers.isEmpty() ? null : LOYAL_USER_ROLE;
-        LoginResponse loginResponse = client.register(
+        WorkerRole role = LOYAL_USER_ROLE;
+        LoginResponse loginResponse = authClient.register(
             savedUser.getId(), 
             request.email(),
             request.username(), 
             request.password(), 
-            new DeliveraOrgContext(null, null, role, null, null,null),
+            new DeliveraOrgContext(null, role, null , null, null,null),
             requestClientData
         ).block();
         return new RegisterResponse(loginResponse.getToken(), user.getEmail(), role, loginResponse.getRefreshCookie());
@@ -197,7 +199,7 @@ public class AuthService {
         worker.setRole(WorkerRole.COMPANY_ADMIN);
         workerRepository.save(worker);
 
-        LoginResponse response = client.register(
+        LoginResponse response = authClient.register(
             savedUser.getId(), request.email(), request.username(), request.password(), 
             new DeliveraOrgContext(
                 savedCompany.getId(), WorkerRole.COMPANY_ADMIN, savedCompany.getName(),
@@ -212,32 +214,23 @@ public class AuthService {
     }
 
     @Transactional
-    public LoginResponse claimRegister(String token, ClaimRegisterRequest request, RequestClientData requestClientData) {
-        Order order = orderRepository.findByTrackingToken(token)
-                .orElseThrow(OrderNotFoundException::new);
-
-        if (order.getLoyalUser() != null && order.getLoyalUser().getUser() != null) {
-            throw new OrderAlreadyClaimedException();
-        }
-
+    public LoginResponse claimRegister(ClaimData claimData) {
+        ClaimRegisterRequest request = claimData.getRequest();
         String email = request.email().toLowerCase().trim();
-        if (!email.equals(order.getRecipientEmail())) {
-            throw new OrderClaimEmailMismatchException();
-        }
+        RequestClientData requestClientData = claimData.getClientData();
 
-        if (userRepository.findByEmail(email).isPresent()) {
-            throw new EmailAlreadyExistsException();
-        }
 
         User user = buildUser(email, request.username(), request.firstName(), request.lastName(), null);
 
-        if (order.getRecipientAddress() != null) user.setAddress(order.getRecipientAddress());
+        if (claimData.getAddress() != null) user.setAddress(claimData.getAddress());
         User savedUser = userRepository.save(user);
 
+        Company company = companyRepository.findById(claimData.getCompanyId())
+        .orElseThrow(() -> new ForbiddenException("COMPANY NOT FOUND EXCEPTION"));
           
 
         LoyalUser loyalUser = loyalUserRepository
-                .findByCompanyIdAndEmail(order.getCompany().getId(), email)
+                .findByCompanyIdAndEmail(claimData.getCompanyId(), email)
                 .orElseGet(() -> {
                     LoyalUser lu = loyalUserRepository.findByEmail(email).stream().findFirst()
                             .orElseGet(() -> {
@@ -245,24 +238,24 @@ public class AuthService {
                                 fresh.setEmail(email);
                                 return fresh;
                             });
-                    lu.linkFor(order.getCompany());
+                    lu.linkFor(company);
                     return lu;
                 });
         loyalUser.setUser(user);
-        loyalUserRepository.save(loyalUser);
+        LoyalUser lu = loyalUserRepository.save(loyalUser);
 
-        order.setLoyalUser(loyalUser);
-        order.setTrackingToken(null);
-        orderRepository.save(order);
-
-        return client.register(
+        LoginResponse loginResponse =  authClient.register(
             savedUser.getId(), email, null, request.password(), 
             new DeliveraOrgContext(
-                null, null, 
-                LOYAL_USER_ROLE, null, null,null
+                null, LOYAL_USER_ROLE,null
+                , null, null,null
             ),
             requestClientData
-        ).block(); 
+        ).block();
+        loginResponse.setLoyalUserId(lu.getId());
+
+        return loginResponse;
+
 
     }
 

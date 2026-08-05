@@ -11,11 +11,13 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.delivera.auth.dto.Device;
+import com.delivera.auth.exception.InvalidRefreshActionException;
 import com.delivera.auth.exception.InvalidRefreshTokenException;
 import com.delivera.auth.model.Credential;
 import com.delivera.auth.model.RefreshToken;
@@ -248,7 +250,11 @@ public class RefreshTokenService {
            refreshToken.getCompanyId(),
            refreshToken.getMaxExpiredAt()
         );
-        repository.delete(refreshToken);
+        try {
+            repository.delete(refreshToken);
+        }catch(OptimisticLockingFailureException e){
+            throw new InvalidRefreshActionException();
+        }
         return newToken;
     }
 

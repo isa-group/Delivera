@@ -5,44 +5,111 @@ logging:
 
 spring:
   datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USER}
-    password: ${DATABASE_PASSWORD}
+    url: ${DATABASE_DELIVERA_URL}
+    username: ${DATABASE_DELIVERA_USER}
+    password: ${DATABASE_DELIVERA_PASSWORD}
   jpa:
     show-sql: false
     hibernate:
       ddl-auto: validate
-  mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail.smtp.auth: true
-      mail.smtp.starttls.enable: true
 
 management:
   endpoint:
     health:
       show-details: never
 
-app:
+delivera:
   jwt:
-    secret: ${JWT_SECRET}
-    expiration: 86400
+    jwks-uri: ${JWKS_HOSTS}${AUTH_SERVICE_BASE_PATH}/.well-known/jwks.json
+
+  client: 
+    service-name: delivera-service
+    internal-hosts: 
+      - auth-service
+      - data-service
+    
+    service-hosts:
+      auth-service: ${AUTH_SERVICE_HOSTS}
+      data-service: ${DATA_SERVICE_HOSTS}
+    
+    
+    service-base-paths:
+      auth-service: ${AUTH_SERVICE_BASE_PATH}
+      data-service: ${DATA_SERVICE_BASE_PATH}
+
+
+    internal-auth:
+      enabled: true
+      filter-enabled: true
+      header-name: X-Internal-Key
+      service-header-name: X-Service-Name
+  
+  security:
+    default-deny: false
+    services:
+      auth-service: 
+        api-internal-key: ${AUTH_INTERNAL_KEY}
+        allowed-paths:
+      delivera-service: 
+        api-internal-key: ${DELIVERA_INTERNAL_KEY}
+        allowed-paths:
+      data-service:
+        api-internal-key: ${DATA_INTERNAL_KEY}
+        allowed-paths:
+          - /internal/organization/check
+          - /internal/auth/claim/register
+      
+  mtls:
+    enabled: true
+    key-store: ${DELIVERA_KEY_STORE}
+    key-store-password: ${DELIVERA_KEYSTORE_PASSWORD}
+    key-store-type: ${DELIVERA_KEY_STORE_TYPE}
+    trust-store: ${DELIVERA_TRUST_STORE}
+    trust-store-password: ${DELIVERA_TRUSTSTORE_PASSWORD}
+    trust-store-type: ${DELIVERA_TRUST_STORE_TYPE}
+    server:
+      enabled: ${mTLS_DELIVERA_enabled}
+      port: ${mTLS_DELIVERA_PORT}
+
+      key-store: ${delivera.mtls.key-store}
+      key-store-password: ${delivera.mtls.key-store-password}
+      key-store-type: ${delivera.mtls.key-store-type}
+
+      trust-store: ${delivera.mtls.trust-store}
+      trust-store-password: ${delivera.mtls.trust-store-password}
+      trust-store-type: ${delivera.mtls.trust-store-type}
+
+      use-temp-file: false
+server:
+  ssl:
+    enabled: ${ssl_Delivera_enabled}
+    key-store: ${delivera.mtls.key-store}
+    key-store-password: ${delivera.mtls.key-store-password}
+    key-store-type: ${delivera.mtls.key-store-type}
+    # client-auth --> required = mTLS  | want --> check in backend if u required certificate
+    client-auth: none
+
+
+app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS}
-  mail:
-    enabled: ${MAIL_ENABLED:false}
-    from: ${MAIL_FROM:noreply@delivera.app}
-  tracking-url-base: ${TRACKING_URL_BASE:https://delivera.app/track/}
-  contact-email: ${CONTACT_EMAIL:contact@delivera.com}
+  gateway: 
+    enabled: false
   file:
     max-upload-bytes: ${FILE_MAX_UPLOAD_BYTES:2097152}
   auth:
     rate-limit:
-      max-attempts: ${AUTH_RATE_LIMIT_MAX_ATTEMPTS:5}
-      window-ms: ${AUTH_RATE_LIMIT_WINDOW_MS:60000}
+      max-attempts: ${IP_MAX_ATTEMPTS}
+      window-ms: ${IP_WINDOW_MS}
   demo:
-    seed-password: ${DEMO_SEED_PASSWORD:demo1234}
-    reset-on-start: ${DEMO_RESET_ON_START:true}
+    seed-password: ${DEMO_SEED_PASSWORD}
+    reset-on-start: ${DEMO_RESET_ON_START}
+    populate: ${DEMO_POPULATE:false}
+    seed:
+      auth:
+        prefix: ${AUTH_SERVICE_BASE_PATH} 
+        host: ${DEMO_AUTH_HOST}:${AUTH_PORT}
+        path: /internal/auth/seed/register
+      data:
+        prefix: ${DATA_SERVICE_BASE_PATH} 
+        host: ${DEMO_DATA_HOST}:${DATA_PORT}

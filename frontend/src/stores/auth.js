@@ -11,6 +11,7 @@ export const useAuthStore = defineStore('auth', () => {
   const companyName = ref(localStorage.getItem('companyName') || null)
   const role = ref(localStorage.getItem('role') || null)
   const companyId = ref(localStorage.getItem('companyId') || null)
+  const orgId = ref(localStorage.getItem('orgId') || null)
   const planCode = ref(localStorage.getItem('planCode') || null)
   // Empresas del usuario en la misma org (en memoria, se recarga cuando es necesario)
   const companies = ref([])
@@ -61,10 +62,35 @@ export const useAuthStore = defineStore('auth', () => {
     else localStorage.removeItem('planCode')
   }
 
+  function setOrgId(id = null) {
+    orgId.value = id
+    if (id) {
+      localStorage.setItem('orgId', id)
+    } else {
+      localStorage.removeItem('orgId')
+    }
+  }
+
+  function parseJwt(token) {
+    try {
+      return JSON.parse(atob(token.split('.')[1]))
+    } catch {
+      return null
+    }
+  }
+
+  function obtainOrgIdFromJwt(token) {
+    const data = parseJwt(token)
+    if (data == null) return;
+    return data.orgId
+  }
+
+
   function applyLoginData(data) {
     setToken(data.token)
     setRole(data.role ?? null)
     setCompanyId(data.companyId ?? null)
+    setOrgId(obtainOrgIdFromJwt(data.token))
     setCompanyName(data.companyName ?? null)
     setOrganization(data.orgHandle ?? null)
     setOrgName(data.orgName ?? null)
@@ -80,6 +106,8 @@ export const useAuthStore = defineStore('auth', () => {
     companyName.value = null
     role.value = null
     companyId.value = null
+    orgId.value = null
+    localStorage.removeItem('orgId')
     localStorage.removeItem('token')
     localStorage.removeItem('organizationHandle')
     localStorage.removeItem('orgName')
@@ -116,7 +144,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     token, user, organizationHandle, orgName, companyName, role, companyId, planCode,
     companies,
-    isAuthenticated, isCompanyAdmin, isWorker, canCreateOrders,
+    isAuthenticated, isCompanyAdmin, isWorker, canCreateOrders,orgId,
     setToken, setUser, setOrganization, setOrgName, setCompanyName,
     setRole, setCompanyId, setPlanCode, applyLoginData,
     logout, loadCompanies,

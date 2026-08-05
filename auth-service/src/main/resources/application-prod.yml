@@ -34,7 +34,7 @@ delivera:
       service-header-name: X-Service-Name
   
   security:
-    default-deny: false
+    default-deny: true
     services:
       auth-service: 
         api-internal-key: ${AUTH_INTERNAL_KEY}
@@ -44,6 +44,7 @@ delivera:
         allowed-paths: 
           - /internal/auth/register
           - /internal/auth/user/**
+          - /internal/auth/user
           - /internal/auth/username
           - /internal/auth/seed/register
           - /internal/auth/seed/register

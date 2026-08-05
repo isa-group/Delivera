@@ -5,13 +5,23 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.delivera.org.dto.CompanyAdminProjection;
+import com.delivera.org.dto.IdNameProjection;
 import com.delivera.org.model.Company;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public interface CompanyRepository extends JpaRepository<Company, UUID> {
     List<Company> findByOrganizationId(UUID organizationId);
+
+    @Query("""
+    SELECT c.id
+    FROM Company c
+    WHERE c.organization.id = :organizationId        
+    """)
+    Set<UUID> findIdsByOrganization(@Param("organizationId") UUID organizationId);
     List<Company> findByOrganizationIdOrderByCreatedAtDesc(UUID organizationId);
 
     long countByOrganizationId(UUID organizationId);
@@ -29,4 +39,36 @@ public interface CompanyRepository extends JpaRepository<Company, UUID> {
 
     @Query("SELECT COUNT(c) > 0 FROM Company c WHERE c.id = :id AND c.organization.id = :organizationId")
     Boolean existsByIdAndOrganizationId(UUID id, UUID organizationId);
+
+
+
+    @Query("""
+        SELECT new com.delivera.org.dto.IdNameProjection(
+            c.id,
+            c.name
+        )
+        FROM Company c 
+        WHERE c.id IN(:companyIds)
+    """)
+   List<IdNameProjection> findNamesById(@Param("companyIds") Set<UUID> companyIds);
+   @Query("""
+    SELECT new com.delivera.org.dto.IdNameProjection(
+        c.id,
+        c.name
+    )
+    FROM Company c 
+    WHERE c.organization.id = :organizationId
+    """)
+   List<IdNameProjection> findNamesByOrgId(@Param("organizationId") UUID organizationId);
+
+
+   @Query("""
+    SELECT new com.delivera.org.dto.CompanyAdminProjection(
+        c.id,
+        c.name,
+        c.organization.name
+    )
+    FROM Company c 
+    """)
+    List<CompanyAdminProjection> findCompanyAndOrgNames();
 }

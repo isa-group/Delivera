@@ -22,7 +22,7 @@ public class Vehicle {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @JoinColumn(name = "company_id", nullable = false)
+    @Column(name = "company_id", nullable = false)
     private UUID companyId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

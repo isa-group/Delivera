@@ -9,6 +9,7 @@ import com.delivera.dto.auth.*;
 import com.delivera.dto.common.AvailabilityCheckResponse;
 import java.math.BigDecimal;
 import com.delivera.security.AuthRateLimiter;
+import com.delivera.worker.model.WorkerRole;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,7 @@ class AuthControllerTest {
     @InjectMocks private AuthController controller;
 
     private static LoginResponse loginResp() {
-        return new LoginResponse("tok", "u@e.com", null, "COMPANY_ADMIN", "Acme", "acme", "Acme Org",null);
+        return new LoginResponse("tok", "u@e.com", null, "COMPANY_ADMIN", "Acme", "acme", "Acme Org",null,null);
     }
 
     /* 
@@ -56,7 +57,7 @@ class AuthControllerTest {
     void register_checksRateLimitAndDelegates() {
         // RegisterRequest(email, username, firstName, lastName, phone, password)
         RegisterRequest req = new RegisterRequest("u@e.com", "user1", "First", null, null, "Pass1a2B", "Calle Mayor 1, Madrid", new BigDecimal("40.4168"), new BigDecimal("-3.7038"));
-        RegisterResponse expected = new RegisterResponse("tok", "u@e.com", "LOYAL_USER");
+        RegisterResponse expected = new RegisterResponse("tok", "u@e.com", WorkerRole.LOYAL_USER);
         when(authService.getIp(any())).thenReturn("127.0.0.1");
         when(authService.refreshCookie(any())).thenReturn(ResponseCookie.from("saasa").build());
         when(authService.register(eq(req),any())).thenReturn(expected);

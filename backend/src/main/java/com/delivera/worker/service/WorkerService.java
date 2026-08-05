@@ -15,6 +15,8 @@ import com.delivera.worker.model.Worker;
 import com.delivera.worker.model.WorkerRole;
 import com.delivera.worker.repository.WorkerRepository;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class WorkerService {
 
     private final WorkerRepository workerRepository;
@@ -31,23 +34,10 @@ public class WorkerService {
     private final LoyalUserRepository loyalUserRepository;
     private final SecurityUtils securityUtils;
     private final SubscriptionService subscriptionService;
-    private final AuthClient client;
+    private final AuthClient authClient;
+    private final UnitWorkerClient unitWorkerClient;
 
-    public WorkerService(WorkerRepository workerRepository,
-                         UserRepository userRepository,
-                         CompanyRepository companyRepository,
-                         LoyalUserRepository loyalUserRepository,
-                         SecurityUtils securityUtils,
-                         AuthClient client,
-                         SubscriptionService subscriptionService) {
-        this.workerRepository = workerRepository;
-        this.userRepository = userRepository;
-        this.companyRepository = companyRepository;
-        this.loyalUserRepository = loyalUserRepository;
-        this.securityUtils = securityUtils;
-        this.subscriptionService = subscriptionService;
-        this.client = client;
-    }
+   
 
     @Transactional(readOnly = true)
     public List<WorkerResponse> getByCompany() {
@@ -109,7 +99,7 @@ public class WorkerService {
         worker.setRole(role);
         worker = workerRepository.save(worker);
         if (savedUser != null) {
-            client.register(savedUser.getId(), email, null, tempPassword).block();
+            authClient.register(savedUser.getId(), email, null, tempPassword).block();
         }
         return tempPassword != null ? WorkerResponse.withTemp(worker, tempPassword) : WorkerResponse.from(worker);
     }
@@ -148,9 +138,11 @@ public class WorkerService {
 
         User user = worker.getUser();
         workerRepository.delete(worker);
+        unitWorkerClient.unassignWorkerOfAllUnits(workerId);
+        
         if (user.isInvited() && workerRepository.countByUser_Id(user.getId()) == 0) {
             userRepository.delete(user);
-            client.deleteUser(user.getId()).block();
+            authClient.deleteUser(user.getId()).block();
             
         }
     }

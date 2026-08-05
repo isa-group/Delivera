@@ -55,21 +55,71 @@ public class SecurityConfig {
                 
                 auth.requestMatchers(HttpMethod.POST, api+"/internal/units/*/seed/assign").permitAll();
                 auth.requestMatchers(HttpMethod.POST, api+"/internal/vehicles/seed/companies/*").permitAll();
-                // internal
-                auth.requestMatchers(HttpMethod.DELETE, api+"/internal/units/companies/*").permitAll();
-                auth.requestMatchers(HttpMethod.GET, api+"/internal/vehicles/companies/*").permitAll();
 
-                auth.requestMatchers(HttpMethod.GET, api+"/units" ).hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.POST, api+"/internal/settings/seed").permitAll();
+                auth.requestMatchers(HttpMethod.POST, api+"/internal/orders/seed").permitAll();
+                auth.requestMatchers(HttpMethod.POST, api+"/internal/orders/*/seed/events").permitAll();
+                
+
+                // internal
+                auth.requestMatchers(HttpMethod.GET, api+"/internal/vehicles/companies/*").permitAll();
+                auth.requestMatchers(HttpMethod.POST, api+"/internal/orders/B2C").permitAll();
+                auth.requestMatchers(HttpMethod.DELETE, api + "/internal/settings/organization").permitAll();
+                auth.requestMatchers(HttpMethod.DELETE, api+"/internal/settings/*").permitAll();
+                auth.requestMatchers(HttpMethod.POST, api + "/internal/settings").permitAll();
+                auth.requestMatchers(HttpMethod.DELETE, api + "/internal/units/unassign/*").permitAll();
+                auth.requestMatchers(HttpMethod.DELETE, api + "/internal/admin/data-service/*").permitAll();
+                // units
+
+                auth.requestMatchers(HttpMethod.GET, api+"/units" ).hasAnyRole(ADMIN,ANALYST,OPERATOR);
+                auth.requestMatchers(HttpMethod.GET, api+"/units/names" ).hasAnyRole(ADMIN,ANALYST);
                 auth.requestMatchers(HttpMethod.POST, api+"/units" ).hasRole(ADMIN);
-                auth.requestMatchers(HttpMethod.GET, api+"/units/*" ).hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.GET, api+"/units/*" ).hasAnyRole(ADMIN,ANALYST,OPERATOR);
                 auth.requestMatchers(HttpMethod.PUT, api + "/units/*").hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.DELETE, api + "/units/*").hasRole(ADMIN);
 
                 auth.requestMatchers(HttpMethod.GET, api + "/units/*/workers").hasAnyRole(ADMIN, ANALYST);
                 auth.requestMatchers(HttpMethod.POST, api + "/units/*/workers").hasRole(ADMIN);
                 auth.requestMatchers(HttpMethod.DELETE, api + "/units/*/workers/*").hasRole(ADMIN);
+
+              
+                auth.requestMatchers(HttpMethod.GET, api + "/settings").hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.PUT, api + "/settings").hasRole(ADMIN);
+
+                // vehicles
+
                 /*TODO: PREGUNTAR*/
                 auth.requestMatchers(api + "/vehicles/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
+
+
+                // ORDERS
+                auth.requestMatchers(HttpMethod.POST, api + "/orders").hasAnyRole(ADMIN, ANALYST);
+                auth.requestMatchers(HttpMethod.GET, api + "/orders/me").hasAnyRole(LOYAL_USER);
+                auth.requestMatchers(HttpMethod.GET, api + "/orders/*/me").hasAnyRole(LOYAL_USER);
+                auth.requestMatchers(HttpMethod.PATCH, api + "/orders/*/status").hasAnyRole(ADMIN, ANALYST, OPERATOR);
+                auth.requestMatchers(HttpMethod.DELETE, api + "/orders/**").hasRole(ADMIN);
+                auth.requestMatchers(api + "/orders/*/messages/**").hasAnyRole(ADMIN, ANALYST, OPERATOR, LOYAL_USER);
+                auth.requestMatchers(HttpMethod.POST, api + "/orders/*/messages").hasAnyRole(ADMIN, ANALYST, OPERATOR, LOYAL_USER);
+                auth.requestMatchers(api + "/orders/public/track/*").permitAll();
+                auth.requestMatchers(HttpMethod.POST,api + "/orders/public/track/*/register").permitAll();
+                auth.requestMatchers(api + "/orders/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
+
+                // ACTIVITY
+                auth.requestMatchers(api + "/activity/**").hasAnyRole(ADMIN, ANALYST);
+
+                // ADMIN
+                auth.requestMatchers(HttpMethod.GET, api + "/admin/organizations/orders").hasRole("GLOBAL_ADMIN");
+                auth.requestMatchers(HttpMethod.GET, api + "/admin/companies/orders").hasRole("GLOBAL_ADMIN");
+                auth.requestMatchers(HttpMethod.GET, api + "/admin/orders").hasRole("GLOBAL_ADMIN");
+                auth.requestMatchers(HttpMethod.GET, api + "/admin/routes").hasRole("GLOBAL_ADMIN");
+                auth.requestMatchers(HttpMethod.GET, api + "/admin/units").hasRole("GLOBAL_ADMIN");
+                auth.requestMatchers(HttpMethod.GET, api + "/admin/activity").hasRole("GLOBAL_ADMIN");
+                auth.requestMatchers(HttpMethod.GET, api + "/admin/activity/company-ranking").hasRole("GLOBAL_ADMIN");
+                auth.requestMatchers(HttpMethod.GET, api + "/admin/activity/orders").hasRole("GLOBAL_ADMIN");
+                auth.requestMatchers(HttpMethod.GET, api + "/admin/activity/orders-by-day").hasRole("GLOBAL_ADMIN");
+
+                // FMS
+                auth.requestMatchers(api + "/fms/routing/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
 
                 auth.anyRequest().denyAll();
             });

@@ -1,9 +1,6 @@
 spring:
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${DELIVERA_SPRING_PROFILES_ACTIVE:dev}
 
 app:
   api-prefix: /api/v2
-  fms:
-    routing:
-      base-url: ${FMS_ROUTING_URL:http://localhost:8090}

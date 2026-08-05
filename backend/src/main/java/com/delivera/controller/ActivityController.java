@@ -2,8 +2,6 @@ package com.delivera.controller;
 
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.dto.activity.ActivityMetricsResponse;
-import com.delivera.dto.activity.OrdersByDayEntry;
-import com.delivera.dto.activity.UnitRankingEntry;
 
 import com.delivera.service.ActivityService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
@@ -30,17 +27,4 @@ public class ActivityController {
         return ResponseEntity.ok(activityService.getMetrics(securityUtils.getCurrentCompanyId(), period));
     }
 
-    @Operation(summary = "Pedidos por día en el período")
-    @GetMapping("/orders-by-day")
-    public ResponseEntity<List<OrdersByDayEntry>> getOrdersByDay(
-            @RequestParam(defaultValue = "MONTH") String period) {
-        return ResponseEntity.ok(activityService.getOrdersByDay(securityUtils.getCurrentCompanyId(), period));
-    }
-
-    @Operation(summary = "Ranking de unidades por volumen de pedidos")
-    @GetMapping("/unit-ranking")
-    public ResponseEntity<List<UnitRankingEntry>> getUnitRanking(
-            @RequestParam(defaultValue = "MONTH") String period) {
-        return ResponseEntity.ok(activityService.getUnitRanking(securityUtils.getCurrentCompanyId(), period));
-    }
 }

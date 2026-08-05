@@ -7,7 +7,9 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
-import com.delivera.data.dto.common.OrderPriority;
+
+import com.delivera.data.order.model.OrderPriority;
+
 
 
 @Getter

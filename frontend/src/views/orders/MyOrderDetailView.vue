@@ -3,19 +3,21 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppConfig } from '@/composables/useAppConfig'
-import { fetchPublicOrder, useApi } from '@/composables/useApi'
 import { useFormatDate } from '@/composables/useFormatDate'
 import TimelineList from '@/components/TimelineList.vue'
 import { createMap, addMarker, addRoute, fitBounds, currentLocationOf } from '@/composables/useDeliveraMap'
+import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const { formatDateTime } = useFormatDate()
 const route = useRoute()
 const router = useRouter()
-const api = useApi()
+const dataApi = useServices("data-service")
+const deliveraApi = useServices("delivera-service")
 const { load: loadConfig, statusSeverity } = useAppConfig()
 
 const order = ref(null)
+const companyName = ref(null)
 const loading = ref(false)
 const error = ref('')
 const activeTab = ref(0)
@@ -31,6 +33,10 @@ let mapInvalidateTimer = null
 const hasMap = computed(() =>
   order.value?.originLat != null && order.value?.originLon != null
     && order.value?.destinationLat != null && order.value?.destinationLon != null
+)
+
+const companyAvailable = computed(() =>
+  !!companyName.value?.[order.value?.companyUUID]
 )
 
 async function initMap() {
@@ -79,18 +85,26 @@ async function initMap() {
 }
 
 async function fetchOrder() {
-  const reference = route.query.q
-  if (!reference) { error.value = t('tracking.notFound'); return }
+  const id = route.query.q
+  if (!id) { error.value = t('tracking.notFound'); return }
   loading.value = true
   try {
-    order.value = await fetchPublicOrder(reference)
+    const response = await dataApi.get(`/orders/${id}/me`)
+    order.value = await response.json()
     loadMessages()
+    try {
+      const nameResponse = await deliveraApi.post('/companies/names',[order.value.companyUUID])
+      companyName.value = await nameResponse.json()
+    }catch{ /* empty */ }
   } catch (e) {
     error.value = e.message === 'not_found' ? t('tracking.notFound') : t('error.connection')
   } finally {
     loading.value = false
   }
-  if (order.value) initMap()
+  if (order.value) {
+    initMap()
+    
+  }
 }
 
 onBeforeRouteLeave(() => {
@@ -106,7 +120,7 @@ onUnmounted(() => {
 async function loadMessages() {
   if (!order.value?.id) return
   try {
-    const res = await api.get(`/orders/${order.value.id}/messages`)
+    const res = await dataApi.get(`/orders/${order.value.id}/messages`)
     if (res.ok) messages.value = await res.json()
   } catch { /* silent */ }
 }
@@ -116,7 +130,7 @@ async function sendMessage() {
   if (!text || !order.value?.id) return
   sendingMessage.value = true
   try {
-    const res = await api.post(`/orders/${order.value.id}/messages`, { content: text })
+    const res = await dataApi.post(`/orders/${order.value.id}/messages`, { content: text })
     if (res.ok) {
       messages.value.push(await res.json())
       newMessage.value = ''
@@ -165,7 +179,13 @@ onMounted(() => { loadConfig(); fetchOrder() })
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">{{ t('tracking.company') }}</span>
-                <span class="info-value">{{ order.companyName }}</span>
+                <span class="info-value"
+                  :class="{'info-error':!companyAvailable}"
+                >
+                  {{ companyName && companyName[order.companyUUID]
+                      ? companyName[order.companyUUID]
+                      : t('error.unreachable') }}
+                </span>
               </div>
               <div class="info-item">
                 <span class="info-label">{{ t('tracking.origin') }}</span>

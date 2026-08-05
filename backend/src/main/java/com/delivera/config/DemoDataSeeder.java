@@ -3,23 +3,26 @@ package com.delivera.config;
 import com.delivera.auth.service.AuthClient;
 import com.delivera.depot.dto.AssignRequest;
 import com.delivera.depot.dto.UnitRequest;
-import com.delivera.depot.model.OperationalUnit;
 import com.delivera.depot.model.UnitType;
 import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.depot.service.UnitClient;
 import com.delivera.model.*;
-import com.delivera.order.model.Order;
-import com.delivera.order.model.OrderEvent;
+import com.delivera.order.dto.DataOrderRequest;
+import com.delivera.order.dto.DataOrderStatusRequest;
 import com.delivera.order.model.OrderPriority;
 import com.delivera.order.model.OrderStatus;
 import com.delivera.order.model.OrderType;
 import com.delivera.order.repository.OrderEventRepository;
 import com.delivera.order.repository.OrderRepository;
+import com.delivera.order.service.OrderClient;
+import com.delivera.org.dto.CompanySettingsDTO;
 import com.delivera.org.model.Company;
 import com.delivera.org.model.Organization;
 import com.delivera.org.repository.CompanyRepository;
 import com.delivera.org.repository.OrganizationRepository;
+import com.delivera.org.service.SettingsClient;
 import com.delivera.repository.*;
+import com.delivera.service.AdminService;
 import com.delivera.vehicle.dto.VehicleRequest;
 import com.delivera.vehicle.service.VehicleClient;
 import com.delivera.worker.model.Worker;
@@ -79,7 +82,8 @@ public class DemoDataSeeder implements CommandLineRunner {
     @Value("${app.demo.seed.data.prefix}")
     private String dataPrefix;
 
-
+    @Value("${app.demo.populate:false}")
+    private boolean demoPopulate = false;
 
     @Value("${app.demo.reset-on-start:false}")
     private boolean resetOnStart;
@@ -97,6 +101,11 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final VehicleClient vehicleClient;
     private final AuthClient authClient;
     private final UnitClient unitClient;
+    private final SettingsClient settingsClient;
+    private final OrderClient orderClient;
+    private final AdminService adminService;
+
+    private String adminEmail = "admin@delivera.com";
 
     @PersistenceContext
     private EntityManager em;
@@ -113,6 +122,9 @@ public class DemoDataSeeder implements CommandLineRunner {
                            SubscriptionPlanRepository plans,
                            VehicleClient vehicleClient,
                            UnitClient unitClient,
+                           SettingsClient settingsClient,
+                           OrderClient orderClient,
+                           AdminService adminService,
                            AuthClient authClient) {
         this.users = users;
         this.organizations = organizations;
@@ -127,13 +139,17 @@ public class DemoDataSeeder implements CommandLineRunner {
         this.vehicleClient = vehicleClient;
         this.unitClient = unitClient;
         this.authClient = authClient;
+        this.settingsClient = settingsClient;
+        this.orderClient = orderClient;
+        this.adminService = adminService;
     }
 
-    //TODO: DLETE /internal/vehicles/seed/companies/*/units/*
     @Override
     @Transactional
     public void run(String... args) {
-        if (resetOnStart) {
+        if (!demoPopulate){
+            return;
+        }else if (resetOnStart) {
             log.warn("DemoDataSeeder: app.demo.reset-on-start=true -> vaciando tablas de datos antes de re-sembrar.");
             wipeData();
         } else if (users.count() > 0) {
@@ -143,7 +159,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         log.info("DemoDataSeeder: cargando datos de demo...");
 
         // --- 1. Usuarios ---
-        User admin  = createUser("admin@delivera.com",    "admin",   "Ana",    "Navarro",   "+34600000001",
+        User admin  = createUser(adminEmail,    "admin",   "Ana",    "Navarro",   "+34600000001",
                 "Paseo de la Castellana 100, Madrid", 40.4430, -3.6900);
         User carlos = createUser("carlos@rapidlog.com",   "carlos",  "Carlos", "García",    "+34600000002",
                 "Calle Goya 60, Madrid",              40.4250, -3.6780);
@@ -334,7 +350,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "Calle Ercilla 14, Bilbao",       43.2590, -2.9260);
         LoyalUser luPablo   = createLoyalUser("pablo.castro@correo.com",    null, List.of(rlRetail, tnStore),
                 "Calle Pelayo 5, Barcelona",      41.3900,  2.1680);
-/* 
+
         // --- 10. Pedidos ---
         // Internos RapidLog Central
         createInternalOrder(rlCentral, rlMadridCd, rlValencia, OrderStatus.DELIVERED,  OrderPriority.NORMAL, 11, carlos);
@@ -362,19 +378,19 @@ public class DemoDataSeeder implements CommandLineRunner {
         createInternalOrder(dsInd, dsCadizWh, dsFactory, OrderStatus.PENDING,   OrderPriority.NORMAL,  0, elena);
 
         // B2B mismo org: RapidLog Central → Retail
-        createB2BOrder(rlCentral, rlMadridCd, rlTiendaMad, OrderStatus.DELIVERED,  OrderPriority.NORMAL, 6, carlos);
-        createB2BOrder(rlCentral, rlValencia, rlTiendaBcn, OrderStatus.IN_TRANSIT, OrderPriority.HIGH,   2, lucia);
-        createB2BOrder(rlCentral, rlMadridWh, rlTiendaMad, OrderStatus.PENDING,    OrderPriority.NORMAL, 0, marcos);
+        createB2BOrder(rlCentral, rlMadridCd, rlTiendaMad, OrderStatus.DELIVERED,  OrderPriority.NORMAL, 6, carlos, rlRetail.getName());
+        createB2BOrder(rlCentral, rlValencia, rlTiendaBcn, OrderStatus.IN_TRANSIT, OrderPriority.HIGH,   2, lucia, rlRetail.getName());
+        createB2BOrder(rlCentral, rlMadridWh, rlTiendaMad, OrderStatus.PENDING,    OrderPriority.NORMAL, 0, marcos, rlRetail.getName());
 
         // B2B cross-org (distintas organizaciones)
-        createB2BOrder(tnLog,     tnBilbao,    rlMadridCd,   OrderStatus.IN_TRANSIT, OrderPriority.NORMAL, 1,  sofia);
-        createB2BOrder(rlCentral, rlValencia,  tnVigo,       OrderStatus.PENDING,    OrderPriority.HIGH,   0,  carlos);
-        createB2BOrder(dsFood,    dsMalaga,    rlTiendaMad,  OrderStatus.DELIVERED,  OrderPriority.NORMAL, 5,  elena);
-        createB2BOrder(tnStore,   tnSantander, rlMadridCd,   OrderStatus.DELIVERED,  OrderPriority.NORMAL, 3,  paula);
-        createB2BOrder(dsInd,     dsFactory,   tnZgz,        OrderStatus.IN_TRANSIT, OrderPriority.HIGH,   1,  elena);
-        createB2BOrder(rlCentral, rlSevilla,   dsMalaga,     OrderStatus.PENDING,    OrderPriority.NORMAL, 0,  marcos);
-        createB2BOrder(tnLog,     tnVigo,      dsFactory,    OrderStatus.DELIVERED,  OrderPriority.LOW,    8,  sofia);
-        createB2BOrder(dsFood,    dsGranada,   tnSantander,  OrderStatus.IN_TRANSIT, OrderPriority.NORMAL, 2,  javier);
+        createB2BOrder(tnLog,     tnBilbao,    rlMadridCd,   OrderStatus.IN_TRANSIT, OrderPriority.NORMAL, 1,  sofia, rlRetail.getName());
+        createB2BOrder(rlCentral, rlValencia,  tnVigo,       OrderStatus.PENDING,    OrderPriority.HIGH,   0,  carlos, tnLog.getName());
+        createB2BOrder(dsFood,    dsMalaga,    rlTiendaMad,  OrderStatus.DELIVERED,  OrderPriority.NORMAL, 5,  elena, rlCentral.getName());
+        createB2BOrder(tnStore,   tnSantander, rlMadridCd,   OrderStatus.DELIVERED,  OrderPriority.NORMAL, 3,  paula, rlCentral.getName());
+        createB2BOrder(dsInd,     dsFactory,   tnZgz,        OrderStatus.IN_TRANSIT, OrderPriority.HIGH,   1,  elena, tnLog.getName());
+        createB2BOrder(rlCentral, rlSevilla,   dsMalaga,     OrderStatus.PENDING,    OrderPriority.NORMAL, 0,  marcos, dsFood.getName());
+        createB2BOrder(tnLog,     tnVigo,      dsFactory,    OrderStatus.DELIVERED,  OrderPriority.LOW,    8,  sofia, dsInd.getName());
+        createB2BOrder(dsFood,    dsGranada,   tnSantander,  OrderStatus.IN_TRANSIT, OrderPriority.NORMAL, 2,  javier, tnStore.getName());
 
         // B2C registrado (loyal user)
         createB2CRegistered(rlRetail, rlTiendaMad, luClara,   OrderStatus.DELIVERED,  OrderPriority.NORMAL, 12, carlos);
@@ -409,7 +425,7 @@ public class DemoDataSeeder implements CommandLineRunner {
 
         log.info("DemoDataSeeder: demo cargada — {} usuarios, {} empresas, {} unidades, {} pedidos.",
                 users.count(), companies.count(), units.count(), orders.count());
-*/
+
     }
 
     // ----- helpers -----
@@ -450,7 +466,16 @@ public class DemoDataSeeder implements CommandLineRunner {
         c.setName(name);
         c.setActivityType(activity);
         c.setPlan(plan);
-        return companies.save(c);
+
+        Company savedCompany = companies.save(c);
+
+        CompanySettingsDTO settingsDTO = new CompanySettingsDTO();
+        settingsDTO.setCompanyId(savedCompany.getId());
+
+        String url = dataHost+dataPrefix+"/internal/settings/seed";
+        settingsClient.createSeed(settingsDTO, url);
+        
+        return savedCompany;
     }
 
     private Worker createWorker(User user, Company company, WorkerRole role) {
@@ -509,30 +534,35 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     // --- Pedidos ---
 
-    private void createInternalOrder(Company c, OperationalUnit origin, OperationalUnit dest,
+    private void createInternalOrder(Company c, UUID origin, UUID dest,
                                      OrderStatus status, OrderPriority priority, int daysAgo, User author) {
-        Order o = newOrder(c, origin, OrderType.INTERNAL, status, priority, daysAgo);
-        o.setDestination(dest);
+    
+        DataOrderRequest o = newOrder(c, origin, OrderType.INTERNAL, status, priority, daysAgo);
+        o.setDestinationId(dest);
         o.setNotes("Pedido interno entre unidades de " + c.getName() + ".");
-        orders.save(o);
         backdate(o, daysAgo);
-        addEvents(o, status, author);
+        String url = dataHost+dataPrefix+"/internal/orders/seed";
+        UUID orderId =  orderClient.createSeed(o,url);
+        addEvents(orderId, c.getId(), status, author);
     }
 
-    private void createB2BOrder(Company c, OperationalUnit origin, OperationalUnit dest,
-                                OrderStatus status, OrderPriority priority, int daysAgo, User author) {
-        Order o = newOrder(c, origin, OrderType.B2B, status, priority, daysAgo);
-        o.setDestination(dest);
-        o.setNotes("Envío B2B a " + dest.getCompany().getName() + ".");
-        orders.save(o);
+    private void createB2BOrder(Company c, UUID origin, UUID dest,
+                                OrderStatus status, OrderPriority priority, int daysAgo, User author,
+                                String destCompanyName
+        ) {
+        DataOrderRequest o = newOrder(c, origin, OrderType.B2B, status, priority, daysAgo);
+        o.setDestinationId(dest);
+        o.setNotes("Envío B2B a " + destCompanyName + ".");
         backdate(o, daysAgo);
-        addEvents(o, status, author);
+        String url = dataHost+dataPrefix+"/internal/orders/seed";
+        UUID orderId =  orderClient.createSeed(o,url);
+        addEvents(orderId, c.getId(),status, author);
     }
 
-    private void createB2CRegistered(Company c, OperationalUnit origin, LoyalUser loyal,
+    private void createB2CRegistered(Company c, UUID origin, LoyalUser loyal,
                                      OrderStatus status, OrderPriority priority, int daysAgo, User author) {
-        Order o = newOrder(c, origin, OrderType.B2C, status, priority, daysAgo);
-        o.setLoyalUser(loyal);
+        DataOrderRequest o = newOrder(c, origin, OrderType.B2C, status, priority, daysAgo);
+        o.setLoyalUserId(loyal.getId());
         o.setRecipientEmail(loyal.getEmail());
         o.setRecipientName(loyal.getUser() != null
                 ? (loyal.getUser().getFirstName() + " " + loyal.getUser().getLastName())
@@ -550,40 +580,42 @@ public class DemoDataSeeder implements CommandLineRunner {
         o.setRecipientAddress(addr);
         o.setRecipientLatitude(lat);
         o.setRecipientLongitude(lon);
-        o.setTrackingToken(randomToken());
         o.setNotes("Cliente fidelizado.");
-        orders.save(o);
+        o.setClaimed(true);
         backdate(o, daysAgo);
-        addEvents(o, status, author);
+        String url = dataHost+dataPrefix+"/internal/orders/seed";
+        UUID orderId =  orderClient.createSeed(o,url);
+        addEvents(orderId,c.getId(), status, author);
     }
 
     @SuppressWarnings("java:S107")
-    private void createB2CUnregistered(Company c, OperationalUnit origin, String email, String name,
+    private void createB2CUnregistered(Company c, UUID origin, String email, String name,
                                        String address, double lat, double lon,
                                        OrderStatus status, OrderPriority priority, int daysAgo, User author) {
-        Order o = newOrder(c, origin, OrderType.B2C, status, priority, daysAgo);
+        DataOrderRequest o = newOrder(c, origin, OrderType.B2C, status, priority, daysAgo);
         o.setRecipientEmail(email);
         o.setRecipientName(name);
         o.setRecipientAddress(address);
         o.setRecipientLatitude(BigDecimal.valueOf(lat));
         o.setRecipientLongitude(BigDecimal.valueOf(lon));
-        o.setTrackingToken(randomToken());
         o.setNotes("Cliente no registrado — envío externo.");
-        orders.save(o);
         backdate(o, daysAgo);
-        addEvents(o, status, author);
+        String url = dataHost+dataPrefix+"/internal/orders/seed";
+        UUID orderId =  orderClient.createSeed(o,url);
+        addEvents(orderId,c.getId(), status, author);
     }
 
-    private Order newOrder(Company c, OperationalUnit origin, OrderType type,
+    private DataOrderRequest newOrder(Company c, UUID origin, OrderType type,
                            OrderStatus status, OrderPriority priority, int daysAgo) {
-        Order o = new Order();
-        o.setCompany(c);
-        o.setOrigin(origin);
-        o.setOrderType(type);
-        o.setStatus(status);
-        o.setPriority(priority);
-        o.setReference(nextReference(daysAgo));
-        return o;
+        DataOrderRequest orderRequest = new DataOrderRequest();
+        orderRequest.setCurrentCompanyId(c.getId());
+        orderRequest.setOriginId(origin);
+        orderRequest.setPriority(priority);
+        orderRequest.setOrderType(type);
+        orderRequest.setReference(nextReference(daysAgo));
+        orderRequest.setClaimed(false);
+
+        return orderRequest;
     }
 
     private String nextReference(int daysAgo) {
@@ -592,15 +624,17 @@ public class DemoDataSeeder implements CommandLineRunner {
         return "ORD-" + date + "-" + String.format("%04d", RNG.nextInt(9999));
     }
 
-    private void backdate(Order o, int daysAgo) {
+    private void backdate(DataOrderRequest o, int daysAgo) {
         Instant when = Instant.now().minus(daysAgo, ChronoUnit.DAYS);
+        o.setCreatedAt(when);
+        /* 
         em.createNativeQuery("UPDATE orders SET created_at = :ts WHERE id = :id")
                 .setParameter("ts", java.sql.Timestamp.from(when))
                 .setParameter("id", o.getId())
-                .executeUpdate();
-    }
+                .executeUpdate();*/
+    } 
 
-    private void addEvents(Order o, OrderStatus finalStatus, User author) {
+    private void addEvents(UUID orderId,UUID companyId, OrderStatus finalStatus, User author) {
         List<OrderStatus> chain = switch (finalStatus) {
             case PENDING    -> List.of(OrderStatus.PENDING);
             case IN_TRANSIT -> List.of(OrderStatus.PENDING, OrderStatus.IN_TRANSIT);
@@ -608,12 +642,13 @@ public class DemoDataSeeder implements CommandLineRunner {
             case CANCELLED  -> List.of(OrderStatus.PENDING, OrderStatus.CANCELLED);
         };
         for (OrderStatus s : chain) {
-            OrderEvent ev = new OrderEvent();
-            ev.setOrder(o);
+            DataOrderStatusRequest ev = new DataOrderStatusRequest();
+            String url = dataHost+dataPrefix+"/internal/orders/"+orderId+"/seed/events";
             ev.setStatus(s);
-            ev.setAuthorEmail(author.getEmail());
+            ev.setEmail(author.getEmail());
+            ev.setCompanyId(companyId);
             ev.setNote(null);
-            orderEvents.save(ev);
+           orderClient.createStatusSeed(ev, url);
         }
     }
 
@@ -623,17 +658,7 @@ public class DemoDataSeeder implements CommandLineRunner {
      * Reinicia la secuencia de referencias de pedido.
      */
     private void wipeData() {
-        em.createNativeQuery("TRUNCATE TABLE " +
-                "order_events, order_messages, api_keys, orders, unit_workers, " +
-                "loyal_user_companies, workers, operational_units, loyal_users, " +
-                "companies, organizations, users " +
-                "RESTART IDENTITY CASCADE").executeUpdate();
-        em.createNativeQuery("ALTER SEQUENCE IF EXISTS order_ref_seq RESTART WITH 1").executeUpdate();
-    }
-
-    private String randomToken() {
-        byte[] buf = new byte[24];
-        RNG.nextBytes(buf);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(buf);
+        // TODO: RESET DB USES mTLS --> CAN'T COMUNICATE WHEN SERVER STARTS
+        //adminService.resetDatabase(adminEmail);
     }
 }
