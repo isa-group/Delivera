@@ -29,7 +29,8 @@ public class StandardInstanceMapper {
                     depotId,
                     depotNode.y(),
                     depotNode.x(),
-                    matrixIndex
+                    matrixIndex,
+                    config.maxDuration()
             );
             depots.add(depot);
 
@@ -53,7 +54,8 @@ public class StandardInstanceMapper {
                     customerNode.demand(),
                     customerNode.y(),
                     customerNode.x(),
-                    matrixIndex
+                    matrixIndex,
+                    customerNode.serviceDuration()
             );
             customers.add(customer);
         }

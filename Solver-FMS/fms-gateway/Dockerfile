@@ -8,9 +8,9 @@ RUN mvn -DskipTests package -q
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/fms-gateway-1.0.0-SNAPSHOT.jar app.jar
-RUN mkdir -p instances-MD-CVRP && \
+RUN mkdir -p instances-MD-CVRP-JSON && \
     addgroup -S spring && adduser -S spring -G spring && \
-    chown -R spring:spring instances-MD-CVRP
+    chown -R spring:spring instances-MD-CVRP-JSON
 USER spring:spring
 EXPOSE 8090
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \

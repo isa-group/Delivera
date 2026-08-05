@@ -7,22 +7,25 @@ import java.util.List;
 
 @Schema(description = "Respuesta con la solucion del problema de ruteo")
 public record RoutingResponse(
-        @Schema(description = "Identificador del problema resuelto", example = "PROBLEM-001")
+        @Schema(description = "Identificador del problema resuelto", example = "p01")
         String problemId,
 
         @Schema(description = "Estado de la resolucion (COMPLETED / FAILURE)", example = "COMPLETED")
         String status,
 
-        @Schema(description = "Tipo de solver utilizado en la resolucion")
+        @Schema(description = "Tipo de solver utilizado en la resolucion",
+                allowableValues = {"RANDOM", "GREEDY", "GENETIC"}, example = "GREEDY")
         String solverUsed,
 
-        @Schema(description = "Costo total de la solucion (suma de distancias de todas las rutas)", example = "450.75")
+        @Schema(description = "Costo total de la solucion (suma de distancias de todas las rutas)", example = "775.2683743807665")
         Double totalCost,
 
-        @Schema(description = "Tiempo de computo en milisegundos", example = "1250")
+        @Schema(description = "Tiempo de computo en milisegundos", example = "6")
         Long computationTimeMs,
 
-        @ArraySchema(schema = @Schema(description = "Lista de rutas que componen la solucion"))
+        @ArraySchema(
+                arraySchema = @Schema(description = "Lista de rutas que componen la solucion"),
+                schema = @Schema(implementation = RouteDto.class))
         List<RouteDto> routes
 ) {
 }

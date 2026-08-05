@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
-@Schema(description = "Ruta asignada a un vehiculo con sus paradas y metricas")
+@Schema(name = "Route", description = "Ruta asignada a un vehiculo con sus paradas y metricas")
 public record RouteDto(
         @Schema(description = "ID del vehiculo que realiza la ruta", example = "V-001")
         @NotBlank String vehicleId,

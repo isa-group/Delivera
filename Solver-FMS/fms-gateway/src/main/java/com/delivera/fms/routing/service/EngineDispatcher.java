@@ -18,16 +18,18 @@ import java.util.Map;
 public class EngineDispatcher {
 
     private static final Logger log = LoggerFactory.getLogger(EngineDispatcher.class);
-    private static final Duration TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration TIMEOUT = Duration.ofSeconds(300);
 
     private final Map<TypeSolver, WebClient> engineClients;
 
     public EngineDispatcher(
             @Qualifier("greedyWebClient") WebClient greedyWebClient,
-            @Qualifier("randomWebClient") WebClient randomWebClient) {
+            @Qualifier("randomWebClient") WebClient randomWebClient,
+            @Qualifier("geneticWebClient") WebClient geneticWebClient) {
         this.engineClients = Map.of(
                 TypeSolver.GREEDY, greedyWebClient,
-                TypeSolver.RANDOM, randomWebClient
+                TypeSolver.RANDOM, randomWebClient,
+                TypeSolver.GENETIC, geneticWebClient
         );
     }
 

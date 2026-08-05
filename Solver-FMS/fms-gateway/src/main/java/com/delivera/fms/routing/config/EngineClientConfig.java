@@ -14,6 +14,9 @@ public class EngineClientConfig {
     @Value("${fms.engines.random.url}")
     private String randomEngineUrl;
 
+    @Value("${fms.engines.genetic.url}")
+    private String geneticEngineUrl;
+
     @Bean("greedyWebClient")
     public WebClient greedyWebClient(WebClient.Builder builder) {
         return builder.baseUrl(greedyEngineUrl).build();
@@ -22,5 +25,10 @@ public class EngineClientConfig {
     @Bean("randomWebClient")
     public WebClient randomWebClient(WebClient.Builder builder) {
         return builder.baseUrl(randomEngineUrl).build();
+    }
+
+    @Bean("geneticWebClient")
+    public WebClient geneticWebClient(WebClient.Builder builder) {
+        return builder.baseUrl(geneticEngineUrl).build();
     }
 }

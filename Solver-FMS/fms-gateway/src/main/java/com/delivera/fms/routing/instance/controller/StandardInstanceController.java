@@ -1,10 +1,15 @@
 package com.delivera.fms.routing.instance.controller;
 
+import com.delivera.fms.routing.config.OpenApiExamples;
 import com.delivera.fms.routing.dto.RoutingResponse;
 import com.delivera.fms.routing.dto.TypeSolver;
 import com.delivera.fms.routing.instance.client.StandardInstanceClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -33,16 +38,25 @@ public class StandardInstanceController {
     }
 
     @Operation(summary = "Enviar instancia de benchmark al solver",
-            description = "Carga un archivo de instancia MD-CVRP desde el directorio de instancias, " +
+            description = "Carga un archivo de instancia MD-CVRP (JSON) desde el directorio de instancias, " +
                     "lo parsea y lo envia al motor de ruteo correspondiente para su resolucion.")
+    @ApiResponse(responseCode = "200", description = "Instancia resuelta correctamente",
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = RoutingResponse.class),
+                    examples = @ExampleObject(
+                            name = "Solucion MD-CVRP (instancia p01)",
+                            description = "Resolucion real de la instancia p01 (4 depositos, 50 clientes) con el solver GREEDY",
+                            value = OpenApiExamples.ROUTING_RESPONSE)))
     @PostMapping("/send")
     public ResponseEntity<RoutingResponse> sendInstance(
-            @Parameter(description = "Nombre del archivo de instancia (ej. p01)", required = true)
+            @Parameter(description = "Nombre del archivo de instancia sin extension (ej. p01)", required = true)
             @RequestParam String fileName,
-            @Parameter(description = "Tipo de solver a utilizar (RANDOM o GREEDY)")
+            @Parameter(description = "Tipo de solver a utilizar (RANDOM, GREEDY o GENETIC)")
             @RequestParam(defaultValue = "GREEDY") TypeSolver solverType) throws IOException {
+        String jsonFileName = fileName.endsWith(".json") ? fileName : fileName + ".json";
         Path basePath = Paths.get(instancesDir).toAbsolutePath().normalize();
-        Path filePath = basePath.resolve(fileName).normalize();
+        Path filePath = basePath.resolve(jsonFileName).normalize();
         if (!filePath.startsWith(basePath)) {
             throw new IllegalArgumentException("Invalid file name: " + fileName);
         }

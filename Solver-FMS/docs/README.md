@@ -1,0 +1,64 @@
+# Documentación de Solver-FMS
+
+Solver-FMS es el subsistema de resolución de rutas de Delivera. Resuelve el problema
+**MD-CVRP** (*Multi-Depot Capacitated Vehicle Routing Problem*): dado un conjunto de clientes con
+demanda, varios depósitos y una flota de vehículos con capacidad, encontrar el conjunto de rutas de
+coste total mínimo que sirva a todos los clientes exactamente una vez.
+
+Está formado por una pasarela y tres motores de resolución independientes, cada uno con una
+estrategia distinta, para poder comparar algoritmos sobre las mismas instancias.
+
+## Índice
+
+| Documento | Contenido |
+|---|---|
+| [arquitectura.md](arquitectura.md) | Módulos, puertos, flujo de una petición, endpoints y despliegue |
+| [modelo-de-datos.md](modelo-de-datos.md) | DTOs, matriz de distancias, formato de instancia y restricciones del problema |
+| [engines/random-engine.md](engines/random-engine.md) | Motor aleatorio: línea base de referencia |
+| [engines/greedy-engine.md](engines/greedy-engine.md) | Motor voraz: vecino más cercano |
+| [engines/genetic-engine.md](engines/genetic-engine.md) | Motor genético: representación, operadores, troceado y parámetros |
+| [benchmark.md](benchmark.md) | Cómo medir contra las instancias Cordeau y resultados actuales |
+| [decisiones-y-correcciones.md](decisiones-y-correcciones.md) | Qué se corrigió en el motor genético y por qué |
+
+## Vista rápida
+
+```
+                      ┌──────────────────────┐
+  Cliente HTTP  ────► │  fms-gateway  :8090  │
+                      │  valida y despacha   │
+                      └──────────┬───────────┘
+                                 │  POST /api/v1/engine/solve
+              ┌──────────────────┼──────────────────┐
+              ▼                  ▼                  ▼
+     ┌────────────────┐ ┌────────────────┐ ┌─────────────────┐
+     │ greedy  :8091  │ │ random  :8092  │ │ genetic  :8093  │
+     └────────────────┘ └────────────────┘ └─────────────────┘
+```
+
+El cliente elige el motor con el campo `solverType` (`RANDOM`, `GREEDY`, `GENETIC`). La pasarela
+valida la petición, la reenvía al motor correspondiente y devuelve su respuesta sin transformarla.
+
+## Comparativa de los tres motores
+
+| | random-engine | greedy-engine | genetic-engine |
+|---|---|---|---|
+| Estrategia | Orden aleatorio | Vecino más cercano | Algoritmo genético con búsqueda local |
+| Determinista | No | Sí | No |
+| Respeta capacidad | Sí | Sí | Sí |
+| Respeta duración máxima | No | No | **Sí** |
+| Respeta número de vehículos | No (multi-viaje) | No (multi-viaje) | **Sí** |
+| Tiempo en p22 (360 clientes) | milisegundos | milisegundos | ~3 s |
+| Calidad en p22 (BKS 5702) | — | — | ~5960 (+4,5 %) |
+| Para qué sirve | Cota superior de referencia | Solución rápida razonable | Solución de producción |
+
+Solo el motor genético produce soluciones factibles respecto a **todas** las restricciones de la
+instancia. Los otros dos sirven como referencia de comparación y como respuesta rápida cuando el
+tiempo importa más que el coste. Ver los detalles y limitaciones en la ficha de cada motor.
+
+## Puesta en marcha
+
+```bash
+docker compose up --build
+```
+
+Swagger UI queda en `http://localhost:8090/swagger-ui/index.html`.
