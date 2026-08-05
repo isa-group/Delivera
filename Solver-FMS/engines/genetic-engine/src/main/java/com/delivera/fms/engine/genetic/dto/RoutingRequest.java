@@ -19,7 +19,7 @@ public record RoutingRequest(
          * Parametros del algoritmo. La pasarela los envia ya resueltos contra los
          * metadatos del solver; si se llama al motor directamente pueden venir
          * incompletos o vacios, y cada ausencia toma el valor por defecto de
-         * {@link com.delivera.fms.engine.genetic.service.GeneticParameters}.
+         * {@link GeneticParameters}.
          */
         Map<String, Object> parameters
 ) {
