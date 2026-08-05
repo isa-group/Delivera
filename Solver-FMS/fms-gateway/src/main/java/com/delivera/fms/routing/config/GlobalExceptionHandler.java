@@ -7,8 +7,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,6 +33,30 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", "));
         log.warn("Validation failed: {}", errors);
         return buildResponse(HttpStatus.BAD_REQUEST, "Validation Error", errors);
+    }
+
+    /**
+     * Un valor de enum no reconocido en la URL (por ejemplo un solverType
+     * inexistente) llega como error de conversion. Se traduce a 400 indicando
+     * los valores admitidos, que crecen con cada solver nuevo.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        Class<?> required = ex.getRequiredType();
+        String message = "Invalid value '" + ex.getValue() + "' for parameter '" + ex.getName() + "'";
+        if (required != null && required.isEnum()) {
+            message += ". Accepted values: " + Arrays.stream(required.getEnumConstants())
+                    .map(Object::toString)
+                    .collect(Collectors.joining(", "));
+        }
+        log.warn("Type mismatch: {}", message);
+        return buildResponse(HttpStatus.BAD_REQUEST, "Bad Request", message);
+    }
+
+    @ExceptionHandler(SolverNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleSolverNotFound(SolverNotFoundException ex) {
+        log.warn("Solver not found: {}", ex.getMessage());
+        return buildResponse(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage());
     }
 
     @ExceptionHandler(WebClientResponseException.class)

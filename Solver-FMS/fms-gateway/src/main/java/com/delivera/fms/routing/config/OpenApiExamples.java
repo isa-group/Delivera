@@ -46,6 +46,46 @@ public final class OpenApiExamples {
             """;
 
     /**
+     * Misma instancia resuelta con el motor genetico, ajustando parte de sus
+     * parametros. Los que no aparecen toman el valor por defecto declarado en los
+     * metadatos del solver.
+     */
+    public static final String SOLVE_REQUEST_TUNED = """
+            {
+              "problemId": "PROBLEM-001",
+              "depots": [
+                { "id": "DEP-1", "lat": 40.4168, "lng": -3.7038, "matrixIndex": 0, "maxDuration": 200 },
+                { "id": "DEP-2", "lat": 40.4500, "lng": -3.6800, "matrixIndex": 1, "maxDuration": 200 }
+              ],
+              "customers": [
+                { "id": "C-001", "demand": 10, "lat": 40.4200, "lng": -3.7100, "matrixIndex": 2, "serviceDuration": 10 },
+                { "id": "C-002", "demand": 15, "lat": 40.4300, "lng": -3.6900, "matrixIndex": 3, "serviceDuration": 10 },
+                { "id": "C-003", "demand": 8,  "lat": 40.4100, "lng": -3.7200, "matrixIndex": 4, "serviceDuration": 10 },
+                { "id": "C-004", "demand": 20, "lat": 40.4400, "lng": -3.6700, "matrixIndex": 5, "serviceDuration": 10 },
+                { "id": "C-005", "demand": 12, "lat": 40.4600, "lng": -3.6850, "matrixIndex": 6, "serviceDuration": 10 }
+              ],
+              "vehicles": [
+                { "id": "V-001", "capacity": 50, "startDepotId": "DEP-1" },
+                { "id": "V-002", "capacity": 50, "startDepotId": "DEP-2" }
+              ],
+              "distanceMatrix": [
+                [0.0, 5.2, 2.1, 3.8, 3.0, 7.5, 8.1],
+                [5.2, 0.0, 6.3, 4.1, 7.0, 3.2, 2.8],
+                [2.1, 6.3, 0.0, 2.5, 1.8, 8.0, 9.2],
+                [3.8, 4.1, 2.5, 0.0, 3.5, 5.0, 5.8],
+                [3.0, 7.0, 1.8, 3.5, 0.0, 9.1, 10.0],
+                [7.5, 3.2, 8.0, 5.0, 9.1, 0.0, 2.0],
+                [8.1, 2.8, 9.2, 5.8, 10.0, 2.0, 0.0]
+              ],
+              "solverType": "GENETIC",
+              "parameters": {
+                "populationSize": 200,
+                "maxEvaluations": 120000
+              }
+            }
+            """;
+
+    /**
      * Respuesta de ejemplo correspondiente a la resolucion real de la instancia
      * de benchmark p01 (4 depositos, 50 clientes) con el solver GREEDY.
      */

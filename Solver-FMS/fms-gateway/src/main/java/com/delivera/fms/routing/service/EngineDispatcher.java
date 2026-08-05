@@ -6,7 +6,6 @@ import com.delivera.fms.routing.dto.RoutingResponse;
 import com.delivera.fms.routing.dto.TypeSolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -20,33 +19,34 @@ public class EngineDispatcher {
     private static final Logger log = LoggerFactory.getLogger(EngineDispatcher.class);
     private static final Duration TIMEOUT = Duration.ofSeconds(300);
 
-    private final Map<TypeSolver, WebClient> engineClients;
+    private final SolverRegistry registry;
 
-    public EngineDispatcher(
-            @Qualifier("greedyWebClient") WebClient greedyWebClient,
-            @Qualifier("randomWebClient") WebClient randomWebClient,
-            @Qualifier("geneticWebClient") WebClient geneticWebClient) {
-        this.engineClients = Map.of(
-                TypeSolver.GREEDY, greedyWebClient,
-                TypeSolver.RANDOM, randomWebClient,
-                TypeSolver.GENETIC, geneticWebClient
-        );
+    public EngineDispatcher(SolverRegistry registry) {
+        this.registry = registry;
     }
 
+    /**
+     * Envia el problema al motor del solver indicado, con los parametros ya
+     * resueltos contra sus metadatos.
+     *
+     * La resolucion de parametros vive aqui y no en el controlador porque es un
+     * invariante del despacho: cualquier via de entrada (peticion directa o carga
+     * de instancia) llega al motor con la configuracion completa.
+     */
     public RoutingResponse dispatch(RoutingRequest request) {
         TypeSolver solverType = request.solverType();
-        WebClient client = engineClients.get(solverType);
+        WebClient client = registry.clientFor(solverType);
 
-        if (client == null) {
-            throw new IllegalArgumentException("No engine configured for solver type: " + solverType);
-        }
+        Map<String, Object> parameters = registry.resolveParameters(solverType, request.parameters());
+        RoutingRequest enriched = request.withParameters(parameters);
 
-        log.info("Dispatching problem '{}' to {} engine", request.problemId(), solverType);
+        log.info("Dispatching problem '{}' to {} engine with parameters {}",
+                request.problemId(), solverType, parameters);
 
         try {
             RoutingResponse response = client.post()
                     .uri("/api/v1/engine/solve")
-                    .bodyValue(request)
+                    .bodyValue(enriched)
                     .retrieve()
                     .bodyToMono(RoutingResponse.class)
                     .timeout(TIMEOUT)

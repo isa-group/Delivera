@@ -13,6 +13,7 @@ estrategia distinta, para poder comparar algoritmos sobre las mismas instancias.
 | Documento | Contenido |
 |---|---|
 | [arquitectura.md](arquitectura.md) | Módulos, puertos, flujo de una petición, endpoints y despliegue |
+| [metadatos-solvers.md](metadatos-solvers.md) | Descriptor de cada solver: descripción, parámetros con sus valores por defecto y alta de un motor nuevo |
 | [modelo-de-datos.md](modelo-de-datos.md) | DTOs, matriz de distancias, formato de instancia y restricciones del problema |
 | [engines/random-engine.md](engines/random-engine.md) | Motor aleatorio: línea base de referencia |
 | [engines/greedy-engine.md](engines/greedy-engine.md) | Motor voraz: vecino más cercano |
@@ -37,6 +38,13 @@ estrategia distinta, para poder comparar algoritmos sobre las mismas instancias.
 
 El cliente elige el motor con el campo `solverType` (`RANDOM`, `GREEDY`, `GENETIC`). La pasarela
 valida la petición, la reenvía al motor correspondiente y devuelve su respuesta sin transformarla.
+
+Cada solver publica su propia metainformación en `GET /api/v1/fms/solvers`: descripción, familia
+algorítmica y los parámetros que admite con sus valores por defecto, que la pasarela aplica cuando la
+petición no los trae. Ver [metadatos-solvers.md](metadatos-solvers.md).
+
+Qué restricciones respeta cada motor no está en ese descriptor, sino en la tabla siguiente y en la
+ficha de cada uno: es la referencia a tener delante al comparar costes.
 
 ## Comparativa de los tres motores
 

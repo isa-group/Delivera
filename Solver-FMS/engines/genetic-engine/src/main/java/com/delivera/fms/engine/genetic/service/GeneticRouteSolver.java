@@ -33,22 +33,15 @@ public class GeneticRouteSolver {
 
     private static final Logger log = LoggerFactory.getLogger(GeneticRouteSolver.class);
     private static final String SOLVER_TYPE = "GENETIC";
-    private static final int POPULATION_SIZE = 150;
-    private static final int MAX_EVALUATIONS = 75000;
-    private static final int MIN_GENERATIONS = 100;
-    private static final int INTER_DEPOT_FREQUENCY = 5;
     private static final int INTER_DEPOT_INDIVIDUALS = 10;
-    private static final int RESTART_STAGNANT = 20;
-    private static final int MAX_RESTARTS = 3; // Maximo numero de reinicios de poblacion antes de parar la ejecucion.
-    private static final int ELITISM_COUNT = 5;
-    private static final int LOCAL_SEARCH_FREQUENCY = 10;
     private static final int INTER_DEPOT_OPT_FREQUENCY = 30;
     private static final int TOP_K_LOCAL_SEARCH = 3;
-    private static final double HEURISTIC_SEED_RATIO = 0.2;
     private static final int SEED_CANDIDATE_LIST = 3;
 
     public RoutingResponse solve(RoutingRequest request) {
-        log.info("Solving MD-CVRP problem '{}' with solver: {}", request.problemId(), SOLVER_TYPE);
+        GeneticParameters params = GeneticParameters.from(request.parameters());
+        log.info("Solving MD-CVRP problem '{}' with solver: {} and parameters: {}",
+                request.problemId(), SOLVER_TYPE, params);
         long startTime = System.currentTimeMillis();
 
         RouteSplitter splitter = new RouteSplitter(
@@ -58,16 +51,19 @@ public class GeneticRouteSolver {
         RouteScheduler scheduler = new RouteScheduler(
                 request.customers(), request.distanceMatrix(), splitter, request.vehicles());
 
-        BestCostRouteCrossover crossover = new BestCostRouteCrossover(0.9, request.depots(), splitter);
-        IntraDepotMutation intraMutation = new IntraDepotMutation(0.2, request.depots());
+        BestCostRouteCrossover crossover = new BestCostRouteCrossover(
+                params.crossoverProbability(), request.depots(), splitter);
+        IntraDepotMutation intraMutation = new IntraDepotMutation(
+                params.intraDepotMutationProbability(), request.depots());
         InterDepotMutation interMutation = new InterDepotMutation(
-                0.3, request.customers(), request.depots(), request.distanceMatrix(), splitter);
+                params.interDepotMutationProbability(), request.customers(), request.depots(),
+                request.distanceMatrix(), splitter);
         LocalSearch localSearch = new LocalSearch(
                 request.customers(), request.depots(), request.distanceMatrix(), splitter);
         InterDepotLocalSearch interDepotSearch = new InterDepotLocalSearch(
                 request.customers(), request.depots(), request.distanceMatrix(), splitter);
 
-        List<PermutationSolution<Integer>> population = initializePopulation(problem);
+        List<PermutationSolution<Integer>> population = initializePopulation(problem, params);
         evaluatePopulation(population, problem);
 
         int evaluations = population.size();
@@ -78,16 +74,16 @@ public class GeneticRouteSolver {
         double bestFitness = bestSolution.objectives()[0];
         int bestGeneration = 0;
 
-        while (evaluations < MAX_EVALUATIONS || generation < MIN_GENERATIONS) {
-            List<PermutationSolution<Integer>> elites = selectElites(population, ELITISM_COUNT);
+        while (evaluations < params.maxEvaluations() || generation < params.minGenerations()) {
+            List<PermutationSolution<Integer>> elites = selectElites(population, params.elitismCount());
             List<PermutationSolution<Integer>> offspring = new ArrayList<>();
 
-            while (offspring.size() < POPULATION_SIZE) {
-                PermutationSolution<Integer> parent1 = tournamentSelect(population, null);
-                PermutationSolution<Integer> parent2 = tournamentSelect(population, parent1);
+            while (offspring.size() < params.populationSize()) {
+                PermutationSolution<Integer> parent1 = tournamentSelect(population, null, params.tournamentSize());
+                PermutationSolution<Integer> parent2 = tournamentSelect(population, parent1, params.tournamentSize());
 
                 for (PermutationSolution<Integer> child : crossover.execute(List.of(parent1, parent2))) {
-                    if (offspring.size() >= POPULATION_SIZE) {
+                    if (offspring.size() >= params.populationSize()) {
                         break;
                     }
                     intraMutation.execute(child);
@@ -98,7 +94,7 @@ public class GeneticRouteSolver {
             evaluatePopulation(offspring, problem);
             evaluations += offspring.size();
 
-            if (generation % INTER_DEPOT_FREQUENCY == 0 && generation > 0) {
+            if (generation % params.interDepotFrequency() == 0 && generation > 0) {
                 for (int i = 0; i < Math.min(INTER_DEPOT_INDIVIDUALS, offspring.size()); i++) {
                     int index = JMetalRandom.getInstance().nextInt(0, offspring.size() - 1);
                     interMutation.execute(offspring.get(index));
@@ -110,7 +106,7 @@ public class GeneticRouteSolver {
             replaceWorstWithElites(offspring, elites);
             population = offspring;
 
-            if (generation > 0 && generation % LOCAL_SEARCH_FREQUENCY == 0) {
+            if (generation > 0 && generation % params.localSearchFrequency() == 0) {
                 applyLocalSearchToTopK(population, problem, localSearch, TOP_K_LOCAL_SEARCH);
                 evaluations += TOP_K_LOCAL_SEARCH;
             }
@@ -139,14 +135,14 @@ public class GeneticRouteSolver {
 
             generation++;
 
-            if (generation >= MIN_GENERATIONS && stagnantGenerations >= RESTART_STAGNANT) {
-                if (restarts >= MAX_RESTARTS) {
+            if (generation >= params.minGenerations() && stagnantGenerations >= params.restartStagnantGenerations()) {
+                if (restarts >= params.maxRestarts()) {
                     log.debug("Early stopping at gen {} after {} restarts. Best at gen {}.",
                             generation, restarts, bestGeneration);
                     break;
                 }
                 log.debug("Restarting population at gen {} after {} stagnant gens.", generation, stagnantGenerations);
-                population = restartPopulation(problem, bestSolution, ELITISM_COUNT);
+                population = restartPopulation(problem, bestSolution, params);
                 evaluatePopulation(population, problem);
                 evaluations += population.size();
                 stagnantGenerations = 0;
@@ -206,15 +202,16 @@ public class GeneticRouteSolver {
         return byDepot;
     }
 
-    private List<PermutationSolution<Integer>> initializePopulation(MDCVRPProblem problem) {
+    private List<PermutationSolution<Integer>> initializePopulation(MDCVRPProblem problem,
+                                                                     GeneticParameters params) {
         List<PermutationSolution<Integer>> population = new ArrayList<>();
         JMetalRandom random = JMetalRandom.getInstance();
 
-        int heuristicCount = (int) (POPULATION_SIZE * HEURISTIC_SEED_RATIO);
+        int heuristicCount = (int) (params.populationSize() * params.heuristicSeedRatio());
         for (int i = 0; i < heuristicCount; i++) {
             population.add(createHeuristicSolution(problem, random));
         }
-        while (population.size() < POPULATION_SIZE) {
+        while (population.size() < params.populationSize()) {
             population.add(createRandomSolution(problem, random));
         }
 
@@ -288,11 +285,12 @@ public class GeneticRouteSolver {
     }
 
     private PermutationSolution<Integer> tournamentSelect(List<PermutationSolution<Integer>> population,
-                                                          PermutationSolution<Integer> exclude) {
+                                                          PermutationSolution<Integer> exclude,
+                                                          int tournamentSize) {
         JMetalRandom random = JMetalRandom.getInstance();
         PermutationSolution<Integer> best = null;
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < tournamentSize; i++) {
             PermutationSolution<Integer> candidate = population.get(random.nextInt(0, population.size() - 1));
             if (candidate == exclude) {
                 continue;
@@ -364,18 +362,19 @@ public class GeneticRouteSolver {
 
     private List<PermutationSolution<Integer>> restartPopulation(MDCVRPProblem problem,
                                                                   PermutationSolution<Integer> bestSolution,
-                                                                  int keepCount) {
+                                                                  GeneticParameters params) {
         JMetalRandom random = JMetalRandom.getInstance();
         List<PermutationSolution<Integer>> newPopulation = new ArrayList<>();
-        for (int i = 0; i < Math.max(1, keepCount); i++) {
+        for (int i = 0; i < params.survivorsOnRestart(); i++) {
             newPopulation.add(copySolution(bestSolution));
         }
 
-        int heuristicCount = (int) ((POPULATION_SIZE - newPopulation.size()) * HEURISTIC_SEED_RATIO);
+        int heuristicCount =
+                (int) ((params.populationSize() - newPopulation.size()) * params.heuristicSeedRatio());
         for (int i = 0; i < heuristicCount; i++) {
             newPopulation.add(createHeuristicSolution(problem, random));
         }
-        while (newPopulation.size() < POPULATION_SIZE) {
+        while (newPopulation.size() < params.populationSize()) {
             newPopulation.add(createRandomSolution(problem, random));
         }
 

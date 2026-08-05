@@ -181,7 +181,10 @@ class CordeauBenchmarkTest {
                     instance.customerService.get(i)));
         }
 
-        return new RoutingRequest("bench", depots, customers, vehicles, distanceMatrix(depots, customers));
+        // Sin parametros: el benchmark mide la configuracion por defecto del motor,
+        // que es la que declaran los metadatos del solver en la pasarela.
+        return new RoutingRequest("bench", depots, customers, vehicles,
+                distanceMatrix(depots, customers), Map.of());
     }
 
     private double[][] distanceMatrix(List<DepotDto> depots, List<CustomerDto> customers) {

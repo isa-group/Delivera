@@ -275,22 +275,36 @@ Dos detalles que importan:
 
 ## Parámetros
 
-Constantes de [`GeneticRouteSolver`](../../engines/genetic-engine/src/main/java/com/delivera/fms/engine/genetic/service/GeneticRouteSolver.java):
+Configurables por petición, en el mapa `parameters`. Los valores por defecto son los de
+[`GeneticParameters.DEFAULTS`](../../engines/genetic-engine/src/main/java/com/delivera/fms/engine/genetic/service/GeneticParameters.java)
+y están declarados también en los metadatos del solver, que es lo que la pasarela aplica cuando el
+cliente no los envía (ver [metadatos-solvers.md](../metadatos-solvers.md)). **Si cambias uno, cámbialo
+en los dos sitios**: el descriptor estaría anunciando una ejecución que no es la que ocurre.
+
+| Parámetro | Defecto | Rango | Significado |
+|---|---|---|---|
+| `populationSize` | 150 | 10–2000 | Individuos por generación |
+| `maxEvaluations` | 75000 | 1000–5·10⁶ | Presupuesto de evaluaciones (~500 generaciones) |
+| `minGenerations` | 100 | 1–100000 | Suelo antes de permitir un reinicio |
+| `crossoverProbability` | 0,9 | 0–1 | Probabilidad de cruce BCRC |
+| `intraDepotMutationProbability` | 0,2 | 0–1 | Probabilidad de mutación dentro del depósito |
+| `interDepotMutationProbability` | 0,3 | 0–1 | Probabilidad de reasignación entre depósitos |
+| `elitismCount` | 5 | 0–100 | Mejores distintos que se conservan cada generación y tras un reinicio |
+| `tournamentSize` | 3 | 2–20 | Individuos por torneo de selección |
+| `localSearchFrequency` | 10 | 1–1000 | Cada cuántas generaciones se lanza la búsqueda local |
+| `interDepotFrequency` | 5 | 1–1000 | Cada cuántas generaciones se muta entre depósitos |
+| `restartStagnantGenerations` | 20 | 1–10000 | Generaciones sin mejora antes de reiniciar |
+| `maxRestarts` | 3 | 0–100 | Reinicios permitidos; al siguiente estancamiento se corta |
+| `heuristicSeedRatio` | 0,2 | 0–1 | Fracción de población inicial construida con heurística |
+
+Siguen siendo constantes de [`GeneticRouteSolver`](../../engines/genetic-engine/src/main/java/com/delivera/fms/engine/genetic/service/GeneticRouteSolver.java),
+por no tener recorrido experimental medido:
 
 | Constante | Valor | Significado |
 |---|---|---|
-| `POPULATION_SIZE` | 150 | Individuos por generación |
-| `MAX_EVALUATIONS` | 75000 | Presupuesto de evaluaciones (~500 generaciones) |
-| `MIN_GENERATIONS` | 100 | Suelo antes de permitir un reinicio |
-| `INTER_DEPOT_FREQUENCY` | 5 | Cada cuántas generaciones se muta entre depósitos |
-| `INTER_DEPOT_INDIVIDUALS` | 10 | Cuántos hijos reciben esa mutación (índices con repetición) |
-| `RESTART_STAGNANT` | 20 | Generaciones sin mejora antes de reiniciar |
-| `MAX_RESTARTS` | 3 | Reinicios permitidos; al siguiente estancamiento se corta |
-| `ELITISM_COUNT` | 5 | Mejores distintos que se conservan cada generación y tras un reinicio |
-| `LOCAL_SEARCH_FREQUENCY` | 10 | Cada cuántas generaciones se lanza la búsqueda local |
-| `INTER_DEPOT_OPT_FREQUENCY` | 30 | Cada cuántas generaciones se lanza la inter-depósito |
+| `INTER_DEPOT_INDIVIDUALS` | 10 | Cuántos hijos reciben la mutación inter-depósito (índices con repetición) |
+| `INTER_DEPOT_OPT_FREQUENCY` | 30 | Cada cuántas generaciones se lanza la búsqueda inter-depósito |
 | `TOP_K_LOCAL_SEARCH` | 3 | A cuántos individuos se les aplica la búsqueda local |
-| `HEURISTIC_SEED_RATIO` | 0,2 | Fracción de población inicial construida con heurística |
 | `SEED_CANDIDATE_LIST` | 3 | Candidatos del vecino más cercano aleatorizado |
 
 Constantes en otras clases:
@@ -313,8 +327,8 @@ por cada uno de los 3 reinicios. En la práctica las ejecuciones acaban entre la
 210, con 25 000–33 000 evaluaciones. `MIN_GENERATIONS` tampoco llega a actuar nunca.
 
 Si quieres experimentar buscando mejores soluciones, los parámetros con recorrido son
-`RESTART_STAGNANT` y `MAX_RESTARTS`, no `MAX_EVALUATIONS`. Está medido: subir el presupuesto o la
-frecuencia de búsqueda local no mueve el coste.
+`restartStagnantGenerations` y `maxRestarts`, no `maxEvaluations`. Está medido: subir el presupuesto o
+la frecuencia de búsqueda local no mueve el coste.
 
 El contador `evaluations` es **aproximado**: la búsqueda local suma 3 cuando en realidad hace miles
 de cálculos de distancia, y el cruce voraz no suma nada.
@@ -338,9 +352,11 @@ El motor es **secuencial**: no aprovecha más de un núcleo.
 
 ## Limitaciones conocidas
 
-- **No es reproducible**: `JMetalRandom` es un singleton global sin semilla configurable.
-- **Parámetros fijos en código**: no se pueden ajustar sin recompilar. Se podrían externalizar a
-  `application.yml` con `@ConfigurationProperties`.
+- **No es reproducible**: `JMetalRandom` arranca con una semilla derivada del reloj y no se puede fijar
+  desde la petición. Dos ejecuciones idénticas dan costes distintos, así que una diferencia pequeña
+  entre dos configuraciones puede ser azar; para comparar, repetir varias veces y mirar medias.
 - **No soporta ventanas de tiempo.**
+- **Flota heterogénea**: toma la capacidad mayor de cada depósito, así que no respeta capacidades
+  distintas cliente a cliente.
 - El coste llega a una meseta de la que no baja subiendo el presupuesto. Para reducir más el gap
   haría falta gestión de diversidad (*path relinking*, vecindarios granulares).

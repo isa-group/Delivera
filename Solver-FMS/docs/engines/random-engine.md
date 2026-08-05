@@ -46,11 +46,11 @@ ruta puede violar la capacidad. Es un mecanismo para no perder clientes, no una 
 
 ## Limitaciones
 
-- Ignora `maxDuration`: las rutas pueden durar lo que sea.
 - Ignora el número de vehículos: usa multi-viaje sin límite.
 - La ruta de respaldo puede exceder la capacidad.
 - `Collections.shuffle` sin semilla: **no es reproducible**. Dos llamadas con la misma entrada dan
-  resultados distintos.
+  resultados distintos, así que como línea base conviene tomar la media de varias ejecuciones y no una
+  suelta.
 
 ## Coste computacional
 

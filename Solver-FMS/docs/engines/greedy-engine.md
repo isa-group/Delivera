@@ -45,7 +45,6 @@ aparecer en varias rutas. Por eso este motor tampoco respeta el número de vehí
 
 ## Limitaciones
 
-- Ignora `maxDuration`.
 - Ignora el número de vehículos por depósito (multi-viaje sin límite).
 - La ruta de respaldo puede exceder la capacidad.
 - El reparto por número de paradas ignora la demanda, y puede dejar los vehículos muy

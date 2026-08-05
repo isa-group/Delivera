@@ -17,13 +17,148 @@ management:
 fms:
   instances:
     dir: instances-MD-CVRP-JSON
+  # Catalogo de motores y su metainformacion. Cada entrada alimenta a la vez el
+  # cliente HTTP, el despacho de problemas, los valores por defecto de los
+  # parametros y el endpoint GET /api/v1/fms/solvers. Para dar de alta un solver
+  # nuevo basta con añadir su constante al enum TypeSolver y un bloque aqui;
+  # ninguna clase Java cambia.
   engines:
-    greedy:
-      url: http://greedy-engine:8091
     random:
       url: http://random-engine:8092
+      display-name: Aleatorio
+      description: Asigna clientes a vehiculos de forma aleatoria respetando la capacidad. Sirve como linea base de comparacion
+      strategy: Baseline
+      technology: Java 22 / Spring Boot
+      version: 1.0.0
+      deterministic: false
+      order: 10
+      parameters: []
+    greedy:
+      url: http://greedy-engine:8091
+      display-name: Voraz
+      description: Heuristica constructiva de vecino mas cercano con asignacion al deposito mas proximo
+      strategy: Heuristica constructiva
+      technology: Java 22 / Spring Boot
+      version: 1.0.0
+      deterministic: true
+      order: 20
+      parameters: []
     genetic:
       url: http://genetic-engine:8093
+      display-name: Algoritmo Genetico
+      description: Metaheuristica evolutiva con cruce BCRC, mutaciones intra e inter deposito, troceado optimo de Prins y busqueda local
+      strategy: Metaheuristica
+      technology: Java 22 / Spring Boot + jMetal 6.6
+      version: 2.0.0
+      deterministic: false
+      order: 30
+      parameters:
+        - name: populationSize
+          description: >-
+            Individuos por generacion. Mas poblacion explora mas soluciones distintas
+            a costa de mas tiempo por generacion
+          type: INTEGER
+          default-value: 150
+          min: 10
+          max: 2000
+        - name: maxEvaluations
+          description: >-
+            Tope de evaluaciones de la funcion objetivo. Rara vez llega a actuar: en la
+            practica la ejecucion termina antes por estancamiento, asi que subirlo no
+            mejora el coste por si solo
+          type: INTEGER
+          default-value: 75000
+          min: 1000
+          max: 5000000
+        - name: minGenerations
+          description: >-
+            Generaciones que se ejecutan siempre antes de permitir un reinicio o la
+            parada anticipada. Evita cortar una busqueda que aun no ha arrancado
+          type: INTEGER
+          default-value: 100
+          min: 1
+          max: 100000
+        - name: crossoverProbability
+          description: >-
+            Probabilidad de cruzar cada pareja seleccionada con BCRC, que reinserta los
+            clientes del otro padre en su mejor posicion. Bajarla conserva mas padres intactos
+          type: DECIMAL
+          default-value: 0.9
+          min: 0
+          max: 1
+        - name: intraDepotMutationProbability
+          description: >-
+            Probabilidad de reordenar clientes dentro de un mismo deposito. Afina rutas
+            ya asignadas sin cambiar el reparto entre depositos
+          type: DECIMAL
+          default-value: 0.2
+          min: 0
+          max: 1
+        - name: interDepotMutationProbability
+          description: >-
+            Probabilidad de mover clientes frontera a otro deposito. Es el unico operador
+            que cambia el reparto entre depositos, del que depende la calidad en instancias
+            con depositos proximos
+          type: DECIMAL
+          default-value: 0.3
+          min: 0
+          max: 1
+        - name: elitismCount
+          description: >-
+            Mejores individuos distintos que pasan intactos a la siguiente generacion.
+            Protege del retroceso; subirlo demasiado reduce la diversidad
+          type: INTEGER
+          default-value: 5
+          min: 0
+          max: 100
+        - name: tournamentSize
+          description: >-
+            Individuos que compiten en cada seleccion. Mas torneo es mas presion selectiva
+            y convergencia mas rapida, con mas riesgo de optimo local
+          type: INTEGER
+          default-value: 3
+          min: 2
+          max: 20
+        - name: localSearchFrequency
+          description: >-
+            Cada cuantas generaciones se aplica 2-opt y relocate a los mejores individuos.
+            Un valor menor intensifica la busqueda y encarece cada generacion
+          type: INTEGER
+          default-value: 10
+          min: 1
+          max: 1000
+        - name: interDepotFrequency
+          description: >-
+            Cada cuantas generaciones se aplica la mutacion inter deposito a una muestra
+            de la descendencia
+          type: INTEGER
+          default-value: 5
+          min: 1
+          max: 1000
+        - name: restartStagnantGenerations
+          description: >-
+            Generaciones sin mejora que disparan un reinicio de poblacion conservando el
+            mejor individuo. Junto con maxRestarts es lo que de verdad termina la ejecucion
+          type: INTEGER
+          default-value: 20
+          min: 1
+          max: 10000
+        - name: maxRestarts
+          description: >-
+            Reinicios de poblacion permitidos antes de parar. Es el parametro con mas
+            recorrido para mejorar el coste, a cambio de alargar la ejecucion
+          type: INTEGER
+          default-value: 3
+          min: 0
+          max: 100
+        - name: heuristicSeedRatio
+          description: >-
+            Fraccion de la poblacion inicial construida con vecino mas cercano aleatorizado;
+            el resto se genera al azar. Arranca desde mejores soluciones a costa de diversidad
+          type: DECIMAL
+          default-value: 0.2
+          min: 0
+          max: 1
 
 springdoc:
   api-docs:
