@@ -25,7 +25,9 @@ A más apretada la duración, mayor el BKS: la restricción encarece la solució
 instancias tienen límite de duración**, y las 10 `prXX` tienen además tiempos de servicio distintos
 de cero, que consumen duración pero no coste.
 
-Un motor que ignore `max_duration` resuelve p21 en los tres casos y da el mismo coste para los tres.
+Es la mejor prueba de que un motor respeta la restricción: si la ignora, resuelve los tres casos igual
+y devuelve el mismo coste. Si la respeta, el coste sube conforme la duración aprieta, igual que sube el
+BKS. Sobre p21/p22/p23 el voraz da 8977 / 9517 / 10665.
 
 ## La regla de oro
 
@@ -124,10 +126,61 @@ Como referencia de cuánto se ha avanzado: antes de las correcciones descritas e
 [decisiones-y-correcciones.md](decisiones-y-correcciones.md), p22 daba 6737,95 **y era infactible**
 (rutas con carga por encima de la capacidad del vehículo).
 
-> ⚠️ **Verifica la tabla de BKS.** Los valores están en la constante `BEST_KNOWN` de
+> **Verifica la tabla de BKS.** Los valores están en la constante `BEST_KNOWN` de
 > `CordeauBenchmarkTest`. Son los publicados habitualmente para el conjunto Cordeau, pero solo se han
 > contrastado explícitamente p01, p22 y p23. Si alguno estuviera mal, el gap que imprime el test
 > estaría mal también. El coste y la validación de factibilidad no dependen de esta tabla.
+
+## Comparar los tres solvers
+
+El test anterior mide **solo el genético**. Para enfrentar los tres sobre las mismas instancias hay
+un script que ataca la API y valida lo que devuelve cada uno:
+
+```bash
+python compare_solvers.py --instances p01,p22 --runs 3
+```
+
+Desde `Solver-FMS/`, con el sistema levantado. Sin dependencias: solo la librería estándar.
+
+| Parámetro | Por defecto | Significado |
+|---|---|---|
+| `--url` | `http://localhost:8090` | Gateway contra el que medir |
+| `--instances` | `p01` | Instancias separadas por coma |
+| `--all` | — | Las 33 del banco |
+| `--solvers` | todos | Subconjunto, por ejemplo `GREEDY,GENETIC` |
+| `--runs` | 3 | Repeticiones **por solver no determinista**. Con menos de 5 la desviación no es fiable |
+| `--csv` | — | Vuelca cada ejecución para analizarla aparte |
+
+Salida:
+
+```
+p22  9 depositos, 360 clientes, duracion maxima 200  |  BKS 5702.16
+  solver     n      mejor      media    desv     gap  rutas   tiempo
+  RANDOM     3   20656.41   20826.14   221.0 +262.3%    130     81ms
+  GREEDY     1    9517.33    9517.33       -  +66.9%     63     77ms
+  GENETIC    3    5952.10    5960.98     7.7   +4.4%     36     2.6s
+```
+
+### La columna `desv`
+
+Ningún motor salvo el voraz es reproducible, así que una ejecución suelta no dice nada. Si dos
+configuraciones se separan menos que esta desviación, la diferencia es ruido y no mejora. Aparece `-`
+cuando solo ha habido una ejecución: sin repeticiones no hay dispersión que medir.
+
+**Con pocas repeticiones engaña.** El genético converge a la misma solución a menudo, y en instancias
+pequeñas es fácil que dos vueltas den el mismo número. En `p01`, cinco vueltas dan tres valores
+distintos; dos vueltas pueden dar cero dispersión aparente.
+
+El número de repeticiones lo decide el descriptor del solver: si declara `deterministic: true`, se
+ejecuta una sola vez porque repetirlo solo gasta tiempo.
+
+### El coste que se compara
+
+Es el **recalculado desde las paradas** de cada ruta, no el que informa el motor. El `--csv` trae los
+dos, `coste` y `coste_informado`, así que si alguna vez dejaran de coincidir se vería.
+
+El script no comprueba que la solución cumpla las restricciones de la instancia. Eso lo hace
+`assertFeasible` en el test del motor genético, descrito más arriba.
 
 ## Benchmark a través de la API
 
