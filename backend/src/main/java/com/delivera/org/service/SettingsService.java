@@ -4,6 +4,8 @@ package com.delivera.org.service;
 import com.delivera.auth.service.AuthClient;
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.client.exception.ClientException;
+import com.delivera.client.transaction.annotation.Compensable;
+import com.delivera.client.transaction.compensation.Compensations;
 import com.delivera.exception.CompanyContextException;
 import com.delivera.exception.CompanyHasActiveOrdersException;
 import com.delivera.exception.ForbiddenException;
@@ -22,7 +24,7 @@ import com.delivera.org.repository.CompanyRepository;
 import com.delivera.org.repository.OrganizationRepository;
 import com.delivera.repository.*;
 import com.delivera.service.AppConfigService;
-import com.delivera.service.SubscriptionService;
+import com.delivera.space.service.SpaceCompanies;
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.model.WorkerRole;
 import com.delivera.worker.repository.WorkerRepository;
@@ -49,10 +51,10 @@ public class SettingsService {
     private final ActivityTypeRepository activityTypeRepository;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
     private final SecurityUtils securityUtils;
-    private final SubscriptionService subscriptionService;
     private final AppConfigService appConfigService;
     private final SettingsClient settingsClient;
     private final AuthClient authClient;
+    private final SpaceCompanies spaceCompanies;
 
     private Company currentCompany() {
         return companyRepository.findById(securityUtils.getCurrentCompanyId())
@@ -93,11 +95,22 @@ public class SettingsService {
         return new SettingsResponse(o.getId(), o.getName(), o.getHandle(), c.getId(), c.getName(), c.getActivityType().getCode(), c.getDefaultPriority(), c.isDefaultPriorityLocked());
     }
 
+    @Compensable
     @Transactional
+    //@SpaceTransaction
     public CompanySummary createCompany(CompanyCreateRequest req) {
+      
         Company current = currentCompany();
-        subscriptionService.checkCompanyLimit(current.getId());
         Organization org = current.getOrganization();
+
+        spaceCompanies.addCompany(org.getId().toString());
+
+        /*SpaceTransactions.registerRollback(() -> {
+            spaceCompanies.deleteCompany(org.getId().toString());
+        });*/
+        Compensations.registerRollback(() -> {
+            spaceCompanies.deleteCompany(org.getId().toString());
+        });
 
         Company newCompany = new Company();
         newCompany.setOrganization(org);
@@ -116,13 +129,17 @@ public class SettingsService {
 
         settingsClient.createSettings(new CompanySettingsDTO(savedCompany.getId(),null, false));
 
+        
         return new CompanySummary(newCompany.getId(), newCompany.getName(), newCompany.getActivityType().getCode(), null, null, false);
     }
 
+    @Compensable
     @Transactional
+    //@SpaceTransaction
     public void deleteCompany(UUID companyId, boolean force) {
         Company current = currentCompany();
         Company target = companyRepository.findById(companyId).orElseThrow(() -> new ForbiddenException("Company not found"));
+        UUID targetOrgId = target.getOrganization().getId();
 
         if (!target.getOrganization().getId().equals(current.getOrganization().getId())) {
             throw new ForbiddenException("Company does not belong to current organization");
@@ -130,6 +147,9 @@ public class SettingsService {
         if (companyId.equals(current.getId())) {
             throw new ForbiddenException("Cannot delete the company you are currently logged into");
         }
+
+        spaceCompanies.deleteCompany(targetOrgId.toString());
+        Compensations.registerRollback(() -> targetOrgId.toString());
        
         for (LoyalUser lu : loyalUserRepository.findByCompanyIdOrderByLinkCreatedAtDesc(companyId)) {
             lu.unlinkFrom(companyId);
@@ -145,6 +165,7 @@ public class SettingsService {
             throw new CompanyHasActiveOrdersException(companyId);
         }
         authClient.deleteUsers(userIds);
+
     }
 
     @Transactional(readOnly = true)

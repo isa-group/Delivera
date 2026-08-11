@@ -23,6 +23,10 @@ import com.delivera.org.repository.OrganizationRepository;
 import com.delivera.org.service.SettingsClient;
 import com.delivera.repository.*;
 import com.delivera.service.AdminService;
+import com.delivera.space.service.SpaceCompanies;
+import com.delivera.space.service.SpaceContracts;
+import com.delivera.space.service.SpaceLoyalUsers;
+import com.delivera.space.service.SpaceWorkers;
 import com.delivera.vehicle.dto.VehicleRequest;
 import com.delivera.vehicle.service.VehicleClient;
 import com.delivera.worker.model.Worker;
@@ -31,8 +35,11 @@ import com.delivera.worker.repository.WorkerRepository;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
@@ -62,6 +69,7 @@ import java.util.*;
  */
 @Component
 @Profile({"dev", "prod"})
+@RequiredArgsConstructor
 public class DemoDataSeeder implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataSeeder.class);
@@ -104,12 +112,19 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final SettingsClient settingsClient;
     private final OrderClient orderClient;
     private final AdminService adminService;
+    private final SpaceContracts spaceContracts;
+    private final SpaceCompanies spaceCompanies;
+    private final SpaceWorkers spaceWorkers;
+    private final SpaceLoyalUsers spaceLoyalUsers;
+
 
     private String adminEmail = "admin@delivera.com";
 
     @PersistenceContext
     private EntityManager em;
 
+    /* 
+    @Autowired
     public DemoDataSeeder(UserRepository users,
                           OrganizationRepository organizations,
                           CompanyRepository companies,
@@ -125,6 +140,10 @@ public class DemoDataSeeder implements CommandLineRunner {
                            SettingsClient settingsClient,
                            OrderClient orderClient,
                            AdminService adminService,
+                           SpaceManagment spaceManagment,
+                           SpaceCompanies spaceCompanies,
+                           SpaceWorkers spaceWorkers,
+                           SpaceLoyalUsers spaceLoyalUsers,
                            AuthClient authClient) {
         this.users = users;
         this.organizations = organizations;
@@ -141,9 +160,13 @@ public class DemoDataSeeder implements CommandLineRunner {
         this.authClient = authClient;
         this.settingsClient = settingsClient;
         this.orderClient = orderClient;
+        this.spaceManagment = spaceManagment;
+        this.spaceCompanies = spaceCompanies;
+        this.spaceWorkers = spaceWorkers;
+        this.spaceLoyalUsers = spaceLoyalUsers;
         this.adminService = adminService;
     }
-
+*/
     @Override
     @Transactional
     public void run(String... args) {
@@ -151,11 +174,13 @@ public class DemoDataSeeder implements CommandLineRunner {
             return;
         }else if (resetOnStart) {
             log.warn("DemoDataSeeder: app.demo.reset-on-start=true -> vaciando tablas de datos antes de re-sembrar.");
+            
             wipeData();
         } else if (users.count() > 0) {
             log.info("DemoDataSeeder: la BD ya tiene usuarios, se omite la carga de demo.");
             return;
         }
+        this.spaceContracts.removeAllContracts();
         log.info("DemoDataSeeder: cargando datos de demo...");
 
         // --- 1. Usuarios ---
@@ -193,6 +218,19 @@ public class DemoDataSeeder implements CommandLineRunner {
         Organization rapidlog   = createOrg("RapidLog",    "rapidlog");
         Organization transnorte = createOrg("TransNorte",  "transnorte");
         Organization distrisur  = createOrg("DistriSur",   "distrisur");
+
+        spaceContracts.createContract(carlos, rapidlog,"SMALL");
+        spaceContracts.createContract(sofia, transnorte, "SMALL");
+        spaceContracts.createContract(elena, distrisur, "SMALL");
+
+        spaceCompanies.companiesConsumption(rapidlog.getId().toString(),2,false);
+        spaceCompanies.companiesConsumption(transnorte.getId().toString(),2,false);
+        spaceCompanies.companiesConsumption(distrisur.getId().toString(),2,false);
+
+        spaceWorkers.workerConsumption(rapidlog.getId().toString(), 3, false);
+        spaceWorkers.workerConsumption(transnorte.getId().toString(), 3, false);
+        spaceWorkers.workerConsumption(distrisur.getId().toString(), 3, false);
+
 
         // --- 3. Planes y tipos de actividad ---
         ActivityType distribution = activityTypes.findById("DISTRIBUTION").orElseThrow();
@@ -350,6 +388,12 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "Calle Ercilla 14, Bilbao",       43.2590, -2.9260);
         LoyalUser luPablo   = createLoyalUser("pablo.castro@correo.com",    null, List.of(rlRetail, tnStore),
                 "Calle Pelayo 5, Barcelona",      41.3900,  2.1680);
+
+        spaceLoyalUsers.loyalUserConsumption(rapidlog.getId().toString(),4,false);
+        spaceLoyalUsers.loyalUserConsumption(transnorte.getId().toString(),3,false);
+        spaceLoyalUsers.loyalUserConsumption(distrisur.getId().toString(),4,false);
+
+
 
         // --- 10. Pedidos ---
         // Internos RapidLog Central

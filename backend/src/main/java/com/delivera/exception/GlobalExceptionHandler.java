@@ -3,12 +3,13 @@ package com.delivera.exception;
 import com.delivera.client.exception.ApiException;
 import com.delivera.client.exception.ClientException;
 import com.delivera.client.exception.NetworkException;
+import com.delivera.client.exception.ServerException;
+import com.delivera.client.space.exception.SpaceValidationException;
 import com.delivera.dto.common.ErrorResponse;
 import com.delivera.dto.common.ValidationErrorResponse;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import lombok.extern.slf4j.Slf4j;
 
-import org.hibernate.service.spi.ServiceException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -93,8 +94,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(new ErrorResponse(ex.getCode()));
     }
 
-    @ExceptionHandler(SubscriptionLimitException.class)
-    public ResponseEntity<ErrorResponse> handleSubscriptionLimit(SubscriptionLimitException ex) {
+    @ExceptionHandler(SpaceValidationException.class)
+    public ResponseEntity<ErrorResponse> handleSubscriptionLimit(SpaceValidationException ex) {
         log.warn("Subscription limit reached: {}", ex.getMessage());
         return ResponseEntity.status(FORBIDDEN).body(new ErrorResponse(ex.getCode()));
     }
@@ -219,8 +220,8 @@ public class GlobalExceptionHandler {
     }
 
     
-    @ExceptionHandler(ServiceException.class)
-    public ResponseEntity<?> handleServiceException(ServiceException ex) {
+    @ExceptionHandler(ServerException.class)
+    public ResponseEntity<?> handleServiceException(ServerException ex) {
         return ResponseEntity.status(503).body(new ErrorResponse("SERVICE_UNAVAILABLE"));
     }
 }

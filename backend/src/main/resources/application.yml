@@ -1,6 +1,6 @@
 spring:
   profiles:
     active: ${DELIVERA_SPRING_PROFILES_ACTIVE:dev}
-
 app:
   api-prefix: /api/v2
+  

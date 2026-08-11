@@ -5,6 +5,8 @@ import com.delivera.auth.dto.ClaimData;
 import com.delivera.auth.dto.DeliveraOrgContext;
 import com.delivera.auth.dto.RefreshCookieData;
 import com.delivera.auth.dto.RequestClientData;
+import com.delivera.client.transaction.annotation.Compensable;
+import com.delivera.client.transaction.compensation.Compensations;
 import com.delivera.dto.auth.ClaimRegisterRequest;
 import com.delivera.dto.auth.CompanyRegisterRequest;
 import com.delivera.dto.auth.CompanyRegisterResponse;
@@ -13,23 +15,24 @@ import com.delivera.dto.auth.RegisterRequest;
 import com.delivera.dto.auth.RegisterResponse;
 import com.delivera.exception.*;
 import com.delivera.model.*;
-import com.delivera.order.repository.OrderRepository;
-import com.delivera.order.service.OrderClient;
+import com.delivera.org.dto.CompanySettingsDTO;
 import com.delivera.org.model.Company;
 import com.delivera.org.model.Organization;
 import com.delivera.org.repository.CompanyRepository;
 import com.delivera.org.repository.OrganizationRepository;
+import com.delivera.org.service.SettingsClient;
 import com.delivera.repository.*;
+import com.delivera.space.service.SpaceContracts;
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.model.WorkerRole;
 import com.delivera.worker.repository.WorkerRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.util.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +43,7 @@ import java.util.List;
 
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
 
     private static final WorkerRole LOYAL_USER_ROLE = WorkerRole.LOYAL_USER;
@@ -52,32 +56,14 @@ public class AuthService {
     private final ActivityTypeRepository activityTypeRepository;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
     private final AuthClient authClient;
+    private final SpaceContracts spaceContracts;
+    private final SettingsClient settingsClient;
 
 
     
     @Value("${app.gateway.enabled}")
     private Boolean activeGateway;
 
-    public AuthService(UserRepository userRepository,
-                       OrganizationRepository organizationRepository,
-                       CompanyRepository companyRepository,
-                       WorkerRepository workerRepository,
-                       OrderRepository orderRepository,
-                       LoyalUserRepository loyalUserRepository,
-                       ActivityTypeRepository activityTypeRepository,
-                       SubscriptionPlanRepository subscriptionPlanRepository,
-                       PasswordEncoder passwordEncoder,
-                       OrderClient orderClient,
-                       AuthClient authClient) {
-        this.userRepository = userRepository;
-        this.organizationRepository = organizationRepository;
-        this.companyRepository = companyRepository;
-        this.workerRepository = workerRepository;
-        this.loyalUserRepository = loyalUserRepository;
-        this.activityTypeRepository = activityTypeRepository;
-        this.subscriptionPlanRepository = subscriptionPlanRepository;
-        this.authClient = authClient;
-    }
 
     public String getIp(HttpServletRequest httpRequest) {
         String ip = httpRequest.getHeader("X-Forwarded-For");
@@ -162,7 +148,9 @@ public class AuthService {
         return !userRepository.existsByUsername(username);
     }
 
+    @Compensable
     @Transactional
+    //@SpaceTransaction
     public CompanyRegisterResponse registerCompany(CompanyRegisterRequest request, RequestClientData requestClientData) {
         if (userRepository.findByEmail(request.email()).isPresent()) {
             throw new EmailAlreadyExistsException();
@@ -199,6 +187,11 @@ public class AuthService {
         worker.setRole(WorkerRole.COMPANY_ADMIN);
         workerRepository.save(worker);
 
+        spaceContracts.createBasicContract(user, organization);
+        Compensations.registerRollback(() -> {
+            spaceContracts.removeContract(savedOrganization.getId().toString());
+        });
+
         LoginResponse response = authClient.register(
             savedUser.getId(), request.email(), request.username(), request.password(), 
             new DeliveraOrgContext(
@@ -206,6 +199,8 @@ public class AuthService {
                 savedOrganization.getHandle(),savedOrganization.getName(),savedOrganization.getId() ),
             requestClientData
         ).block();
+
+        settingsClient.createSettings(new CompanySettingsDTO(savedCompany.getId(),null, false));
 
         return new CompanyRegisterResponse(response.getToken(), user.getEmail(), company.getId(),
                 WorkerRole.COMPANY_ADMIN.name(), company.getName(), organization.getHandle(), organization.getName(),
