@@ -19,7 +19,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.uma.jmetal.solution.permutationsolution.PermutationSolution;
 import org.uma.jmetal.solution.permutationsolution.impl.IntegerPermutationSolution;
-import org.uma.jmetal.util.pseudorandom.JMetalRandom;
+import org.uma.jmetal.util.pseudorandom.PseudoRandomGenerator;
+import org.uma.jmetal.util.pseudorandom.impl.JavaRandomGenerator;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -27,6 +28,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class GeneticRouteSolver {
@@ -38,10 +40,17 @@ public class GeneticRouteSolver {
     private static final int TOP_K_LOCAL_SEARCH = 3;
     private static final int SEED_CANDIDATE_LIST = 3;
 
+    // Rango de [0, 2^48) dado a que a partir de 2^48 las semillas dejan de ser distintas
+    private static final long MAX_SEED = (1L << 48) - 1;
+
     public RoutingResponse solve(RoutingRequest request) {
         GeneticParameters params = GeneticParameters.from(request.parameters());
-        log.info("Solving MD-CVRP problem '{}' with solver: {} and parameters: {}",
-                request.problemId(), SOLVER_TYPE, params);
+
+        long seed = resolveSeed(request.parameters());
+        PseudoRandomGenerator random = new JavaRandomGenerator(seed);
+
+        log.info("Solving MD-CVRP problem '{}' with solver: {}, seed: {} and parameters: {}",
+                request.problemId(), SOLVER_TYPE, seed, params);
         long startTime = System.currentTimeMillis();
 
         RouteSplitter splitter = new RouteSplitter(
@@ -52,18 +61,18 @@ public class GeneticRouteSolver {
                 request.customers(), request.distanceMatrix(), splitter, request.vehicles());
 
         BestCostRouteCrossover crossover = new BestCostRouteCrossover(
-                params.crossoverProbability(), request.depots(), splitter);
+                params.crossoverProbability(), request.depots(), splitter, random);
         IntraDepotMutation intraMutation = new IntraDepotMutation(
-                params.intraDepotMutationProbability(), request.depots());
+                params.intraDepotMutationProbability(), request.depots(), random);
         InterDepotMutation interMutation = new InterDepotMutation(
                 params.interDepotMutationProbability(), request.customers(), request.depots(),
-                request.distanceMatrix(), splitter);
+                request.distanceMatrix(), splitter, random);
         LocalSearch localSearch = new LocalSearch(
                 request.customers(), request.depots(), request.distanceMatrix(), splitter);
         InterDepotLocalSearch interDepotSearch = new InterDepotLocalSearch(
                 request.customers(), request.depots(), request.distanceMatrix(), splitter);
 
-        List<PermutationSolution<Integer>> population = initializePopulation(problem, params);
+        List<PermutationSolution<Integer>> population = initializePopulation(problem, params, random);
         evaluatePopulation(population, problem);
 
         int evaluations = population.size();
@@ -79,9 +88,10 @@ public class GeneticRouteSolver {
             List<PermutationSolution<Integer>> offspring = new ArrayList<>();
 
             while (offspring.size() < params.populationSize()) {
-                PermutationSolution<Integer> parent1 = tournamentSelect(population, null, params.tournamentSize());
-                PermutationSolution<Integer> parent2 = tournamentSelect(population, parent1, params.tournamentSize());
-
+                PermutationSolution<Integer> parent1 =
+                        tournamentSelect(population, null, params.tournamentSize(), random);
+                PermutationSolution<Integer> parent2 =
+                        tournamentSelect(population, parent1, params.tournamentSize(), random);
                 for (PermutationSolution<Integer> child : crossover.execute(List.of(parent1, parent2))) {
                     if (offspring.size() >= params.populationSize()) {
                         break;
@@ -96,7 +106,7 @@ public class GeneticRouteSolver {
 
             if (generation % params.interDepotFrequency() == 0 && generation > 0) {
                 for (int i = 0; i < Math.min(INTER_DEPOT_INDIVIDUALS, offspring.size()); i++) {
-                    int index = JMetalRandom.getInstance().nextInt(0, offspring.size() - 1);
+                    int index = random.nextInt(0, offspring.size() - 1);
                     interMutation.execute(offspring.get(index));
                     problem.evaluate(offspring.get(index));
                     evaluations++;
@@ -142,7 +152,7 @@ public class GeneticRouteSolver {
                     break;
                 }
                 log.debug("Restarting population at gen {} after {} stagnant gens.", generation, stagnantGenerations);
-                population = restartPopulation(problem, bestSolution, params);
+                population = restartPopulation(problem, bestSolution, params, random);
                 evaluatePopulation(population, problem);
                 evaluations += population.size();
                 stagnantGenerations = 0;
@@ -159,13 +169,33 @@ public class GeneticRouteSolver {
         double totalCost = routes.stream().mapToDouble(RouteDto::totalDistance).sum();
         long computationTime = System.currentTimeMillis() - startTime;
 
-        log.info("Problem '{}' solved. Routes: {}, Total cost: {}, Time: {}ms, Generations: {}, Evaluations: {}",
-                request.problemId(), routes.size(), totalCost, computationTime, generation, evaluations);
+        log.info("Problem '{}' solved. Routes: {}, Total cost: {}, Time: {}ms, Generations: {}, "
+                        + "Evaluations: {}, Seed: {}",
+                request.problemId(), routes.size(), totalCost, computationTime, generation,
+                evaluations, seed);
 
         return new RoutingResponse(
                 request.problemId(), "COMPLETED", SOLVER_TYPE,
-                totalCost, computationTime, routes
+                totalCost, computationTime, seed, routes
         );
+    }
+
+    /**
+     * Semilla recibida o, en su defecto, una sorteada.
+     *
+     * La sorteada se mantiene dentro del rango que la pasarela admite para el
+     * parametro: una semilla que se devuelve al cliente pero que este no puede
+     * reenviar no serviria para reproducir nada.
+     *
+     * Nada que ver con {@code heuristicSeedRatio} ni con {@link #SEED_CANDIDATE_LIST},
+     * que hablan de sembrar la poblacion inicial.
+     */
+    private static long resolveSeed(Map<String, Object> parameters) {
+        Object raw = (parameters != null) ? parameters.get("seed") : null;
+        if (raw instanceof Number number) {
+            return number.longValue();
+        }
+        return ThreadLocalRandom.current().nextLong(MAX_SEED + 1);
     }
 
     /** Capacidad del mayor vehiculo de cada deposito; sin vehiculos declarados, sin limite. */
@@ -203,9 +233,9 @@ public class GeneticRouteSolver {
     }
 
     private List<PermutationSolution<Integer>> initializePopulation(MDCVRPProblem problem,
-                                                                     GeneticParameters params) {
+                                                                     GeneticParameters params,
+                                                                     PseudoRandomGenerator random) {
         List<PermutationSolution<Integer>> population = new ArrayList<>();
-        JMetalRandom random = JMetalRandom.getInstance();
 
         int heuristicCount = (int) (params.populationSize() * params.heuristicSeedRatio());
         for (int i = 0; i < heuristicCount; i++) {
@@ -218,7 +248,8 @@ public class GeneticRouteSolver {
         return population;
     }
 
-    private PermutationSolution<Integer> createRandomSolution(MDCVRPProblem problem, JMetalRandom random) {
+    private PermutationSolution<Integer> createRandomSolution(MDCVRPProblem problem,
+                                                               PseudoRandomGenerator random) {
         PermutationSolution<Integer> solution = problem.createSolution();
         List<Integer> permutation = new ArrayList<>();
         for (int i = 0; i < problem.length(); i++) {
@@ -241,7 +272,8 @@ public class GeneticRouteSolver {
      * {@value #SEED_CANDIDATE_LIST} clientes mas proximos. Un vecino mas cercano puro seria
      * deterministico y sembraria la poblacion con individuos identicos.
      */
-    private PermutationSolution<Integer> createHeuristicSolution(MDCVRPProblem problem, JMetalRandom random) {
+    private PermutationSolution<Integer> createHeuristicSolution(MDCVRPProblem problem,
+                                                                  PseudoRandomGenerator random) {
         PermutationSolution<Integer> solution = problem.createSolution();
         List<CustomerDto> customers = problem.customers();
         double[][] distanceMatrix = problem.distanceMatrix();
@@ -286,8 +318,8 @@ public class GeneticRouteSolver {
 
     private PermutationSolution<Integer> tournamentSelect(List<PermutationSolution<Integer>> population,
                                                           PermutationSolution<Integer> exclude,
-                                                          int tournamentSize) {
-        JMetalRandom random = JMetalRandom.getInstance();
+                                                          int tournamentSize,
+                                                          PseudoRandomGenerator random) {
         PermutationSolution<Integer> best = null;
 
         for (int i = 0; i < tournamentSize; i++) {
@@ -362,8 +394,8 @@ public class GeneticRouteSolver {
 
     private List<PermutationSolution<Integer>> restartPopulation(MDCVRPProblem problem,
                                                                   PermutationSolution<Integer> bestSolution,
-                                                                  GeneticParameters params) {
-        JMetalRandom random = JMetalRandom.getInstance();
+                                                                  GeneticParameters params,
+                                                                  PseudoRandomGenerator random) {
         List<PermutationSolution<Integer>> newPopulation = new ArrayList<>();
         for (int i = 0; i < params.survivorsOnRestart(); i++) {
             newPopulation.add(copySolution(bestSolution));

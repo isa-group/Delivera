@@ -42,7 +42,7 @@ class SolverBenchmarkTest {
 
     private static final Path BASE_DIR = Path.of("..");
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final String ROW = "  %-9s%3d%11.2f%11.2f%8s%7d%9s  %s%n";
+    private static final String ROW = "  %-9s%3d%11.2f%11.2f%8s%7d%9s  %-4s%12s%n";
 
     private final HttpClient http = HttpClient.newHttpClient();
     private final String gateway = System.getProperty("gateway", "http://localhost:8090");
@@ -73,7 +73,8 @@ class SolverBenchmarkTest {
                     violations.forEach(violation -> failures.add(
                             "%s / %s: %s".formatted(name, solver.type(), violation)));
                     results.add(new Run(instance.cost(response),
-                            response.get("routes").size(), millis, violations.isEmpty()));
+                            response.get("routes").size(), millis, violations.isEmpty(),
+                            seed(response)));
                 }
 
                 printRow(solver, results, bks);
@@ -95,7 +96,16 @@ class SolverBenchmarkTest {
                 bks == null ? "-" : "%+.1f%%".formatted((best.cost() / bks - 1) * 100),
                 best.routes(),
                 millis >= 1000 ? "%.1fs".formatted(millis / 1000.0) : millis + "ms",
-                results.stream().allMatch(Run::feasible) ? "si" : "NO");
+                results.stream().allMatch(Run::feasible) ? "si" : "NO",
+                // Semilla de la mejor de las repeticiones: es la que hay que reenviar
+                // en 'parameters' para volver a obtener exactamente esta solucion.
+                best.seed() == null ? "-" : best.seed());
+    }
+
+    /** Semilla efectiva que informa el motor. Ausente en los solvers deterministas. */
+    private static Long seed(JsonNode response) {
+        JsonNode seed = response.get("seed");
+        return (seed == null || seed.isNull()) ? null : seed.asLong();
     }
 
     /**
@@ -166,6 +176,6 @@ class SolverBenchmarkTest {
     private record Solver(String type, boolean deterministic) {
     }
 
-    private record Run(double cost, int routes, long millis, boolean feasible) {
+    private record Run(double cost, int routes, long millis, boolean feasible, Long seed) {
     }
 }
