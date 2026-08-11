@@ -21,7 +21,7 @@ public class CompensableAspect {
     ) throws Throwable {
 
         Compensations.init();
-        log.info(
+        log.debug(
             "TRANSACTION-TX [{}]",
             Compensations.getTransactionId()
         );
@@ -30,14 +30,14 @@ public class CompensableAspect {
             return pjp.proceed();
 
         } catch (CompensableValidationException ex) {
-            log.info(
+            log.debug(
                 "VALIDATION ERROR-TX [{}]",
                 Compensations.getTransactionId()
             );
             throw ex;
 
         } catch (Exception ex) {
-            log.info(
+            log.debug(
                 "ERROR-TX [{}]",
                 Compensations.getTransactionId()
             );
@@ -46,7 +46,7 @@ public class CompensableAspect {
             throw ex;
 
         } finally {
-            log.info(
+            log.debug(
                 "EXIT-TX [{}]",
                 Compensations.getTransactionId()
             );
