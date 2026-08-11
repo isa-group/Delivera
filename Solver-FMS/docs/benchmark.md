@@ -70,11 +70,18 @@ Salida:
 Solvers registrados: [RANDOM, GREEDY, GENETIC]
 
 p22  9 depositos, 360 clientes, duracion maxima 200  |  BKS 5702,16
-  solver     n      mejor      media     gap  rutas   tiempo  factible
-  RANDOM     2   20326,68   20918,49 +256,5%    131    189ms  si
-  GREEDY     1    9517,33    9517,33  +66,9%     63    214ms  si
-  GENETIC    2    5946,53    5953,76   +4,3%     36     2,3s  si
+  solver     n      mejor      media     gap  rutas   tiempo  factible     semilla
+  RANDOM     2   20326,68   20918,49 +256,5%    131    189ms  si         127997977
+  GREEDY     1    9517,33    9517,33  +66,9%     63    214ms  si                 -
+  GENETIC    2    5946,53    5953,76   +4,3%     36     2,3s  si        1012033380
 ```
+
+### La columna `semilla`
+
+Es la semilla de la **mejor** de las repeticiones, la que hay que reenviar en `parameters` para
+volver a obtener exactamente esa solución. Aparece `-` en los solvers deterministas, que no dependen
+del azar. Es lo que hace útil subir `-Druns`: una buena vuelta ya no se pierde, se puede repetir y
+usar de punto de partida para afinar parámetros.
 
 ### Los solvers no están escritos en el test
 
@@ -192,7 +199,9 @@ p22  9 depositos, 360 clientes, duracion maxima 200  |  BKS 5702.16
 
 ### La columna `desv`
 
-Ningún motor salvo el voraz es reproducible, así que una ejecución suelta no dice nada. Si dos
+Salvo el voraz, ningún motor repite resultado si no se le fija la semilla, y este script no se la
+fija: mide la variabilidad real del algoritmo, que es lo que interesa comparar. Una ejecución suelta,
+por tanto, no dice nada. Si dos
 configuraciones se separan menos que esta desviación, la diferencia es ruido y no mejora. Aparece `-`
 cuando solo ha habido una ejecución: sin repeticiones no hay dispersión que medir.
 

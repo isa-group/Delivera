@@ -296,6 +296,17 @@ en los dos sitios**: el descriptor estaría anunciando una ejecución que no es 
 | `restartStagnantGenerations` | 20 | 1–10000 | Generaciones sin mejora antes de reiniciar |
 | `maxRestarts` | 3 | 0–100 | Reinicios permitidos; al siguiente estancamiento se corta |
 | `heuristicSeedRatio` | 0,2 | 0–1 | Fracción de población inicial construida con heurística |
+| `seed` | - | 0 - 2^(48) - 1 | Semilla del generador. Sin ella el motor sortea una y la devuelve |
+
+`seed` es el único sin valor por defecto, y a propósito: fijar uno haría el motor determinista
+siempre, que es justo lo contrario de lo que declara `deterministic: false`. Nada que ver con
+`heuristicSeedRatio`, que habla de sembrar la población inicial.
+
+El tope no es arbitrario. `JavaRandomGenerator` envuelve un `java.util.Random`, que se queda con
+**48 bits** de la semilla (`(seed ^ 0x5DEECE66D) & (2⁴⁸−1)`). Como el XOR con una constante es una
+biyección sobre esos bits, el rango `[0, 2⁴⁸)` recorre todos los flujos posibles, cada uno una sola
+vez: no falta ninguno y no hay dos semillas que den la misma secuencia. Por encima empezarían a
+solaparse, y las negativas caen sobre ese mismo espacio sin aportar nada nuevo.
 
 Siguen siendo constantes de [`GeneticRouteSolver`](../../engines/genetic-engine/src/main/java/com/delivera/fms/engine/genetic/service/GeneticRouteSolver.java),
 por no tener recorrido experimental medido:

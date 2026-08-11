@@ -44,13 +44,27 @@ ruta puede violar la capacidad. Es un mecanismo para no perder clientes, no una 
 **Sin vehículos declarados**: si `vehicles` viene vacío o nulo, se crea una ruta por depósito con
 `vehicleId = "V-<depósito>"` y capacidad ilimitada.
 
+## Parámetros
+
+| Parámetro | Defecto | Rango | Significado |
+|---|---|---|---|
+| `seed` | - |  0 - 2^(48) - 1| Semilla del barajado. Sin ella el motor sortea una y la devuelve |
+
+El barajado es la única fuente de azar del motor, así que la semilla determina la solución por
+completo: misma instancia y misma semilla dan siempre el mismo resultado. Si no se envía, el motor
+sortea una dentro de ese rango y la devuelve en el campo `seed` de la respuesta, de modo que
+cualquier ejecución se puede repetir después reenviándola.
+
+El tope sale de que `java.util.Random` se queda con **48 bits** de la semilla: `[0, 2⁴⁸)` recorre
+todos los flujos posibles exactamente una vez, y por encima dos semillas distintas darían la misma
+secuencia.
+
 ## Limitaciones
 
 - Ignora el número de vehículos: usa multi-viaje sin límite.
 - La ruta de respaldo puede exceder la capacidad.
-- `Collections.shuffle` sin semilla: **no es reproducible**. Dos llamadas con la misma entrada dan
-  resultados distintos, así que como línea base conviene tomar la media de varias ejecuciones y no una
-  suelta.
+- Como línea base conviene tomar la media de varias ejecuciones y no una suelta: sin semilla fija,
+  dos llamadas con la misma entrada dan resultados distintos por diseño.
 
 ## Coste computacional
 
