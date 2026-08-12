@@ -94,7 +94,11 @@ la desigualdad triangular.
 | `solverUsed` | `String` | `"RANDOM"`, `"GREEDY"` o `"GENETIC"` |
 | `totalCost` | `Double` | Suma de `totalDistance` de todas las rutas |
 | `computationTimeMs` | `Long` | Tiempo de resolución del motor |
+| `seed` | `Long` | Semilla con la que se ejecutó el solver. Ausente en los deterministas |
 | `routes` | `RouteDto[]` | Rutas de la solución |
+
+`seed` cierra el ciclo de la reproducibilidad: los solvers estocásticos devuelven siempre la semilla
+que han usado, la hayas enviado tú en `parameters` o la haya sorteado el motor. Reenviarla con la misma instancia y los mismos parámetros da **exactamente** la misma solución, así que cualquier ejecución es repetible a posteriori, incluida una buena que salga por casualidad en un barrido.
 
 ### `RouteDto`
 

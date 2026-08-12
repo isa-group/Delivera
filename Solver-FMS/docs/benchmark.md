@@ -42,41 +42,77 @@ venir de saltarse una restricción sin que el test lo cace.
 
 ## Cómo ejecutarlo
 
+`SolverBenchmarkTest`, en `/fms-gateway`, ejerce **todos** los solvers registrados. Es un test de
+integración: necesita el sistema levantado.
+
 ```bash
-mvn test -Dtest=CordeauBenchmarkTest -Dbenchmark=true -Dinstance=p22 -Druns=3
+docker compose up -d
 ```
 
-Desde `engines/genetic-engine`. En PowerShell hay que entrecomillar cada argumento: `"-Dbenchmark=true"`.
+```bash
+mvn test -Dtest=SolverBenchmarkTest -Dbenchmark=true -Dinstances=p01,p22 -Druns=3
+```
+
+Desde `/fms-gateway`. En la terminal hay que entrecomillar cada argumento: `"-Dbenchmark=true"`.
 
 | Parámetro | Por defecto | Significado |
 |---|---|---|
 | `-Dbenchmark=true` | — | **Obligatorio.** Sin él el test se salta, para no ralentizar el build |
-| `-Dinstance=` | `p22` | Nombre de la instancia, sin extensión |
-| `-Druns=` | `1` | Repeticiones. Útil porque el algoritmo no es determinista |
-
-El test no levanta Docker: instancia `GeneticRouteSolver` directamente y replica el mapeo del
-gateway (`StandardInstanceMapper` + `DistanceMatrixCalculator`).
+| `-Dinstances=` | `p01` | Instancias separadas por coma, o `all` para las 33 |
+| `-Dsolvers=` | todos | Subconjunto, por ejemplo `GREEDY,GENETIC` |
+| `-Druns=` | `1` | Repeticiones **por solver no determinista**. Los deterministas se ejecutan una vez |
+| `-Dgateway=` | `http://localhost:8090` | Gateway contra el que medir |
+| `-Dtimeout=` | `600` | Segundos por petición |
 
 Salida:
 
 ```
-  run 1: cost=5952,10  routes=36  time=2249ms
-[p22] runs=5  best=5935,41  avg=5956,11  avgTime=2104ms  BKS=5702,16  gapBest=4,09%  gapAvg=4,45%
+Solvers registrados: [RANDOM, GREEDY, GENETIC]
+
+p22  9 depositos, 360 clientes, duracion maxima 200  |  BKS 5702,16
+  solver     n      mejor      media     gap  rutas   tiempo  factible     semilla
+  RANDOM     2   20326,68   20918,49 +256,5%    131    189ms  si         127997977
+  GREEDY     1    9517,33    9517,33  +66,9%     63    214ms  si                 -
+  GENETIC    2    5946,53    5953,76   +4,3%     36     2,3s  si        1012033380
 ```
+
+### La columna `semilla`
+
+Es la semilla de la **mejor** de las repeticiones, la que hay que reenviar en `parameters` para
+volver a obtener exactamente esa solución. Aparece `-` en los solvers deterministas, que no dependen
+del azar. Es lo que hace útil subir `-Druns`: una buena vuelta ya no se pierde, se puede repetir y
+usar de punto de partida para afinar parámetros.
+
+### Los solvers no están escritos en el test
+
+Se leen de `GET /api/v1/fms/solvers`, que se deriva de la configuración de motores. Registrar un
+motor nuevo basta para que entre en el benchmark, aunque esté implementado en otra tecnología: lo
+único que se le exige es el contrato HTTP. El descriptor aporta también el campo `deterministic`,
+que es lo que decide si repetir el solver varias veces o una sola.
 
 ## Qué valida
 
-`assertFeasible` comprueba, en cada ejecución:
+`CordeauInstance.violations` comprueba, en cada ejecución y para cada solver:
 
-1. Cada cliente aparece en **exactamente una** ruta.
+1. Cada cliente aparece en **exactamente una** ruta, y ninguna ruta visita clientes inexistentes.
 2. `totalLoad` de cada ruta coincide con la suma de las demandas de sus paradas.
 3. Ninguna ruta excede la **capacidad** del vehículo.
 4. Ninguna ruta excede la **duración máxima** del depósito, contando distancia + tiempos de servicio.
-5. Ningún depósito usa **más rutas que vehículos** tiene.
+5. Ningún depósito usa **más vehículos distintos** de los que tiene.
 
-> El test está escrito para el motor genético. La comprobación 5 cuenta rutas por depósito, lo que
-> presupone una ruta por vehículo. Greedy y random modelan multi-viaje —varias rutas comparten
-> `vehicleId`— así que esa comprobación no les aplica tal cual.
+Devuelve **todas** las violaciones, no solo la primera: así se ve de un vistazo si a un motor se le
+escapa una restricción concreta o si la solución está rota de arriba abajo.
+
+El coste se **recalcula desde las paradas**, no se toma el `totalCost` que informa el motor. Un motor
+que se equivoque al sumar no puede quedar impune por haberlo calculado él mismo.
+
+> **La comprobación 5 cuenta vehículos distintos, no rutas.** Greedy y random modelan multi-viaje:
+> reutilizan el mismo `vehicleId` en varias rutas. Contar rutas les exigiría algo que el problema no
+> pide. El efecto secundario es que para ellos la comprobación es casi vacua: un vehículo que hace 26
+> viajes la pasa. Para el genético, donde cada ruta lleva un vehículo distinto, sí es exigente.
+
+El coste **no** hace fallar el test. Comparar calidad es cosa de `compare_solvers.py`; aquí lo que se
+comprueba es que lo que devuelve cada motor sea una solución válida del problema.
 
 ## Resultados actuales del motor genético
 
@@ -126,8 +162,8 @@ Como referencia de cuánto se ha avanzado: antes de las correcciones descritas e
 [decisiones-y-correcciones.md](decisiones-y-correcciones.md), p22 daba 6737,95 **y era infactible**
 (rutas con carga por encima de la capacidad del vehículo).
 
-> **Verifica la tabla de BKS.** Los valores están en la constante `BEST_KNOWN` de
-> `CordeauBenchmarkTest`. Son los publicados habitualmente para el conjunto Cordeau, pero solo se han
+> **Verifica la tabla de BKS.** Los valores están en `Solver-FMS/best-known.json`, que leen tanto el
+> test como `compare_solvers.py`. Son los publicados habitualmente para el conjunto Cordeau, pero solo se han
 > contrastado explícitamente p01, p22 y p23. Si alguno estuviera mal, el gap que imprime el test
 > estaría mal también. El coste y la validación de factibilidad no dependen de esta tabla.
 
@@ -163,7 +199,9 @@ p22  9 depositos, 360 clientes, duracion maxima 200  |  BKS 5702.16
 
 ### La columna `desv`
 
-Ningún motor salvo el voraz es reproducible, así que una ejecución suelta no dice nada. Si dos
+Salvo el voraz, ningún motor repite resultado si no se le fija la semilla, y este script no se la
+fija: mide la variabilidad real del algoritmo, que es lo que interesa comparar. Una ejecución suelta,
+por tanto, no dice nada. Si dos
 configuraciones se separan menos que esta desviación, la diferencia es ruido y no mejora. Aparece `-`
 cuando solo ha habido una ejecución: sin repeticiones no hay dispersión que medir.
 
