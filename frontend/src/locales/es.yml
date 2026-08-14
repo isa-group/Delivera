@@ -499,6 +499,7 @@ error:
   SUBSCRIPTION_LIMIT_ORDERS: Superaste el límite de pedidos mensuales del plan destino
   SUBSCRIPTION_LIMIT_LOYAL_USERS: Tienes más usuarios fidelizados de los que permite el plan destino
   SUBSCRIPTION_LIMIT_COMPANIES: Tienes más empresas de las que permite el plan destino
+  SUBSCRIPTION_LIMIT_VEHICLES: Ya tienes tantos vehículos como el plan permite.
   WORKER_ALREADY_EXISTS: Este trabajador ya pertenece a la empresa
   LOYAL_USER_CANNOT_BE_WORKER: Este email pertenece a un usuario fidelizado y no puede ser invitado como trabajador
   WORKER_CANNOT_BE_LOYAL_USER: Este email pertenece a un trabajador y no puede usarse como destinatario B2C

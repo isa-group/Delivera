@@ -4,8 +4,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 import com.delivera.client.exception.ServerException;
 import com.delivera.client.space.exception.SpaceValidationException;
@@ -16,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class SpaceManagment {
 
@@ -61,7 +58,7 @@ public class SpaceManagment {
             spaceClient.features.revertEvaluation(userId, featureId, true);
             throw new SpaceValidationException(resource);
         }else if (unexistingFeature){
-            log.info("FEATURE_NOT_FOUND: {} is not in the pricing",withConsumption.getError());
+            log.warn("FEATURE_NOT_FOUND: {} is not in the pricing",withConsumption.getError());
         } else if (isError) {
             log.info("FEATURE_ERROR: {}",withConsumption.getError());
             throw new ServerException(503, "SERVICE_UNAVAILABLE");
@@ -70,7 +67,7 @@ public class SpaceManagment {
 
     /**
      * 
-     * @apiNote To use this operation without problems you required a SPACE API-KEY of type "EVALUATE".
+     * @apiNote To use this operation without problems you required a SPACE API-KEY of type "MANAGMENT".
      * @param userId 
      * @param feature
      * @param quantity

@@ -25,6 +25,7 @@ import com.delivera.org.repository.OrganizationRepository;
 import com.delivera.repository.*;
 import com.delivera.service.AppConfigService;
 import com.delivera.space.service.SpaceCompanies;
+import com.delivera.space.service.SpaceWorkers;
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.model.WorkerRole;
 import com.delivera.worker.repository.WorkerRepository;
@@ -55,6 +56,7 @@ public class SettingsService {
     private final SettingsClient settingsClient;
     private final AuthClient authClient;
     private final SpaceCompanies spaceCompanies;
+    private final SpaceWorkers spaceWorkers;
 
     private Company currentCompany() {
         return companyRepository.findById(securityUtils.getCurrentCompanyId())
@@ -97,20 +99,12 @@ public class SettingsService {
 
     @Compensable
     @Transactional
-    //@SpaceTransaction
     public CompanySummary createCompany(CompanyCreateRequest req) {
       
         Company current = currentCompany();
         Organization org = current.getOrganization();
 
-        spaceCompanies.addCompany(org.getId().toString());
-
-        /*SpaceTransactions.registerRollback(() -> {
-            spaceCompanies.deleteCompany(org.getId().toString());
-        });*/
-        Compensations.registerRollback(() -> {
-            spaceCompanies.deleteCompany(org.getId().toString());
-        });
+        spaceCompanies.addWithRollBack(org.getId().toString());
 
         Company newCompany = new Company();
         newCompany.setOrganization(org);
@@ -127,7 +121,11 @@ public class SettingsService {
         worker.setRole(WorkerRole.COMPANY_ADMIN);
         workerRepository.save(worker);
 
-        settingsClient.createSettings(new CompanySettingsDTO(savedCompany.getId(),null, false));
+        settingsClient.createSettings(
+            new CompanySettingsDTO(
+                savedCompany.getId(),org.getId() ,null, false
+            )
+        );
 
         
         return new CompanySummary(newCompany.getId(), newCompany.getName(), newCompany.getActivityType().getCode(), null, null, false);
@@ -135,7 +133,6 @@ public class SettingsService {
 
     @Compensable
     @Transactional
-    //@SpaceTransaction
     public void deleteCompany(UUID companyId, boolean force) {
         Company current = currentCompany();
         Company target = companyRepository.findById(companyId).orElseThrow(() -> new ForbiddenException("Company not found"));
@@ -148,8 +145,7 @@ public class SettingsService {
             throw new ForbiddenException("Cannot delete the company you are currently logged into");
         }
 
-        spaceCompanies.deleteCompany(targetOrgId.toString());
-        Compensations.registerRollback(() -> targetOrgId.toString());
+        spaceCompanies.deleteWithRollBack(targetOrgId.toString());
        
         for (LoyalUser lu : loyalUserRepository.findByCompanyIdOrderByLinkCreatedAtDesc(companyId)) {
             lu.unlinkFrom(companyId);
@@ -164,7 +160,12 @@ public class SettingsService {
         } catch (ClientException e) {
             throw new CompanyHasActiveOrdersException(companyId);
         }
-        authClient.deleteUsers(userIds);
+        if (userIds.size()>0){
+            spaceWorkers.deleteAllWithRollBack(targetOrgId.toString(), userIds.size());
+           
+            userRepository.deleteByUserIds(userIds);
+            authClient.deleteUsers(userIds);
+        }
 
     }
 

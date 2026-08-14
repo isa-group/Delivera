@@ -2,8 +2,6 @@ package com.delivera.order.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.client.transaction.annotation.Compensable;
-import com.delivera.client.transaction.compensation.Compensations;
-import com.delivera.depot.model.OperationalUnit;
 import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.exception.*;
 import com.delivera.model.*;
@@ -16,7 +14,6 @@ import com.delivera.order.dto.OrderStatusRequest;
 import com.delivera.order.dto.PublicOrderResponse;
 import com.delivera.order.model.Order;
 import com.delivera.order.model.OrderEvent;
-import com.delivera.order.model.OrderPriority;
 import com.delivera.order.model.OrderStatus;
 import com.delivera.order.model.OrderType;
 import com.delivera.order.repository.OrderRepository;
@@ -113,10 +110,7 @@ public class OrderService {
                     return lu;
                 });
         if (loyalUser.getId() == null) {
-            spaceLoyalUsers.addLoyalUser(orgId.toString());
-            Compensations.registerRollback(()->{
-                spaceLoyalUsers.deleteLoyalUser(orgId.toString());
-            });
+            spaceLoyalUsers.addWithRollBack(orgId.toString());
         }
         LoyalUserCompany link = loyalUser.linkFor(company);
         if (link.getName() == null && recipientName != null) link.setName(recipientName);

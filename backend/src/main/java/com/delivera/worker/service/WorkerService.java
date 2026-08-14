@@ -67,11 +67,9 @@ public class WorkerService {
 
     @Compensable
     @Transactional
-    //@SpaceTransaction
     public WorkerResponse invite(WorkerInviteRequest req) {
         UUID companyId = securityUtils.getCurrentCompanyId();
         String orgId = securityUtils.getCurrentOrgId().toString();
-        //TODO: DELETE subscriptionService.checkWorkerLimit(companyId);
 
         String email = req.email().toLowerCase().trim();
         WorkerRole role = req.role();
@@ -105,8 +103,7 @@ public class WorkerService {
         worker.setRole(role);
         worker = workerRepository.save(worker);
         
-        spaceWorkers.addWorker(orgId);
-        Compensations.registerRollback(() -> spaceWorkers.deleteWorker(orgId));
+        spaceWorkers.addWithRollBack(orgId);
 
         if (savedUser != null) {
             authClient.register(savedUser.getId(), email, null, tempPassword).block();
@@ -133,7 +130,6 @@ public class WorkerService {
 
     @Compensable
     @Transactional
-    //@SpaceTransaction
     public void remove(UUID workerId) {
         UUID companyId = securityUtils.getCurrentCompanyId();
         String orgId = securityUtils.getCurrentOrgId().toString();
@@ -149,8 +145,7 @@ public class WorkerService {
             throw new LastAdminException();
         }
 
-        spaceWorkers.deleteWorker(orgId);
-        Compensations.registerRollback(() -> spaceWorkers.addWorker(orgId));
+        spaceWorkers.deleteWithRollBack(orgId);
 
         User user = worker.getUser();
         workerRepository.delete(worker);

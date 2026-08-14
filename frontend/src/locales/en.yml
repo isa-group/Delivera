@@ -499,6 +499,7 @@ error:
   SUBSCRIPTION_LIMIT_ORDERS: You exceeded the monthly order limit of the target plan
   SUBSCRIPTION_LIMIT_LOYAL_USERS: You have more loyal users than the target plan allows
   SUBSCRIPTION_LIMIT_COMPANIES: You have more companies than the target plan allows
+  SUBSCRIPTION_LIMIT_VEHICLES: You already have the vehicles limit.
   WORKER_ALREADY_EXISTS: This worker already belongs to the company
   LOYAL_USER_CANNOT_BE_WORKER: This email belongs to a loyal user and cannot be invited as a worker
   WORKER_CANNOT_BE_LOYAL_USER: This email belongs to a worker and cannot be used as a B2C recipient

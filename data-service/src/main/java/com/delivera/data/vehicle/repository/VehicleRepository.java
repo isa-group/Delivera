@@ -46,7 +46,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
         FROM Vehicle v 
         WHERE v.companyId = :companyId
     """)
-    void deleteByCompanyId(@Param("companyId") UUID companyId);
+    int deleteByCompanyId(@Param("companyId") UUID companyId);
 
 
     @Modifying
@@ -55,7 +55,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
         FROM Vehicle v 
         WHERE v.companyId IN :companyIds
     """)
-    void deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
+    int deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
 
 
     @Modifying

@@ -67,10 +67,10 @@ public class SettingsClient {
         .executeBasicRequest(Void.class).block();
     }
 
-    public void deleteOrganization(Set<UUID> companyIds) {
+    public void deleteOrganization(UUID orgId,Set<UUID> companyIds) {
         client.request()
         .service("data-service")
-        .path("/internal/settings/organization")
+        .path("/internal/settings/organization/"+orgId)
         .method(HttpMethod.DELETE)
         .body(companyIds)
         .mtls()

@@ -1,24 +1,26 @@
-package com.delivera.space.service;
+package com.delivera.data.space.service;
+
+
 
 import org.springframework.stereotype.Service;
 
 import com.delivera.client.space.service.AbstractSpaceFeature;
 import com.delivera.client.space.service.SpaceManagment;
 
-
-
 @Service
-public class SpaceCompanies extends AbstractSpaceFeature {
-
+public class SpaceUnits extends AbstractSpaceFeature {
     
-   public SpaceCompanies(SpaceManagment space) {
-    super(space);
-   }
+    public SpaceUnits(SpaceManagment space) {
+        super(space);
+    }
 
     @Override
     protected String feature() {
-        return "companies";
+        return "operationalUnits";
     }
+
+   
+
 
 
 }

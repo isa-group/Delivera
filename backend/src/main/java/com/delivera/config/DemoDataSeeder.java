@@ -223,13 +223,13 @@ public class DemoDataSeeder implements CommandLineRunner {
         spaceContracts.createContract(sofia, transnorte, "SMALL");
         spaceContracts.createContract(elena, distrisur, "SMALL");
 
-        spaceCompanies.companiesConsumption(rapidlog.getId().toString(),2,false);
-        spaceCompanies.companiesConsumption(transnorte.getId().toString(),2,false);
-        spaceCompanies.companiesConsumption(distrisur.getId().toString(),2,false);
+        spaceCompanies.consumption(rapidlog.getId().toString(),2,false);
+        spaceCompanies.consumption(transnorte.getId().toString(),2,false);
+        spaceCompanies.consumption(distrisur.getId().toString(),2,false);
 
-        spaceWorkers.workerConsumption(rapidlog.getId().toString(), 3, false);
-        spaceWorkers.workerConsumption(transnorte.getId().toString(), 3, false);
-        spaceWorkers.workerConsumption(distrisur.getId().toString(), 3, false);
+        spaceWorkers.consumption(rapidlog.getId().toString(), 3, false);
+        spaceWorkers.consumption(transnorte.getId().toString(), 3, false);
+        spaceWorkers.consumption(distrisur.getId().toString(), 3, false);
 
 
         // --- 3. Planes y tipos de actividad ---
@@ -389,9 +389,9 @@ public class DemoDataSeeder implements CommandLineRunner {
         LoyalUser luPablo   = createLoyalUser("pablo.castro@correo.com",    null, List.of(rlRetail, tnStore),
                 "Calle Pelayo 5, Barcelona",      41.3900,  2.1680);
 
-        spaceLoyalUsers.loyalUserConsumption(rapidlog.getId().toString(),4,false);
-        spaceLoyalUsers.loyalUserConsumption(transnorte.getId().toString(),3,false);
-        spaceLoyalUsers.loyalUserConsumption(distrisur.getId().toString(),4,false);
+        spaceLoyalUsers.consumption(rapidlog.getId().toString(),4,false);
+        spaceLoyalUsers.consumption(transnorte.getId().toString(),3,false);
+        spaceLoyalUsers.consumption(distrisur.getId().toString(),4,false);
 
 
 
@@ -515,6 +515,7 @@ public class DemoDataSeeder implements CommandLineRunner {
 
         CompanySettingsDTO settingsDTO = new CompanySettingsDTO();
         settingsDTO.setCompanyId(savedCompany.getId());
+        settingsDTO.setOrgId(org.getId());
 
         String url = dataHost+dataPrefix+"/internal/settings/seed";
         settingsClient.createSeed(settingsDTO, url);
