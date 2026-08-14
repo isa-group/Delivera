@@ -106,10 +106,11 @@ escapa una restricción concreta o si la solución está rota de arriba abajo.
 El coste se **recalcula desde las paradas**, no se toma el `totalCost` que informa el motor. Un motor
 que se equivoque al sumar no puede quedar impune por haberlo calculado él mismo.
 
-> **La comprobación 5 cuenta vehículos distintos, no rutas.** Greedy y random modelan multi-viaje:
-> reutilizan el mismo `vehicleId` en varias rutas. Contar rutas les exigiría algo que el problema no
-> pide. El efecto secundario es que para ellos la comprobación es casi vacua: un vehículo que hace 26
-> viajes la pasa. Para el genético, donde cada ruta lleva un vehículo distinto, sí es exigente.
+> **La comprobación 5 cuenta vehículos distintos, no rutas.** Un vehículo puede hacer más de un
+> viaje: lo que no puede es no existir. Es una comprobación laxa a propósito, y el precio es que se
+> pasa con facilidad —un vehículo que hace 26 viajes la pasa—, así que **no dice nada sobre cuántos
+> viajes hace la flota**. Eso se ve comparando `routes` con `vehicles_used` en el CSV de
+> `compare_solvers.py`: en `p22` el aleatorio hace 139 rutas con 9 vehículos y el genético 36 con 36.
 
 El coste **no** hace fallar el test. Comparar calidad es cosa de `compare_solvers.py`; aquí lo que se
 comprueba es que lo que devuelve cada motor sea una solución válida del problema.
@@ -167,43 +168,93 @@ Como referencia de cuánto se ha avanzado: antes de las correcciones descritas e
 > contrastado explícitamente p01, p22 y p23. Si alguno estuviera mal, el gap que imprime el test
 > estaría mal también. El coste y la validación de factibilidad no dependen de esta tabla.
 
-## Comparar los tres solvers
+## Comparar todos los solvers
 
-El test anterior mide **solo el genético**. Para enfrentar los tres sobre las mismas instancias hay
-un script que ataca la API y valida lo que devuelve cada uno:
+El test anterior mide **solo el genético**. Para enfrentar a todos los registrados sobre las mismas
+instancias hay un script que ataca la API, valida lo que devuelve cada uno y deja el experimento por
+escrito:
 
 ```bash
-python compare_solvers.py --instances p01,p22 --runs 3
+python compare_solvers.py
 ```
 
-Desde `Solver-FMS/`, con el sistema levantado. Sin dependencias: solo la librería estándar.
+Desde `Solver-FMS/`, con el sistema levantado. Sin dependencias: solo la librería estándar. Sin
+argumentos lanza **las 33 instancias** con todos los solvers del catálogo.
 
 | Parámetro | Por defecto | Significado |
 |---|---|---|
 | `--url` | `http://localhost:8090` | Gateway contra el que medir |
-| `--instances` | `p01` | Instancias separadas por coma |
-| `--all` | — | Las 33 del banco |
+| `--instances` | `all` | `all`, o instancias separadas por coma (`p01,p22`) |
 | `--solvers` | todos | Subconjunto, por ejemplo `GREEDY,GENETIC` |
 | `--runs` | 3 | Repeticiones **por solver no determinista**. Con menos de 5 la desviación no es fiable |
-| `--csv` | — | Vuelca cada ejecución para analizarla aparte |
+| `--seed` | — | Semilla base. La repetición *k* usa `seed+k-1`, y el experimento entero se repite tal cual |
+| `--out` | `results/` | Directorio donde deja el informe y los datos |
+| `--label` | — | Etiqueta del experimento. Va al nombre de los ficheros y a una columna del CSV |
+| `--timeout` | `600` | Segundos por petición |
 
-Salida:
+### Las dos salidas
+
+Cada ejecución deja dos ficheros bajo `--out`, con la fecha y la etiqueta en el nombre:
 
 ```
-p22  9 depositos, 360 clientes, duracion maxima 200  |  BKS 5702.16
-  solver     n      mejor      media    desv     gap  rutas   tiempo
-  RANDOM     3   20656.41   20826.14   221.0 +262.3%    130     81ms
-  GREEDY     1    9517.33    9517.33       -  +66.9%     63     77ms
-  GENETIC    3    5952.10    5960.98     7.7   +4.4%     36     2.6s
+datos-2026-08-13-1316.csv
+informe-2026-08-13-1316.md
+datos-2026-08-13-1332-semilla-fija.csv
+informe-2026-08-13-1332-semilla-fija.md
+```
+
+- **`datos-<fecha>.csv`** — una fila por ejecución individual, en columnas fijas y en inglés. Es el
+  dato crudo. Que el esquema no cambie entre experimentos es lo que permite concatenar los CSV de
+  varias sesiones y analizarlos juntos: se distinguen por `run_id` y `label`, no por tener columnas
+  distintas.
+- **`informe-<fecha>.md`** — el informe legible: fecha de ejecución, commit, configuración,
+  descriptores de los solvers con sus parámetros, resumen global, comparativa por instancia, **una
+  tabla por solver** con las 33 filas, incidencias y notas metodológicas.
+
+La fecha llega al minuto, no al segundo, porque el nombre se lee y se cita. Dos experimentos dentro
+del mismo minuto —dos pruebas rápidas sobre una instancia— desempatan con un sufijo
+(`...-1316-2.csv`) en vez de pisarse, y ese mismo sufijo va en la columna `run_id`, de modo que el
+nombre del fichero y el identificador de sus filas siempre coinciden.
+
+La división es deliberada: el CSV es para la máquina y no debe cambiar de forma; el informe es para
+leerlo y citarlo. El CSV se va escribiendo y vaciando a disco según avanza, y una interrupción con
+Ctrl-C genera igualmente el informe con lo medido hasta ese momento: un barrido completo son varios
+minutos y lo ya medido no se tira.
+
+### Las columnas del CSV
+
+Tres bloques. **Identificación**: `filename` (el id de la instancia), `solver`, `repetition`,
+`run_id`, `label`, `timestamp`, `solver_version`, `strategy`, `deterministic`, `seed` y `params` —
+los parámetros efectivos con los que corrió, que son los valores por defecto del descriptor más lo
+que se le enviara.
+
+**Características de la instancia**: `num_customers`, `num_depots`, `vehicles_per_depot`,
+`vehicle_capacity`, `max_duration`, `total_demand`, `load_ratio`, `avg_service_duration`,
+`customers_per_depot`, `area`, `customer_density`, `mean_nn_distance`, `mean_depot_distance` y `bks`.
+Van repetidas en cada fila, y no en un fichero aparte, para que el CSV sea autocontenido: describen
+el problema, no la solución, y son las columnas que hacen falta para relacionar el tipo de instancia
+con el algoritmo que le conviene.
+
+**Resultado**: `status`, `cost`, `reported_cost`, `gap_pct`, `routes`, `vehicles_used`, `feasible`,
+`violations`, `violations_detail`, `elapsed_ms`, `engine_ms` y `error`.
+
+### Salida en la terminal
+
+```
+[22/33] p22  9 depositos, 360 clientes, duracion maxima 200  |  BKS 5702.16
+  solver     n      mejor      media    desv     gap  rutas   tiempo  factible         semilla
+  RANDOM     3   20656.41   20826.14   221.0 +262.3%    130     81ms       0/3      1668748295
+  GREEDY     1    9517.33    9517.33       -  +66.9%     63     77ms       0/1               -
+  GENETIC    3    5952.10    5960.98     7.7   +4.4%     36     2.6s       3/3      1012033380
 ```
 
 ### La columna `desv`
 
-Salvo el voraz, ningún motor repite resultado si no se le fija la semilla, y este script no se la
-fija: mide la variabilidad real del algoritmo, que es lo que interesa comparar. Una ejecución suelta,
-por tanto, no dice nada. Si dos
-configuraciones se separan menos que esta desviación, la diferencia es ruido y no mejora. Aparece `-`
-cuando solo ha habido una ejecución: sin repeticiones no hay dispersión que medir.
+Salvo el voraz, ningún motor repite resultado si no se le fija la semilla, y por defecto el script no
+se la fija: mide la variabilidad real del algoritmo, que es lo que interesa comparar. Una ejecución
+suelta, por tanto, no dice nada. Si dos configuraciones se separan menos que esta desviación, la
+diferencia es ruido y no mejora. Aparece `-` cuando solo ha habido una ejecución: sin repeticiones no
+hay dispersión que medir.
 
 **Con pocas repeticiones engaña.** El genético converge a la misma solución a menudo, y en instancias
 pequeñas es fácil que dos vueltas den el mismo número. En `p01`, cinco vueltas dan tres valores
@@ -212,13 +263,26 @@ distintos; dos vueltas pueden dar cero dispersión aparente.
 El número de repeticiones lo decide el descriptor del solver: si declara `deterministic: true`, se
 ejecuta una sola vez porque repetirlo solo gasta tiempo.
 
-### El coste que se compara
+Con `--seed` el experimento pasa a ser reproducible: la repetición *k* usa `seed+k-1`, de modo que las
+repeticiones siguen siendo distintas entre sí pero el barrido completo se puede volver a lanzar y dar
+lo mismo. Es lo que conviene para comparar dos configuraciones del genético sin que el azar entre en
+la comparación.
 
-Es el **recalculado desde las paradas** de cada ruta, no el que informa el motor. El `--csv` trae los
-dos, `coste` y `coste_informado`, así que si alguna vez dejaran de coincidir se vería.
+### El coste que se compara, y la factibilidad
 
-El script no comprueba que la solución cumpla las restricciones de la instancia. Eso lo hace
-`assertFeasible` en el test del motor genético, descrito más arriba.
+El coste es el **recalculado desde las paradas** de cada ruta, no el que informa el motor. El CSV trae
+los dos, `cost` y `reported_cost`, así que si alguna vez dejaran de coincidir se vería.
+
+El script **valida además las restricciones de la instancia** en cada ejecución, con las mismas
+comprobaciones que `CordeauInstance` en el test del gateway: cliente servido exactamente una vez,
+carga informada, capacidad, duración máxima y vehículos por depósito. Son dos implementaciones de las
+mismas reglas —una en Java y otra en Python— que hay que mantener a la vez, a cambio de que el script
+no dependa de Maven.
+
+Por eso el **mejor coste de cada solver y las victorias del informe se calculan solo sobre
+ejecuciones factibles**. Sin esa regla la comparación se invierte: el voraz ignora la duración máxima
+y el número de vehículos, así que en las 22 instancias con límite puede ganar en distancia
+precisamente por saltarse la restricción.
 
 ## Benchmark a través de la API
 

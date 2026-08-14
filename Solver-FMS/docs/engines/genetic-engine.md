@@ -4,7 +4,9 @@
 [`GeneticRouteSolver`](../../engines/genetic-engine/src/main/java/com/delivera/fms/engine/genetic/service/GeneticRouteSolver.java)
 
 Es el motor de producción y el único que respeta **todas** las restricciones de la instancia:
-capacidad, duración máxima de ruta y número de vehículos por depósito.
+capacidad, duración máxima de ruta y tamaño de la flota. Es además el único que busca activamente
+**un vehículo por ruta**; los otros dos reparten las rutas entre los vehículos sin mirar cuántos
+viajes acumula cada uno.
 
 Algoritmo genético **memético**: población + cruce + mutación, con búsqueda local aplicada
 periódicamente a los mejores individuos. Usa jMetal 6.6 solo por la representación
@@ -103,6 +105,25 @@ la búsqueda inter-depósito. Ver [decisiones-y-correcciones.md](../decisiones-y
 Los **tramos de ruta se precalculan una sola vez** (`buildSegments`) y los comparten ambos DP, porque
 el DP acotado los recorre una vez por cada número de vehículos. Esto redujo casi a la mitad el tiempo
 en las instancias grandes.
+
+### Cuando ni el DP acotado cabe en la flota
+
+Puede no existir ningún troceado de esa secuencia con `fleet` rutas o menos: con tiempos de servicio
+y duración apretada, los clientes que tiene asignados ese depósito no caben en sus vehículos de una
+sola vuelta. Ocurre en `pr04`, `pr05`, `pr06` y `pr10`, y no en todas las ejecuciones.
+
+Entonces el troceado vuelve al de coste mínimo y la penalización de flota se encarga de que esa
+solución no gane a una que sí cabe. Si aun así sobrevive hasta el final, `RouteScheduler` reparte las
+rutas de más **entre los vehículos que existen**, por turno: la quinta ruta de un depósito con cuatro
+vehículos es el segundo viaje del primero.
+
+Lo que **no** hace es inventarse un vehículo. Lo hacía —generaba identificadores `V-GA-<depósito>-<n>`
+por encima de la flota declarada— y era un error: la flota es un dato del problema, y una solución que
+la amplía está resolviendo otro problema. Un segundo viaje es discutible, ampliar la flota no.
+
+El orden de preferencia, por tanto, es: un vehículo por ruta → segundo viaje → nunca un vehículo
+nuevo. Los tres primeros mecanismos (DP acotado, penalización, reparación inter-depósito) existen para
+que la primera opción sea casi siempre la que sale.
 
 ### Duración y tiempo de servicio
 
@@ -351,8 +372,8 @@ de cálculos de distancia, y el cruce voraz no suma nada.
 - **80 % aleatoria** — permutaciones barajadas.
 
 En ambos casos el `depotMap` asigna cada cliente a su depósito más cercano. Esa asignación inicial
-**puede ser infactible por flota** en algunas instancias, y es la búsqueda inter-depósito la que la
-repara.
+**puede necesitar más rutas que vehículos** en algunas instancias, y es la búsqueda inter-depósito la
+que la repara.
 
 ## Rendimiento
 

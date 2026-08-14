@@ -54,7 +54,8 @@ ficha de cada uno: es la referencia a tener delante al comparar costes.
 | Determinista | No | Sí | No |
 | Respeta capacidad | Sí | Sí | Sí |
 | Respeta duración máxima | Sí | Sí | Sí |
-| Respeta número de vehículos | No (multi-viaje) | No (multi-viaje) | **Sí** |
+| Respeta el tamaño de la flota | Sí | Sí | Sí |
+| Un vehículo por ruta | No (multi-viaje sin límite) | No (multi-viaje sin límite) | **Sí, salvo excepción** |
 | Tiempo en p22 (360 clientes) | milisegundos | milisegundos | ~3 s |
 | Calidad en p22 (BKS 5702) | — | — | ~5960 (+4,5 %) |
 | Para qué sirve | Cota superior de referencia | Solución rápida razonable | Solución de producción |

@@ -112,13 +112,15 @@ que han usado, la hayas enviado tú en `parameters` o la haya sorteado el motor.
 
 El depósito **no** aparece en `stops`; está implícito al principio y al final.
 
-> **Diferencia de semántica entre motores.** En greedy y random, un mismo `vehicleId` puede aparecer
-> en **varias** rutas: modelan multi-viaje, un vehículo hace varios trayectos. En el motor genético
-> cada ruta lleva un vehículo distinto y el número de rutas por depósito nunca supera su flota. Si
-> consumes `routes` contando vehículos, ten en cuenta de qué motor viene.
+> **Un mismo `vehicleId` puede aparecer en varias rutas.** Es multi-viaje: el vehículo hace un
+> segundo trayecto. Greedy y random lo hacen de continuo; el genético solo cuando no le queda otra,
+> porque busca activamente un vehículo por ruta. Si consumes `routes` contando vehículos, cuenta
+> identificadores distintos y no rutas.
 >
-> Cuando el motor genético necesita más rutas que vehículos declarados —solo puede pasar si no
-> consigue reparar la solución— genera identificadores sintéticos `V-GA-<depósito>-<n>`.
+> **Ningún motor devuelve un vehículo que no esté en la petición.** La flota es un dato del problema:
+> si un depósito declara 4 vehículos, sus rutas se reparten entre esos 4 aunque hagan falta 5. La
+> única excepción es la petición que no declara `vehicles`, que es como se pide una flota sin límite;
+> ahí el genético nombra las rutas con identificadores sintéticos `V-GA-<depósito>-<n>`.
 
 ## Formato de instancia de benchmark
 
