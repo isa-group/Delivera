@@ -22,6 +22,7 @@ import com.delivera.org.repository.CompanyRepository;
 import com.delivera.org.repository.OrganizationRepository;
 import com.delivera.org.service.SettingsClient;
 import com.delivera.repository.*;
+import com.delivera.space.service.SpaceCompanies;
 import com.delivera.space.service.SpaceContracts;
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.model.WorkerRole;
@@ -58,6 +59,7 @@ public class AuthService {
     private final AuthClient authClient;
     private final SpaceContracts spaceContracts;
     private final SettingsClient settingsClient;
+    private final SpaceCompanies spaceCompanies;
 
 
     
@@ -81,10 +83,40 @@ public class AuthService {
             userAgent = "unknown-agent";
         }
 
-        return userAgent.length() > 1000
+        return getDeviceName(
+            userAgent.length() > 1000
             ? userAgent.substring(0, 1000)
-            : userAgent;
+            : userAgent
+        );
 
+    }
+
+    private String getDeviceName(String userAgent) {
+
+        String os = "Unknown OS";
+        String browser = "Unknown Browser";
+    
+        if (userAgent.contains("Windows NT")) {
+            os = "Windows";
+        } else if (userAgent.contains("Android")) {
+            os = "Android";
+        } else if (userAgent.contains("iPhone")) {
+            os = "iPhone";
+        } else if (userAgent.contains("Mac OS X")) {
+            os = "macOS";
+        }
+    
+        if (userAgent.contains("Edg/")) {
+            browser = "Edge";
+        } else if (userAgent.contains("Chrome/")) {
+            browser = "Chrome";
+        } else if (userAgent.contains("Firefox/")) {
+            browser = "Firefox";
+        } else if (userAgent.contains("Safari/")) {
+            browser = "Safari";
+        }
+    
+        return os + " · " + browser;
     }
 
     public String getDeviceId(HttpServletRequest httpRequest) {
@@ -192,6 +224,8 @@ public class AuthService {
             spaceContracts.removeContract(savedOrganization.getId().toString());
         });
 
+        spaceCompanies.addWithRollBack(savedOrganization.getId().toString());
+
         LoginResponse response = authClient.register(
             savedUser.getId(), request.email(), request.username(), request.password(), 
             new DeliveraOrgContext(
@@ -200,7 +234,10 @@ public class AuthService {
             requestClientData
         ).block();
 
-        settingsClient.createSettings(new CompanySettingsDTO(savedCompany.getId(),null, false));
+        settingsClient.createSettings(
+            new CompanySettingsDTO(
+                savedCompany.getId(), organization.getId(),null, false
+        ));
 
         return new CompanyRegisterResponse(response.getToken(), user.getEmail(), company.getId(),
                 WorkerRole.COMPANY_ADMIN.name(), company.getName(), organization.getHandle(), organization.getName(),
