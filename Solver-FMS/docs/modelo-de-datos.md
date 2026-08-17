@@ -147,14 +147,14 @@ Mapeo que aplica `StandardInstanceMapper`:
 
 | Campo de la instancia | Destino |
 |---|---|
-| `depots[i].x`, `.y` | `DepotDto.lng`, `DepotDto.lat` — **ojo: `x` es longitud, `y` es latitud** |
+| `depots[i].x`, `.y` | `DepotDto.lng`, `DepotDto.lat` - **ojo: `x` es longitud, `y` es latitud** |
 | `depots[i].max_duration` | `DepotDto.maxDuration` |
 | `depots[i].vehicle_capacity` | `VehicleDto.capacity` de sus vehículos |
 | `vehicles_per_depot` | Cuántos `VehicleDto` se generan por depósito |
 | `customers[i].demand` | `CustomerDto.demand` |
 | `customers[i].service_duration` | `CustomerDto.serviceDuration` |
-| — | `DepotDto.id` = `"1"`, `"2"`, … según posición |
-| — | `CustomerDto.id` = el `id` numérico de la instancia, como texto |
+| - | `DepotDto.id` = `"1"`, `"2"`, … según posición |
+| - | `CustomerDto.id` = el `id` numérico de la instancia, como texto |
 
 La matriz la calcula `DistanceMatrixCalculator` con distancia **euclídea** sobre `(lng, lat)`.
 
@@ -163,9 +163,9 @@ La matriz la calcula `DistanceMatrixCalculator` con distancia **euclídea** sobr
 `StandardInstanceParser` lee estos campos y los guarda en `NodeEntry`, pero el mapeador no los
 propaga y ningún motor los conoce:
 
-- `visit_frequency`, `num_combinations`, `visit_combinations` — pertenecen al problema *periódico*
+- `visit_frequency`, `num_combinations`, `visit_combinations` - pertenecen al problema *periódico*
   (PVRP), no al MD-CVRP.
-- `time_window_earliest`, `time_window_latest` — ventanas de tiempo. Ningún motor las soporta.
+- `time_window_earliest`, `time_window_latest` - ventanas de tiempo. Ningún motor las soporta.
 
 Están ahí para no perder información al parsear, de cara a soportar esas variantes más adelante.
 

@@ -41,10 +41,10 @@ operator/search/
 Un individuo tiene **dos partes**, porque una permutación sola no basta: define un orden pero no
 quién sirve a quién.
 
-**1. La permutación** (`solution.variables()`) — una *gira gigante*: los índices de los clientes en un
+**1. La permutación** (`solution.variables()`) - una *gira gigante*: los índices de los clientes en un
 orden, sin marcas de dónde empieza y acaba cada ruta.
 
-**2. El mapa de depósitos** (`solution.attributes().get("depotMap")`) — un `Map<Integer, DepotDto>`
+**2. El mapa de depósitos** (`solution.attributes().get("depotMap")`) - un `Map<Integer, DepotDto>`
 que dice a qué depósito pertenece cada cliente.
 
 ```
@@ -62,9 +62,9 @@ Las rutas concretas **no se guardan**: se derivan troceando cada secuencia con `
 
 `PermutationCodec` centraliza esta traducción y ofrece dos formas de reescribir la permutación:
 
-- `writeBack` — conserva las posiciones que ocupa cada depósito. Vale cuando solo cambia el orden
+- `writeBack` - conserva las posiciones que ocupa cada depósito. Vale cuando solo cambia el orden
   dentro de los depósitos.
-- `writeBackContiguous` — concatena los depósitos. **Es la que hay que usar cuando algún cliente ha
+- `writeBackContiguous` - concatena los depósitos. **Es la que hay que usar cuando algún cliente ha
   cambiado de depósito**, porque `writeBack` asume que el conjunto de clientes de cada depósito no
   ha variado.
 
@@ -99,7 +99,7 @@ mucho `fleet` rutas.
 
 Esto es importante y no es un detalle: si la penalización por exceso de flota se aplicara *después*
 del troceado, el corte no podría cambiar un poco de distancia por una ruta menos, y cada nuevo
-troceado —el de la búsqueda local, el de cada evaluación— desharía la reparación que hubiera hecho
+troceado -el de la búsqueda local, el de cada evaluación- desharía la reparación que hubiera hecho
 la búsqueda inter-depósito. Ver [decisiones-y-correcciones.md](../decisiones-y-correcciones.md).
 
 Los **tramos de ruta se precalculan una sola vez** (`buildSegments`) y los comparten ambos DP, porque
@@ -117,8 +117,8 @@ solución no gane a una que sí cabe. Si aun así sobrevive hasta el final, `Rou
 rutas de más **entre los vehículos que existen**, por turno: la quinta ruta de un depósito con cuatro
 vehículos es el segundo viaje del primero.
 
-Lo que **no** hace es inventarse un vehículo. Lo hacía —generaba identificadores `V-GA-<depósito>-<n>`
-por encima de la flota declarada— y era un error: la flota es un dato del problema, y una solución que
+Lo que **no** hace es inventarse un vehículo. Lo hacía -generaba identificadores `V-GA-<depósito>-<n>`
+por encima de la flota declarada- y era un error: la flota es un dato del problema, y una solución que
 la amplía está resolviendo otro problema. Un segundo viaje es discutible, ampliar la flota no.
 
 El orden de preferencia, por tanto, es: un vehículo por ruta → segundo viaje → nunca un vehículo
@@ -188,9 +188,9 @@ construye.
 Probabilidad **0,2**, decidida por individuo. Si se activa, aplica a la secuencia de **cada** depósito
 uno de tres operadores elegido al azar:
 
-- **swap** — intercambia dos clientes.
-- **invert** — invierte un tramo.
-- **relocate** — mueve un cliente a otra posición.
+- **swap** - intercambia dos clientes.
+- **invert** - invierte un tramo.
+- **relocate** - mueve un cliente a otra posición.
 
 Trabaja sobre la secuencia del depósito, no sobre los bloques contiguos de la permutación. Un
 depósito cuyos clientes ya están agrupados es justo el caso que hay que poder mutar.
@@ -218,9 +218,9 @@ suficiente para absorber la demanda.
 Búsqueda local **a nivel de ruta**. Trocea la secuencia de cada depósito en rutas reales *antes* de
 optimizar, de forma que cada movimiento se evalúa contra el coste que realmente tendrá la solución.
 
-- **2-opt intra-ruta** — invierte un tramo si acorta la ruta. Tras aceptar una inversión reinicia el
+- **2-opt intra-ruta** - invierte un tramo si acorta la ruta. Tras aceptar una inversión reinicia el
   barrido, porque las aristas cacheadas dejan de ser válidas en cuanto el segmento se invierte.
-- **relocate entre rutas** del mismo depósito — mueve un cliente a la mejor posición de otra ruta,
+- **relocate entre rutas** del mismo depósito - mueve un cliente a la mejor posición de otra ruta,
   comprobando capacidad.
 
 Hasta `MAX_PASSES = 8` pasadas o hasta que no haya mejora.
@@ -367,9 +367,9 @@ de cálculos de distancia, y el cruce voraz no suma nada.
 
 ## Población inicial
 
-- **20 % heurística** — vecino más cercano **aleatorizado**: en cada paso elige al azar entre los 3
+- **20 % heurística** - vecino más cercano **aleatorizado**: en cada paso elige al azar entre los 3
   clientes más próximos. Sin esa aleatorización los 30 individuos saldrían idénticos.
-- **80 % aleatoria** — permutaciones barajadas.
+- **80 % aleatoria** - permutaciones barajadas.
 
 En ambos casos el `depotMap` asigna cada cliente a su depósito más cercano. Esa asignación inicial
 **puede necesitar más rutas que vehículos** en algunas instancias, y es la búsqueda inter-depósito la

@@ -57,7 +57,7 @@ Desde `/fms-gateway`. En la terminal hay que entrecomillar cada argumento: `"-Db
 
 | Parámetro | Por defecto | Significado |
 |---|---|---|
-| `-Dbenchmark=true` | — | **Obligatorio.** Sin él el test se salta, para no ralentizar el build |
+| `-Dbenchmark=true` | - | **Obligatorio.** Sin él el test se salta, para no ralentizar el build |
 | `-Dinstances=` | `p01` | Instancias separadas por coma, o `all` para las 33 |
 | `-Dsolvers=` | todos | Subconjunto, por ejemplo `GREEDY,GENETIC` |
 | `-Druns=` | `1` | Repeticiones **por solver no determinista**. Los deterministas se ejecutan una vez |
@@ -108,7 +108,7 @@ que se equivoque al sumar no puede quedar impune por haberlo calculado él mismo
 
 > **La comprobación 5 cuenta vehículos distintos, no rutas.** Un vehículo puede hacer más de un
 > viaje: lo que no puede es no existir. Es una comprobación laxa a propósito, y el precio es que se
-> pasa con facilidad —un vehículo que hace 26 viajes la pasa—, así que **no dice nada sobre cuántos
+> pasa con facilidad -un vehículo que hace 26 viajes la pasa-, así que **no dice nada sobre cuántos
 > viajes hace la flota**. Eso se ve comparando `routes` con `vehicles_used` en el CSV de
 > `compare_solvers.py`: en `p22` el aleatorio hace 139 rutas con 9 vehículos y el genético 36 con 36.
 
@@ -187,10 +187,33 @@ argumentos lanza **las 33 instancias** con todos los solvers del catálogo.
 | `--instances` | `all` | `all`, o instancias separadas por coma (`p01,p22`) |
 | `--solvers` | todos | Subconjunto, por ejemplo `GREEDY,GENETIC` |
 | `--runs` | 3 | Repeticiones **por solver no determinista**. Con menos de 5 la desviación no es fiable |
-| `--seed` | — | Semilla base. La repetición *k* usa `seed+k-1`, y el experimento entero se repite tal cual |
+| `--seed` | - | Semilla base. La repetición *k* usa `seed+k-1`, y el experimento entero se repite tal cual |
 | `--out` | `results/` | Directorio donde deja el informe y los datos |
-| `--label` | — | Etiqueta del experimento. Va al nombre de los ficheros y a una columna del CSV |
+| `--label` | - | Etiqueta del experimento. Va al nombre de los ficheros y a una columna del CSV |
 | `--timeout` | `600` | Segundos por petición |
+
+### Dónde está cada cosa
+
+`compare_solvers.py` es solo la línea de comandos y el cableado. El trabajo está en el paquete
+`experimentacion/`:
+
+| Módulo | Qué sabe |
+|---|---|
+| `instance.py` | Qué es una instancia Cordeau: sus características, cuánto cuesta una solución y qué restricciones incumple |
+| `gateway.py` | Hablar con la pasarela: catálogo y resolución |
+| `runner.py` | Lanzar, medir y convertir cada ejecución en una fila |
+| `dataset.py` | El esquema del CSV y la agregación de repeticiones |
+| `report.py` | El informe en Markdown |
+
+La separación tiene un destinatario concreto: **el análisis posterior de los resultados necesita
+`instance.py` y nada más**. Leer las características de las 33 instancias no debería exigir que haya
+un gateway levantado ni arrastrar el generador de informes.
+
+```python
+from experimentacion.instance import Instance, all_names
+
+filas = [Instance.load(nombre).features() for nombre in all_names()]
+```
 
 ### Las dos salidas
 
@@ -203,16 +226,16 @@ datos-2026-08-13-1332-semilla-fija.csv
 informe-2026-08-13-1332-semilla-fija.md
 ```
 
-- **`datos-<fecha>.csv`** — una fila por ejecución individual, en columnas fijas y en inglés. Es el
+- **`datos-<fecha>.csv`** - una fila por ejecución individual, en columnas fijas y en inglés. Es el
   dato crudo. Que el esquema no cambie entre experimentos es lo que permite concatenar los CSV de
   varias sesiones y analizarlos juntos: se distinguen por `run_id` y `label`, no por tener columnas
   distintas.
-- **`informe-<fecha>.md`** — el informe legible: fecha de ejecución, commit, configuración,
+- **`informe-<fecha>.md`** - el informe legible: fecha de ejecución, commit, configuración,
   descriptores de los solvers con sus parámetros, resumen global, comparativa por instancia, **una
   tabla por solver** con las 33 filas, incidencias y notas metodológicas.
 
 La fecha llega al minuto, no al segundo, porque el nombre se lee y se cita. Dos experimentos dentro
-del mismo minuto —dos pruebas rápidas sobre una instancia— desempatan con un sufijo
+del mismo minuto -dos pruebas rápidas sobre una instancia- desempatan con un sufijo
 (`...-1316-2.csv`) en vez de pisarse, y ese mismo sufijo va en la columna `run_id`, de modo que el
 nombre del fichero y el identificador de sus filas siempre coinciden.
 
@@ -224,7 +247,7 @@ minutos y lo ya medido no se tira.
 ### Las columnas del CSV
 
 Tres bloques. **Identificación**: `filename` (el id de la instancia), `solver`, `repetition`,
-`run_id`, `label`, `timestamp`, `solver_version`, `strategy`, `deterministic`, `seed` y `params` —
+`run_id`, `label`, `timestamp`, `solver_version`, `strategy`, `deterministic`, `seed` y `params` -
 los parámetros efectivos con los que corrió, que son los valores por defecto del descriptor más lo
 que se le enviara.
 
@@ -276,7 +299,7 @@ los dos, `cost` y `reported_cost`, así que si alguna vez dejaran de coincidir s
 El script **valida además las restricciones de la instancia** en cada ejecución, con las mismas
 comprobaciones que `CordeauInstance` en el test del gateway: cliente servido exactamente una vez,
 carga informada, capacidad, duración máxima y vehículos por depósito. Son dos implementaciones de las
-mismas reglas —una en Java y otra en Python— que hay que mantener a la vez, a cambio de que el script
+mismas reglas -una en Java y otra en Python- que hay que mantener a la vez, a cambio de que el script
 no dependa de Maven.
 
 Por eso el **mejor coste de cada solver y las victorias del informe se calculan solo sobre

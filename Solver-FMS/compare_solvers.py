@@ -1,209 +1,165 @@
 #!/usr/bin/env python3
 """
-Compara solvers sobre las instancias Cordeau, a traves de la API del gateway.
+Compara los solvers registrados sobre las instancias Cordeau y deja constancia.
 
 Por que a traves de la API y no llamando a cada motor: es el unico camino que
-ejerce el mapeo real y trata a los tres solvers exactamente igual, que es la
+ejerce el mapeo real y trata a todos los solvers exactamente igual, que es la
 condicion para que la comparacion signifique algo.
+
+Cada ejecucion produce DOS ficheros cuyo nombre es (datos-2026-08-13-1316-mi-experimento.csv):
+
+  datos-<fecha>.csv     Una fila por ejecucion individual: instancia, solver,
+                        parametros, semilla, caracteristicas de la instancia y
+                        resultado. Es el dato crudo, en columnas fijas y en ingles,
+                        pensado para concatenar los CSV de varios experimentos y
+                        analizarlos juntos sin cruzar nada.
+  informe-<fecha>.md    El informe legible, en español: fecha, configuracion,
+                        resumen, una tabla por solver y el comparativo por instancia.
+
+La division es deliberada: el CSV es para la maquina y no debe cambiar de forma
+entre experimentos; el informe es para leerlo y citarlo.
 
 Que hace distinto a mirar el coste que devuelve cada motor:
 
 1. RECALCULA el coste desde las paradas, en vez de fiarse del que informa el
    motor. Ambos van al CSV, asi que una discrepancia se ve.
-2. REPITE. Ningun motor salvo el voraz es reproducible, asi que una ejecucion
+2. VALIDA la solucion contra las restricciones de la instancia. Un coste bajo
+   obtenido saltandose la duracion maxima no es un buen resultado, y sin esta
+   comprobacion lo pareceria.
+3. REPITE. Ningun motor salvo el voraz es reproducible, asi que una ejecucion
    suelta no dice nada: hacen falta mejor, media y dispersion.
 
+Este fichero es solo la linea de comandos y el cableado. Lo que hace el trabajo esta
+en el paquete `experimentacion`, separado para que un analisis posterior pueda usar el
+modelo de instancia sin arrastrar el cliente HTTP ni el generador de informes.
+
 Uso:
-    python compare_solvers.py --instances p01,p22
-    python compare_solvers.py --all --runs 5 --csv resultados.csv
+    python compare_solvers.py                          # las 33 instancias, 3 repeticiones
+    python compare_solvers.py --instances p01,p22 --runs 5
+    python compare_solvers.py --solvers GENETIC --seed 1234 --label semilla-fija
 """
 
 import argparse
 import csv
-import json
-import math
-import statistics
+import http.client
 import sys
-import time
-import urllib.error
-import urllib.request
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent
-INSTANCES_DIR = BASE_DIR / "instances-MD-CVRP-JSON"
+from experimentacion import BASE_DIR, gateway, instance as instances
+from experimentacion.dataset import CSV_COLUMNS
+from experimentacion.report import write_report
+from experimentacion.runner import Config, run_instance
 
-# Los BKS viven en un fichero de datos que comparten este script y el test de
-# benchmark. Tenerlos dos veces garantiza que algun dia dejen de coincidir.
-BKS_SOURCE = BASE_DIR / "best-known.json"
-
-
-def load_best_known():
-    if not BKS_SOURCE.exists():
-        return {}
-    return json.loads(BKS_SOURCE.read_text(encoding="utf-8"))
+DEFAULT_OUT_DIR = BASE_DIR / "results"
 
 
-def load_instance(name):
-    """Replica el mapeo del gateway: id de deposito = posicion + 1, distancia euclidea."""
-    data = json.loads((INSTANCES_DIR / f"{name}.json").read_text(encoding="utf-8"))
-
-    # 0 significa sin limite, igual que en el motor. Solo se usa para describir la
-    # instancia en la cabecera.
-    depots = {str(i + 1): {"x": d["x"], "y": d["y"], "max_duration": d["max_duration"] or math.inf}
-              for i, d in enumerate(data["depots"])}
-
-    customers = {str(c["id"]): {"x": c["x"], "y": c["y"]} for c in data["customers"]}
-
-    return {"name": name, "depots": depots, "customers": customers,
-            "max_duration": max(d["max_duration"] for d in depots.values())}
-
-
-def distance(a, b):
-    return math.hypot(a["x"] - b["x"], a["y"] - b["y"])
-
-
-def route_cost(instance, response):
+def reserve_run(out_dir, config):
     """
-    Recalcula el coste desde las paradas, en vez de fiarse del que informa el motor.
+    Nombres de las dos salidas de este experimento, y el identificador que las une.
 
-    Cada ruta es el ciclo deposito -> paradas -> deposito. Los tiempos de servicio
-    no cuentan para el coste.
+    Al minuto y no al segundo porque el nombre se lee y se cita. Dos experimentos dentro
+    del mismo minuto -dos pruebas rapidas sobre una instancia- desempatan con un sufijo en
+    vez de pisarse: son el registro de un experimento, no un fichero temporal, y perder uno
+    en silencio seria peor que un nombre feo.
     """
-    depots, customers = instance["depots"], instance["customers"]
-    cost = 0.0
+    for attempt in range(1, 100):
+        run_id = config.run_id if attempt == 1 else f"{config.run_id}-{attempt}"
+        stem = f"{run_id}-{config.label}" if config.label else run_id
+        csv_path = out_dir / f"datos-{stem}.csv"
+        report_path = out_dir / f"informe-{stem}.md"
 
-    for route in response.get("routes") or []:
-        depot = depots.get(str(route["depotId"]))
-        if depot is None:
-            continue
+        if not csv_path.exists() and not report_path.exists():
+            # El identificador que se guarda en cada fila es el que desempata, no el de la
+            # hora: si no, dos experimentos del mismo minuto serian el mismo en el CSV.
+            config.run_id = run_id
+            return csv_path, report_path
 
-        node = depot
-        for stop in route["stops"]:
-            customer = customers.get(str(stop))
-            if customer is None:
-                continue
-            cost += distance(node, customer)
-            node = customer
-        cost += distance(node, depot)
-
-    return cost
+    sys.exit(f"Demasiados experimentos con el mismo nombre en {out_dir}")
 
 
-def solve(base_url, instance_name, solver, timeout):
-    url = f"{base_url}/api/v1/fms/instances/send?fileName={instance_name}&solverType={solver}"
-    request = urllib.request.Request(url, method="POST",
-                                     headers={"Content-Type": "application/json"})
-    started = time.perf_counter()
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        body = json.load(response)
-    return body, (time.perf_counter() - started) * 1000
-
-
-def catalog(base_url):
-    """El descriptor dice que solvers hay y cuales son deterministas."""
-    with urllib.request.urlopen(f"{base_url}/api/v1/fms/solvers", timeout=10) as response:
-        return {s["type"]: s for s in json.load(response)["solvers"]}
-
-
-def compare(base_url, instance_name, solvers, runs, timeout, writer):
-    instance = load_instance(instance_name)
-    bks = load_best_known().get(instance_name)
-
-    limit = instance["max_duration"]
-    header = (f"\n{instance_name}  "
-              f"{len(instance['depots'])} depositos, {len(instance['customers'])} clientes, "
-              f"duracion maxima {'sin limite' if limit == math.inf else int(limit)}")
-    if bks:
-        header += f"  |  BKS {bks:.2f}"
-    print(header)
-    print(f"  {'solver':<9}{'n':>3}{'mejor':>11}{'media':>11}{'desv':>8}"
-          f"{'gap':>8}{'rutas':>7}{'tiempo':>9}")
-
-    for solver, info in solvers.items():
-        # El voraz es determinista: repetirlo solo gasta tiempo. Lo dice su descriptor.
-        attempts = 1 if info.get("deterministic") else runs
-
-        costs, times, routes = [], [], []
-        for _ in range(attempts):
-            try:
-                response, elapsed = solve(base_url, instance_name, solver, timeout)
-            except (urllib.error.URLError, TimeoutError) as error:
-                print(f"  {solver:<9}fallo: {error}")
-                break
-
-            cost = route_cost(instance, response)
-            costs.append(cost)
-            times.append(elapsed)
-            routes.append(len(response.get("routes") or []))
-
-            if writer:
-                writer.writerow([instance_name, solver, f"{cost:.2f}",
-                                 f"{response.get('totalCost', 0):.2f}", f"{elapsed:.0f}",
-                                 routes[-1]])
-
-        if not costs:
-            continue
-
-        best, mean = min(costs), statistics.fmean(costs)
-        # Una sola ejecucion no tiene dispersion: imprimir 0,0 la haria parecer
-        # estable cuando lo que pasa es que no se ha medido.
-        stdev = f"{statistics.stdev(costs):.1f}" if len(costs) > 1 else "-"
-        gap = f"{(best / bks - 1) * 100:+.1f}%" if bks else "-"
-
-        print(f"  {solver:<9}{len(costs):>3}{best:>11.2f}{mean:>11.2f}{stdev:>8}"
-              f"{gap:>8}{min(routes):>7}{mean_time(times):>9}")
-
-
-def mean_time(times):
-    average = statistics.fmean(times)
-    return f"{average:.0f}ms" if average < 1000 else f"{average / 1000:.1f}s"
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Compara solvers sobre instancias Cordeau")
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Compara solvers sobre las instancias Cordeau y genera informe (.md) y datos (.csv)")
     parser.add_argument("--url", default="http://localhost:8090", help="URL del gateway")
-    parser.add_argument("--instances", default="p01",
-                        help="Instancias separadas por coma (p01,p22). Ignorado con --all")
-    parser.add_argument("--all", action="store_true", help="Las 33 instancias del banco")
+    parser.add_argument("--instances", default="all",
+                        help="Instancias separadas por coma (p01,p22), o 'all' para las 33 (por defecto)")
     parser.add_argument("--solvers", default="", help="Por defecto, todos los del catalogo")
     parser.add_argument("--runs", type=int, default=3,
                         help="Repeticiones por solver no determinista (por defecto 3)")
     parser.add_argument("--timeout", type=int, default=600, help="Timeout por peticion, en segundos")
-    parser.add_argument("--csv", help="Vuelca cada ejecucion a un CSV")
-    args = parser.parse_args()
+    parser.add_argument("--seed", type=int,
+                        help="Semilla base. La repeticion k usa seed+k-1, de modo que el "
+                             "experimento entero se puede repetir tal cual")
+    parser.add_argument("--out", default=str(DEFAULT_OUT_DIR),
+                        help="Directorio donde dejar el informe y los datos (por defecto results/)")
+    parser.add_argument("--label", default="",
+                        help="Etiqueta del experimento. Va al nombre de los ficheros y a una "
+                             "columna del CSV, para distinguir configuraciones al juntarlos")
+    return parser.parse_args()
+
+
+def resolve_solvers(url, wanted):
+    """Los solvers salen del catalogo, no de una lista aqui: uno nuevo entra sin tocar nada."""
+    try:
+        available = gateway.catalog(url)
+    except (OSError, http.client.HTTPException) as error:
+        sys.exit(f"No se puede leer el catalogo en {url}: {error}")
+
+    if not wanted:
+        return available
+
+    names = [s.strip().upper() for s in wanted.split(",")]
+    unknown = [s for s in names if s not in available]
+    if unknown:
+        sys.exit(f"Solver no registrado: {', '.join(unknown)}. Hay: {', '.join(available)}")
+    return {s: available[s] for s in names}
+
+
+def main():
+    args = parse_args()
+    config = Config(args)
+
+    solvers = resolve_solvers(config.url, args.solvers)
+    names = (instances.all_names() if args.instances.strip().lower() == "all"
+             else [n.strip() for n in args.instances.split(",")])
+
+    out_dir = Path(args.out)
+    if not out_dir.is_absolute():
+        out_dir = BASE_DIR / out_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+    csv_path, report_path = reserve_run(out_dir, config)
+
+    best_known = instances.load_best_known()
+    records = []
+
+    print(f"Ejecucion {config.run_id}  |  {len(names)} instancias  |  "
+          f"solvers {', '.join(solvers)}  |  {args.runs} repeticiones")
+    print(f"Datos en {csv_path}")
+
+    handle = open(csv_path, "w", newline="", encoding="utf-8")
+    writer = csv.writer(handle)
+    writer.writerow(CSV_COLUMNS)
 
     try:
-        available = catalog(args.url)
-    except urllib.error.URLError as error:
-        sys.exit(f"No se puede leer el catalogo en {args.url}: {error}")
-
-    if args.solvers:
-        wanted = [s.strip().upper() for s in args.solvers.split(",")]
-        unknown = [s for s in wanted if s not in available]
-        if unknown:
-            sys.exit(f"Solver no registrado: {', '.join(unknown)}. Hay: {', '.join(available)}")
-        available = {s: available[s] for s in wanted}
-
-    if args.all:
-        names = sorted(p.stem for p in INSTANCES_DIR.glob("*.json"))
-    else:
-        names = [n.strip() for n in args.instances.split(",")]
-
-    handle = open(args.csv, "w", newline="", encoding="utf-8") if args.csv else None
-    writer = csv.writer(handle) if handle else None
-    if writer:
-        writer.writerow(["instancia", "solver", "coste", "coste_informado", "ms", "rutas"])
-
-    try:
-        for name in names:
-            if not (INSTANCES_DIR / f"{name}.json").exists():
-                print(f"\n{name}: no existe en {INSTANCES_DIR.name}, se salta")
+        for position, name in enumerate(names, start=1):
+            if not instances.exists(name):
+                print(f"\n{name}: no existe en el banco de instancias, se salta")
                 continue
-            compare(args.url, name, available, args.runs, args.timeout, writer)
+            records += run_instance(config, name, solvers, best_known.get(name),
+                                    writer, handle, f"[{position}/{len(names)}] ")
+    except KeyboardInterrupt:
+        # Interrumpir un barrido largo es normal. Lo medido hasta aqui se conserva y el
+        # informe se genera igual, diciendo cuantas instancias entraron.
+        print("\n\nInterrumpido. Se genera el informe con lo medido hasta ahora.")
     finally:
-        if handle:
-            handle.close()
-            print(f"\nEjecuciones volcadas en {args.csv}")
+        handle.close()
+        if records:
+            write_report(report_path, config, records, solvers, csv_path.name)
+            print(f"\nDatos:   {csv_path}")
+            print(f"Informe: {report_path}")
+        else:
+            csv_path.unlink(missing_ok=True)
+            print("\nNo hay ninguna ejecucion que registrar.")
 
 
 if __name__ == "__main__":
