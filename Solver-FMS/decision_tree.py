@@ -2,12 +2,12 @@
 """
 Arbol de decision: que solver conviene para una instancia dada.
 
-Aprende, a partir de los datos de compare_solvers, un arbol que elige solver mirando las
-caracteristicas de la instancia. Hoy el arbol es una hoja porque solo gana un motor; el
-script existe para que deje de serlo en cuanto haya varios candidatos reales.
+Entrena, a partir de los datos de compare_solvers, un arbol que elige solver mirando las
+caracteristicas de la instancia, y lo valida contra la regla de elegir siempre el mismo.
 
-Los solvers no estan escritos aqui: salen de los datos. Registrar un motor nuevo, lanzar
-compare_solvers y volver a ejecutar esto es todo lo que hace falta.
+Los solvers no estan escritos aqui: salen de los datos. El arbol clasifica sobre los que
+encuentre en el CSV, sean dos o seis. Con un unico ganador el arbol es un solo nodo, que
+es la respuesta correcta: la decision no depende de la instancia.
 
 Este fichero es solo la linea de comandos y el cableado. Lo que hace el trabajo esta en
 `experimentation/tree/`, separado para que se pueda reutilizar el modelo sin arrastrar

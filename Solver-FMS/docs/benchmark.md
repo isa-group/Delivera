@@ -195,9 +195,17 @@ argumentos lanza **las 33 instancias** con todos los solvers del catálogo.
 ### Dónde está cada cosa
 
 `compare_solvers.py` es solo la línea de comandos y el cableado. El trabajo está en el paquete
-`experimentacion/`:
+`experimentation/`, dividido en dos según para qué sirve:
 
-| Módulo | Qué sabe |
+| Paquete | Para qué | Dependencias |
+|---|---|---|
+| `comparison/` | **Medir**: lanzar los solvers y dejar el experimento por escrito. Lo usa `compare_solvers.py` | Solo librería estándar |
+| `tree/` | **Analizar**: aprender de esas mediciones qué solver conviene. Lo usa `decision_tree.py` | scikit-learn, matplotlib |
+
+La división no es cosmética: mezclarlos obligaría a instalar scikit-learn para poder medir, o a
+renunciar a él para poder analizar.
+
+| `comparison/` | Qué sabe |
 |---|---|
 | `instance.py` | Qué es una instancia Cordeau: sus características, cuánto cuesta una solución y qué restricciones incumple |
 | `gateway.py` | Hablar con la pasarela: catálogo y resolución |
@@ -205,12 +213,21 @@ argumentos lanza **las 33 instancias** con todos los solvers del catálogo.
 | `dataset.py` | El esquema del CSV y la agregación de repeticiones |
 | `report.py` | El informe en Markdown |
 
+| `tree/` | Qué sabe |
+|---|---|
+| `dataset.py` | Qué significa «conviene»: coste, y a igualdad de coste, tiempo |
+| `model.py` | Entrenar, validar contra la regla mayoritaria y verificar el algoritmo |
+| `plot.py` | El árbol como imagen |
+| `report.py` | El informe en Markdown |
+
+Cómo se ejecuta e interpreta el árbol está en [decision-tree.md](decision-tree.md).
+
 La separación tiene un destinatario concreto: **el análisis posterior de los resultados necesita
 `instance.py` y nada más**. Leer las características de las 33 instancias no debería exigir que haya
 un gateway levantado ni arrastrar el generador de informes.
 
 ```python
-from experimentacion.instance import Instance, all_names
+from experimentation.comparison.instance import Instance, all_names
 
 filas = [Instance.load(nombre).features() for nombre in all_names()]
 ```

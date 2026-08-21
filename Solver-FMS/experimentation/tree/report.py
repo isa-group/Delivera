@@ -5,8 +5,8 @@ Solo transforma resultados ya calculados en texto. No entrena nada, no mide nada
 permite cambiar como se presenta un experimento sin tocar como se ejecuta.
 
 Las columnas y secciones que salen constantes se omiten. Una columna con el mismo valor
-en las 33 filas no distingue nada, y cuando haya varios motores ganando reapareceran
-solas.
+en todas las filas no distingue nada. El descarte es automatico: una columna reaparece
+en cuanto sus valores varien.
 """
 
 import time
@@ -71,21 +71,22 @@ def write_report(path, result, dataset, config, sources, image, check):
                      "depende de la instancia, y eso es lo que el arbol esta diciendo.")
         lines.append("")
         if needed is not None:
-            lines.append(f"Le saldran ramas cuando otro motor gane instancias, o cuando `--tolerance` "
-                         f"suba por encima del **{needed:.1f} %**, que es lo que separa al ganador del "
-                         "segundo en la instancia mas reñida.")
+            lines.append(f"El margen mas estrecho entre el ganador y el segundo es del "
+                         f"**{needed:.1f} %**: es el valor que `--tolerance` tiene que superar para que "
+                         "alguna instancia cambie de manos.")
             lines.append("")
 
         lines.append("## Vale algo?")
         lines.append("")
-        lines.append("**No se puede saber, y por eso no hay numeros aqui.** Con una sola clase el "
+        lines.append("**No se puede medir, y por eso no hay numeros aqui.** Con una sola clase el "
                      "acierto es del 100 % por construccion: acertar siempre es trivial cuando solo hay "
-                     "una respuesta posible. Publicar ese 100 % al lado del de un arbol de verdad "
-                     "invitaria a compararlos, y no son comparables.")
+                     "una respuesta posible. Ese 100 % al lado del de un arbol con ramas invitaria a "
+                     "compararlos, y no son comparables.")
         lines.append("")
-        lines.append("La validacion cruzada y el contraste de permutacion aparecen solos en cuanto haya "
-                     "dos ganadores.")
-        lines.append("")
+        if check:
+            lines.append("La verificacion del algoritmo, en la seccion siguiente, es lo que comprueba "
+                         "que el codigo encuentra un patron cuando lo hay.")
+            lines.append("")
     else:
         lines.append("## Vale algo?")
         lines.append("")
@@ -145,7 +146,7 @@ def write_report(path, result, dataset, config, sources, image, check):
 
     # Las columnas se arman como (titulo, alineacion, valor) y se descartan las que salen
     # constantes: una columna con el mismo valor en todas las filas no distingue nada, y
-    # cuando haya varios motores ganando reapareceran solas.
+    # el descarte es automatico y depende solo de los valores de cada columna.
     columns = [
         ("Instancia", "---", lambda i, r: f"`{r['filename']}`"),
         ("Clientes", "---:", lambda i, r: str(int(r["num_customers"]))),
@@ -172,19 +173,21 @@ def write_report(path, result, dataset, config, sources, image, check):
         lines.append(f"Se omiten las columnas constantes: {', '.join(dropped)}.")
         lines.append("")
 
-    lines.append("## Como leerlo cuando haya mas motores")
+    lines.append("## Como leer este informe")
     lines.append("")
     lines.append("- **Un arbol que no bate a la regla mayoritaria no sirve**, aunque el dibujo tenga "
                  "ramas. Esa fila de la tabla es la primera que hay que mirar.")
     lines.append("- **Subir `--max-depth` casi siempre sube el acierto en entrenamiento y lo baja en "
                  "validacion.** Si al subirlo mejora la validacion cruzada, el arbol se quedaba corto; "
                  "si empeora, esta memorizando.")
-    lines.append("- **La tolerancia importa mas cuanto mejores sean los motores.** Dos metaheuristicas "
-                 "buenas se separaran por decimas en muchas instancias, y esas decimas son semilla. Con "
-                 "`--tolerance 0` el arbol aprende ruido.")
-    lines.append("- **Conviene excluir las lineas base** (`--exclude RANDOM,GREEDY`) cuando la pregunta "
-                 "sea cual de los motores de produccion usar: incluirlas infla el acierto con instancias "
-                 "que nadie dudaba.")
+    lines.append(f"- **`--tolerance` define el problema.** Esta en {config.tolerance} %: los solvers a "
+                 "menos de ese margen del mejor coste cuentan como equivalentes, y entre ellos gana el "
+                 "mas rapido. Con `--tolerance 0` el arbol separa diferencias que son de la semilla.")
+    lines.append("- **`--exclude RANDOM,GREEDY`** cuando la pregunta sea cual de los motores de "
+                 "produccion usar: incluir las lineas base infla el acierto con instancias que nadie "
+                 "dudaba.")
+    lines.append("")
+    lines.append("La documentacion completa esta en `docs/decision-tree.md`.")
     lines.append("")
 
     lines.append("## Limitaciones")

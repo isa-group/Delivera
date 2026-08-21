@@ -19,6 +19,7 @@ estrategia distinta, para poder comparar algoritmos sobre las mismas instancias.
 | [engines/greedy-engine.md](engines/greedy-engine.md) | Motor voraz: vecino más cercano |
 | [engines/genetic-engine.md](engines/genetic-engine.md) | Motor genético: representación, operadores, troceado y parámetros |
 | [benchmark.md](benchmark.md) | Cómo medir contra las instancias Cordeau, comparar los solvers y resultados actuales |
+| [decision-tree.md](decision-tree.md) | Árbol de decisión sobre esas medidas: qué solver conviene según la instancia |
 | [decisiones-y-correcciones.md](decisiones-y-correcciones.md) | Qué se corrigió en el motor genético y por qué |
 
 ## Vista rápida
