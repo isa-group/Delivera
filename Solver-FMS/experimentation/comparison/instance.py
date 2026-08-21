@@ -9,7 +9,7 @@ import json
 import math
 import statistics
 
-from . import BASE_DIR
+from .. import BASE_DIR
 
 INSTANCES_DIR = BASE_DIR / "instances-MD-CVRP-JSON"
 

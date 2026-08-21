@@ -30,7 +30,7 @@ Que hace distinto a mirar el coste que devuelve cada motor:
    suelta no dice nada: hacen falta mejor, media y dispersion.
 
 Este fichero es solo la linea de comandos y el cableado. Lo que hace el trabajo esta
-en el paquete `experimentacion`, separado para que un analisis posterior pueda usar el
+en el paquete `experimentation`, separado para que un analisis posterior pueda usar el
 modelo de instancia sin arrastrar el cliente HTTP ni el generador de informes.
 
 Uso:
@@ -45,10 +45,11 @@ import http.client
 import sys
 from pathlib import Path
 
-from experimentacion import BASE_DIR, gateway, instance as instances
-from experimentacion.dataset import CSV_COLUMNS
-from experimentacion.report import write_report
-from experimentacion.runner import Config, run_instance
+from experimentation import BASE_DIR
+from experimentation.comparison import gateway, instance as instances
+from experimentation.comparison.dataset import CSV_COLUMNS
+from experimentation.comparison.report import write_report
+from experimentation.comparison.runner import Config, run_instance
 
 DEFAULT_OUT_DIR = BASE_DIR / "results"
 

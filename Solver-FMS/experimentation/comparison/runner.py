@@ -11,7 +11,7 @@ import sys
 import time
 from datetime import datetime
 
-from . import BASE_DIR
+from .. import BASE_DIR
 from .dataset import compact, digest, format_row, mean_time, summarize_violations
 from .gateway import declared_defaults, solve
 from .instance import Instance, routes_of
