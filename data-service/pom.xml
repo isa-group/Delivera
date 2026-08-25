@@ -28,7 +28,8 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
-	</properties>
+		<space.version>0.4.0</space.version>
+    </properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -92,8 +93,14 @@
 		<dependency>
 			<groupId>com.delivera</groupId>
 			<artifactId>microservice-client-starter</artifactId>
-			<version>1.1.2</version>
+			<version>1.2.0</version>
 		</dependency>
+		<!-- SPACE -->
+        <dependency>
+            <groupId>io.github.isa-group</groupId>
+            <artifactId>space-java-client</artifactId>
+            <version>${space.version}</version>
+        </dependency>
 	</dependencies>
 
 	<build>

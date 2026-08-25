@@ -100,6 +100,11 @@ public class SecurityConfig {
                 auth.requestMatchers(api + "/user/**").authenticated();
                 auth.requestMatchers(api + "/activity/**").hasAnyRole(ADMIN, ANALYST);
 
+                auth.requestMatchers(HttpMethod.GET, api + "/pricing").permitAll();
+                auth.requestMatchers(HttpMethod.GET, api + "/pricing/contract").hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.POST, api + "/pricing/contract").hasRole(ADMIN);
+                auth.requestMatchers(HttpMethod.PUT, api + "/pricing/contract/autoRenew").hasRole(ADMIN);
+
                 auth.anyRequest().denyAll();
             });
 

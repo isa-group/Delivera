@@ -1,7 +1,7 @@
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { getDeviceId } from './useRefreshToken'
+import { getDeviceId, refreshIfNeeded } from './useRefreshToken'
 
 export function useApi() {
   const auth = useAuthStore()
@@ -20,18 +20,22 @@ export function useApi() {
 
 
   async function request(endpoint, options = {}) {
-    const headers = { 'Content-Type': 'application/json','X-Device-Id': getDeviceId() ,...options.headers }
+      const token =   await refreshIfNeeded()
+      const headers = { 'Content-Type': 'application/json','X-Device-Id': getDeviceId() ,...options.headers }
     
 
-    if (auth.token) {
-      headers.Authorization = `Bearer ${auth.token}`
-    }
-
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v2${endpoint}`, {
-      ...options,
-      headers,
-      credentials: "include"
-    })
+      if (token) {
+        headers.Authorization = `Bearer ${token}`
+      }
+  
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v2${endpoint}`, {
+        ...options,
+        headers,
+        credentials: "include"
+      })
+      return response
+   
+   
 
     // Sólo forzamos logout si el usuario estaba autenticado y la llamada no es de auth.
     // Evita que un 401 sobre un endpoint público cierre sesión al vuelo.
@@ -42,7 +46,7 @@ export function useApi() {
       throw new Error('No autorizado')
     }*/
 
-    return response
+    
   }
 
   async function get(endpoint) {

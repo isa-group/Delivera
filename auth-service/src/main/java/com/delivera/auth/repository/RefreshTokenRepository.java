@@ -53,6 +53,14 @@ public interface RefreshTokenRepository extends CrudRepository<RefreshToken,UUID
     void revokeOthersTokens(UUID id,Credential credential);
 
 
+    
+    @Modifying
+    @Query("""
+        delete from RefreshToken rt
+        where rt.id = :id and rt.credential = :credential
+    """)
+    void deleteTokenById(UUID id, Credential credential);
+
 
     
     @Query("""

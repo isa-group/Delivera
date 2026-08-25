@@ -39,6 +39,24 @@ import './assets/css/list.css'
 import './assets/css/forms.css'
 import './assets/css/tracking.css'
 
+import 'pricing-renderer/define';
+import 'pricing-renderer/styles.css';
+
+import { configurePricingRenderer } from 'pricing-renderer';
+
+import { refreshIfNeeded } from '@/composables/useRefreshToken'
+
+configurePricingRenderer({
+  locale: 'en-US',
+  pricingPath: '/pricing',
+  selectionEnabled: true,
+  ctaEnabled: true,
+  variablesEnabled: true,
+  presentation: {
+    planInheritance: 'auto',
+  },
+});
+
 const DeliverPreset = definePreset(Aura, {
   semantic: {
     primary: {
@@ -95,5 +113,12 @@ app.component('PFileUpload', FileUpload)
 app.component('PConfirmDialog', ConfirmDialog)
 app.component('EmptyState', EmptyState)
 app.component('TimelineList', TimelineList)
+
+try{
+  await refreshIfNeeded()
+} catch(e) {/**/}
+
+
+
 
 app.mount('#app')

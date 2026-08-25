@@ -27,6 +27,9 @@ public class CompanySettings {
     @Column(name = "company_id")
     private UUID id;
 
+    @Column(name = "org_id", nullable = false)
+    private UUID orgId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "default_priority", length = 10)
     private OrderPriority defaultPriority;

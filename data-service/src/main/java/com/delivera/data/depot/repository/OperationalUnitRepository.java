@@ -96,7 +96,7 @@ public interface OperationalUnitRepository extends JpaRepository<OperationalUnit
         FROM OperationalUnit u 
         WHERE u.companyId = :companyId
     """)
-    void deleteByCompanyId(@Param("companyId") UUID companyId);
+    int deleteByCompanyId(@Param("companyId") UUID companyId);
 
     @Modifying
     @Query("""
@@ -112,7 +112,7 @@ public interface OperationalUnitRepository extends JpaRepository<OperationalUnit
         FROM OperationalUnit u 
         WHERE u.companyId IN :companyIds
     """)
-    void deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
+    int deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
 
 
     @Query("""

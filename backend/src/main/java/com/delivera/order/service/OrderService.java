@@ -1,7 +1,7 @@
 package com.delivera.order.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.depot.model.OperationalUnit;
+import com.delivera.client.transaction.annotation.Compensable;
 import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.exception.*;
 import com.delivera.model.*;
@@ -14,7 +14,6 @@ import com.delivera.order.dto.OrderStatusRequest;
 import com.delivera.order.dto.PublicOrderResponse;
 import com.delivera.order.model.Order;
 import com.delivera.order.model.OrderEvent;
-import com.delivera.order.model.OrderPriority;
 import com.delivera.order.model.OrderStatus;
 import com.delivera.order.model.OrderType;
 import com.delivera.order.repository.OrderRepository;
@@ -24,7 +23,10 @@ import com.delivera.repository.*;
 import com.delivera.service.AppConfigService;
 import com.delivera.service.EmailService;
 import com.delivera.service.SubscriptionService;
+import com.delivera.space.service.SpaceLoyalUsers;
 import com.delivera.worker.repository.WorkerRepository;
+
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class OrderService {
 
     private final OrderRepository orderRepository;
@@ -49,32 +52,13 @@ public class OrderService {
     private final AppConfigService appConfigService;
     private final SubscriptionService subscriptionService;
     private final EmailService emailService;
-    private final String trackingUrlBase;
+    @Value("${app.tracking-url-base:https://delivera.app/track/}") 
+    private String trackingUrlBase;
     private final OrderClient orderClient;
+    private final SpaceLoyalUsers spaceLoyalUsers;
+    
 
-    public OrderService(OrderRepository orderRepository,
-                        OperationalUnitRepository unitRepository,
-                        CompanyRepository companyRepository,
-                        LoyalUserRepository loyalUserRepository,
-                        WorkerRepository workerRepository,
-                        SecurityUtils securityUtils,
-                        AppConfigService appConfigService,
-                        SubscriptionService subscriptionService,
-                        OrderClient orderClient,
-                        EmailService emailService,
-                        @Value("${app.tracking-url-base:https://delivera.app/track/}") String trackingUrlBase) {
-        this.orderRepository = orderRepository;
-        this.unitRepository = unitRepository;
-        this.companyRepository = companyRepository;
-        this.loyalUserRepository = loyalUserRepository;
-        this.workerRepository = workerRepository;
-        this.securityUtils = securityUtils;
-        this.appConfigService = appConfigService;
-        this.subscriptionService = subscriptionService;
-        this.emailService = emailService;
-        this.orderClient = orderClient;
-        this.trackingUrlBase = trackingUrlBase;
-    }
+   
 
     @Transactional(readOnly = true)
     public List<OrderResponse> getByCompany() {
@@ -94,11 +78,13 @@ public class OrderService {
     }
 
 
+    @Compensable
     @Transactional
+    //@SpaceTransaction
     public OrderResponse createB2C(OrderRequest request) {
         UUID companyId = securityUtils.getCurrentCompanyId();
         subscriptionService.checkOrderLimit(companyId);
-
+        UUID orgId = securityUtils.getCurrentOrgId();
         OrderType orderType = request.orderType();
 
         Company company = companyRepository.findById(companyId)
@@ -123,6 +109,9 @@ public class OrderService {
                     lu.setEmail(recipientEmail);
                     return lu;
                 });
+        if (loyalUser.getId() == null) {
+            spaceLoyalUsers.addWithRollBack(orgId.toString());
+        }
         LoyalUserCompany link = loyalUser.linkFor(company);
         if (link.getName() == null && recipientName != null) link.setName(recipientName);
         String reqAddr = request.recipientAddress() != null && !request.recipientAddress().isBlank()

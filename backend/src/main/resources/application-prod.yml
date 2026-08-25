@@ -18,6 +18,12 @@ management:
     health:
       show-details: never
 
+space:
+  client:
+    url: ${SPACE_URL}
+    api-key: ${DELIVERA_SPACE_API_KEY}
+    timeout: ${SPACE_TIMEOUT:10000}
+
 delivera:
   jwt:
     jwks-uri: ${JWKS_HOSTS}${AUTH_SERVICE_BASE_PATH}/.well-known/jwks.json

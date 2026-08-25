@@ -1,15 +1,20 @@
 package com.delivera.data.vehicle.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.client.transaction.annotation.Compensable;
+import com.delivera.client.transaction.compensation.Compensations;
 import com.delivera.data.depot.model.OperationalUnit;
 import com.delivera.data.depot.repository.OperationalUnitRepository;
 import com.delivera.data.exception.UnitNotFoundException;
 import com.delivera.data.exception.VehicleNotFoundException;
 import com.delivera.data.exception.VehiclePlateConflictException;
+import com.delivera.data.space.service.SpaceVehicles;
 import com.delivera.data.vehicle.dto.VehicleRequest;
 import com.delivera.data.vehicle.dto.VehicleResponse;
 import com.delivera.data.vehicle.model.Vehicle;
 import com.delivera.data.vehicle.repository.VehicleRepository;
+
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -19,20 +24,15 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class VehicleService {
 
     private final VehicleRepository vehicleRepository;
     private final OperationalUnitRepository unitRepository;
     private final SecurityUtils securityUtils;
+    private final SpaceVehicles spaceVehicles;
 
-    public VehicleService(VehicleRepository vehicleRepository,
-                          OperationalUnitRepository unitRepository,
-                          SecurityUtils securityUtils) {
-        this.vehicleRepository = vehicleRepository;
-        this.unitRepository = unitRepository;
-        this.securityUtils = securityUtils;
-    }
-
+    @Compensable
     @Transactional
     public VehicleResponse create(VehicleRequest request) {
         UUID companyId = securityUtils.getCurrentCompanyId();
@@ -51,6 +51,8 @@ public class VehicleService {
         vehicle.setPlate(request.plate());
         vehicle.setCapacity(request.capacity());
 
+        String orgId = depot.getOrgId().toString();
+        spaceVehicles.addWithRollBack(orgId);
         try {
             return VehicleResponse.from(vehicleRepository.save(vehicle));
         } catch (DataIntegrityViolationException e) {
@@ -58,6 +60,7 @@ public class VehicleService {
         }
     }
 
+    @Compensable
     @Transactional
     public VehicleResponse createSeed(UUID companyId,VehicleRequest request) {
         if (vehicleRepository.existsByCompanyIdAndPlate(companyId, request.plate())) {
@@ -73,6 +76,9 @@ public class VehicleService {
         vehicle.setDepot(depot);
         vehicle.setPlate(request.plate());
         vehicle.setCapacity(request.capacity());
+
+        String orgId = depot.getOrgId().toString();
+        spaceVehicles.addWithRollBack(orgId);
 
         try {
             return VehicleResponse.from(vehicleRepository.save(vehicle));
@@ -127,11 +133,15 @@ public class VehicleService {
         return VehicleResponse.from(vehicle);
     }
 
+    @Compensable
     @Transactional
     public void delete(UUID id) {
         UUID companyId = securityUtils.getCurrentCompanyId();
+        String orgId = securityUtils.getCurrentOrgId().toString();
         Vehicle vehicle = vehicleRepository.findByIdAndCompanyId(id, companyId)
                 .orElseThrow(() -> new VehicleNotFoundException(id));
+
+        spaceVehicles.deleteWithRollBack(orgId);
         vehicleRepository.delete(vehicle);
     }
 }

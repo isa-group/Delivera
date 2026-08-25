@@ -5,7 +5,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useApi } from '@/composables/useApi'
 import { useValidation } from '@/composables/useValidation'
 import { useAvailabilityCheck } from '@/composables/useAvailabilityCheck'
-import { startAuthRefresh } from './useRefreshToken'
 
 function isUsernameFormat(val) {
   return /^[a-z0-9_-]{3,50}$/.test(val)
@@ -134,7 +133,6 @@ export function useCompanyRegistration() {
       const data = isJson ? await res.json().catch(() => null) : null
       if (res.ok && data?.token) {
         auth.applyLoginData(data)
-        startAuthRefresh()
         router.push('/onboarding')
       } else {
         error.value = data ? api.translateError(data, 'error.registerFailed') : t('error.registerFailed')

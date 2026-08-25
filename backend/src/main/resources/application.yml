@@ -1,6 +1,10 @@
 spring:
   profiles:
     active: ${DELIVERA_SPRING_PROFILES_ACTIVE:dev}
-
 app:
+  space:
+    service: ${SPACE_SERVICE:delivera}
+    version: ${SPACE_SERVICE_VERSION:1.0.11}
+    basic-plan: ${SPACE_BASICE_PLAN:MICRO}
   api-prefix: /api/v2
+  

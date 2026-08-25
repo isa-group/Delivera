@@ -239,23 +239,24 @@ public class RefreshTokenService {
         String userAgent, 
         String ip
     ) {
-        RefreshToken refreshToken = validate(token);
-        boolean suspicious = isSuspicious(refreshToken, device, userAgent);
-        String newToken = createToken(
-           refreshToken.getCredential(),
-           device,
-           userAgent,
-           ip, 
-           suspicious,
-           refreshToken.getCompanyId(),
-           refreshToken.getMaxExpiredAt()
-        );
         try {
-            repository.delete(refreshToken);
+            RefreshToken refreshToken = validate(token);
+            boolean suspicious = isSuspicious(refreshToken, device, userAgent);
+            String newToken = createToken(
+                refreshToken.getCredential(),
+                device,
+                userAgent,
+                ip, 
+                suspicious,
+                refreshToken.getCompanyId(),
+                refreshToken.getMaxExpiredAt()
+            );
+            repository.deleteTokenById(refreshToken.getId(), refreshToken.getCredential());
+            return newToken;
         }catch(OptimisticLockingFailureException e){
             throw new InvalidRefreshActionException();
         }
-        return newToken;
+ 
     }
 
 

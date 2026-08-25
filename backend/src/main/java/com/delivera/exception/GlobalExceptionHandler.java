@@ -3,12 +3,13 @@ package com.delivera.exception;
 import com.delivera.client.exception.ApiException;
 import com.delivera.client.exception.ClientException;
 import com.delivera.client.exception.NetworkException;
+import com.delivera.client.exception.ServerException;
+import com.delivera.client.space.exception.SpaceValidationException;
 import com.delivera.dto.common.ErrorResponse;
 import com.delivera.dto.common.ValidationErrorResponse;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import lombok.extern.slf4j.Slf4j;
 
-import org.hibernate.service.spi.ServiceException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.net.SocketTimeoutException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +65,7 @@ public class GlobalExceptionHandler {
         Map.entry(WorkerCannotBeLoyalUserException.class,   new Mapping(CONFLICT,             "WORKER_CANNOT_BE_LOYAL_USER")),
         Map.entry(MissingRecipientAddressException.class, new Mapping(UNPROCESSABLE_ENTITY, "MISSING_RECIPIENT_ADDRESS")),
         Map.entry(MissingClientEmailException.class, new Mapping(UNPROCESSABLE_ENTITY, "MISSING_CLIENT_EMAIL")),
+        Map.entry(ContractUpdateException.class,       new Mapping(UNPROCESSABLE_ENTITY,    "CONTRACT_UPDATE")),
         Map.entry(RateLimitExceededException.class,       new Mapping(TOO_MANY_REQUESTS,    "RATE_LIMIT_EXCEEDED")),
         Map.entry(ApiKeyNotFoundException.class,          new Mapping(NOT_FOUND,            "API_KEY_NOT_FOUND")),
         Map.entry(FileTooLargeException.class,            new Mapping(PAYLOAD_TOO_LARGE,    "FILE_TOO_LARGE"))
@@ -93,8 +96,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(new ErrorResponse(ex.getCode()));
     }
 
-    @ExceptionHandler(SubscriptionLimitException.class)
-    public ResponseEntity<ErrorResponse> handleSubscriptionLimit(SubscriptionLimitException ex) {
+    @ExceptionHandler(SpaceValidationException.class)
+    public ResponseEntity<ErrorResponse> handleSubscriptionLimit(SpaceValidationException ex) {
         log.warn("Subscription limit reached: {}", ex.getMessage());
         return ResponseEntity.status(FORBIDDEN).body(new ErrorResponse(ex.getCode()));
     }
@@ -219,8 +222,13 @@ public class GlobalExceptionHandler {
     }
 
     
-    @ExceptionHandler(ServiceException.class)
-    public ResponseEntity<?> handleServiceException(ServiceException ex) {
+    @ExceptionHandler(SocketTimeoutException.class)
+    public ResponseEntity<?> handleSocketTimeoutException(ServerException ex) {
+        return ResponseEntity.status(503).body(new ErrorResponse("SERVICE_UNAVAILABLE"));
+    }
+    
+    @ExceptionHandler(ServerException.class)
+    public ResponseEntity<?> handleServiceException(ServerException ex) {
         return ResponseEntity.status(503).body(new ErrorResponse("SERVICE_UNAVAILABLE"));
     }
 }
