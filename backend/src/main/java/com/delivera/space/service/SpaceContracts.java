@@ -8,13 +8,19 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
 import com.delivera.client.core.SmartMicroserviceClient;
+import com.delivera.exception.ContractUpdateException;
+import com.delivera.exception.ForbiddenException;
 import com.delivera.model.User;
 import com.delivera.org.model.Organization;
+import com.delivera.space.dto.ChangeAddOn;
+import com.delivera.space.dto.ContractChange;
+import com.delivera.space.dto.ServicePricing;
 
 import io.github.isagroup.spaceclient.SpaceClient;
 import io.github.isagroup.spaceclient.types.BillingPeriod;
 import io.github.isagroup.spaceclient.types.Contract;
 import io.github.isagroup.spaceclient.types.ContractToCreate;
+import io.github.isagroup.spaceclient.types.Subscription;
 import io.github.isagroup.spaceclient.types.ContractToCreate.BillingPeriodToCreate;
 import io.github.isagroup.spaceclient.types.UserContact;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +45,9 @@ public class SpaceContracts {
 
     @Value("${app.space.basic-plan:MICRO}")
     private String basicPlan;
+
+    @Value("${space.client.url}")
+    private String baseUrl;
 
     /**
      * @apiNote To use this operation without problems you required a SPACE API-KEY of type "MANAGMENT"
@@ -151,8 +160,80 @@ public class SpaceContracts {
     }
 
 
+    public ServicePricing getCurrentPricing(){
+        String url = this.spaceClient.getHttpUrl() + "/services/"+service+"/pricings/"+version;
+        String apiKey = this.spaceClient.getApiKey();
+
+        ServicePricing pricing = httpClient.request()
+        .url(url)
+        .header("x-api-key",apiKey)
+        .method(HttpMethod.GET)
+        .http()
+        .failOn4xx(true)
+        .failOn5xx(true)
+        .retry(RETRIRES)
+        .timeout(TIMEOUT)
+        .log()
+        .executeBasicRequest(ServicePricing.class).block();
+        pricing.setYamlPath(baseUrl+pricing.getYamlPath());
+        return pricing;
+
+    }
 
 
 
+    public Contract getContract(String userId){
+        Contract contract = spaceClient.contracts.getContract(userId);
+        return contract;
+     
 
+    }
+
+    
+
+
+
+    public Contract updateContract(String userId,ContractChange newContract ) {
+        Contract contract = spaceClient.contracts.getContract(userId);
+        Map<String, Map<String,Integer>> addOnsByService = contract.getSubscriptionAddOns();
+        Map<String,ChangeAddOn> newAddOns = newContract.getNewAddOns();
+
+        if (!contract.getContractedServices().containsKey(service)){
+            throw new ForbiddenException("YOU DON'T HAVE THIS SERVICE");
+        }
+
+
+        Map<String,Integer> addOns =   addOnsByService.computeIfAbsent(
+            service, (service) -> new HashMap<>()
+        );
+        updateAddOns(addOns, newAddOns);
+        addOnsByService.put(service, addOns);
+
+        contract.getSubscriptionPlans().put(service, newContract.getPlan());
+
+        Subscription subscription = new Subscription(
+            contract.getContractedServices(),
+            contract.getSubscriptionPlans(),
+            addOnsByService
+        );
+        Contract updatedContract = spaceClient.contracts.updateContractSubscription(userId, subscription);
+        if (updatedContract == null) {
+            throw new ContractUpdateException();
+        }
+        return updatedContract;
+        
+    }
+
+
+    private void updateAddOns(Map<String,Integer> addOns,Map<String,ChangeAddOn> newAddOns) {
+        for (var entry: newAddOns.entrySet()){
+            String name = entry.getKey();
+            ChangeAddOn change = entry.getValue();
+            if (!change.isSelected()){
+                addOns.remove(name);
+            }else {
+                addOns.put(name, change.getQuantity());
+            }
+        }
+    }
 }

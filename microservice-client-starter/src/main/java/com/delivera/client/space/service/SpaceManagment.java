@@ -92,18 +92,18 @@ public class SpaceManagment {
 
     }
 
-    private String servicePrefix(String feature) {
+    public String servicePrefix(String feature) {
         return service+"-"+feature;
     }
 
-    private String maxOfFeature(String feature) {
+    public String maxOfFeature(String feature) {
         return "max"+ 
             feature.substring(0,1).toUpperCase()+
             feature.substring(1);
 
     }
 
-    private Map<String,Number> addServicePrefix(Map<String,Number> expectedConsumption) {
+    public Map<String,Number> addServicePrefix(Map<String,Number> expectedConsumption) {
         return expectedConsumption
                 .entrySet()
                 .stream()

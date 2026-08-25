@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.net.SocketTimeoutException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,7 @@ public class GlobalExceptionHandler {
         Map.entry(WorkerCannotBeLoyalUserException.class,   new Mapping(CONFLICT,             "WORKER_CANNOT_BE_LOYAL_USER")),
         Map.entry(MissingRecipientAddressException.class, new Mapping(UNPROCESSABLE_ENTITY, "MISSING_RECIPIENT_ADDRESS")),
         Map.entry(MissingClientEmailException.class, new Mapping(UNPROCESSABLE_ENTITY, "MISSING_CLIENT_EMAIL")),
+        Map.entry(ContractUpdateException.class,       new Mapping(UNPROCESSABLE_ENTITY,    "CONTRACT_UPDATE")),
         Map.entry(RateLimitExceededException.class,       new Mapping(TOO_MANY_REQUESTS,    "RATE_LIMIT_EXCEEDED")),
         Map.entry(ApiKeyNotFoundException.class,          new Mapping(NOT_FOUND,            "API_KEY_NOT_FOUND")),
         Map.entry(FileTooLargeException.class,            new Mapping(PAYLOAD_TOO_LARGE,    "FILE_TOO_LARGE"))
@@ -219,6 +221,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(ex.getStatus()).body(new ErrorResponse(HttpStatus.valueOf(ex.getStatus()).name()));
     }
 
+    
+    @ExceptionHandler(SocketTimeoutException.class)
+    public ResponseEntity<?> handleSocketTimeoutException(ServerException ex) {
+        return ResponseEntity.status(503).body(new ErrorResponse("SERVICE_UNAVAILABLE"));
+    }
     
     @ExceptionHandler(ServerException.class)
     public ResponseEntity<?> handleServiceException(ServerException ex) {
