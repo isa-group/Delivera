@@ -373,6 +373,7 @@ nav:
   activity: Actividad
   workers: Equipo
   admin: Administración
+  pricing: Planes de Precios
 
 admin:
   title: Panel de administración
@@ -507,6 +508,7 @@ error:
   LAST_ADMIN: No puedes cambiar el rol del único administrador de la empresa
   VEHICLE_NOT_FOUND: Vehículo no encontrado
   VEHICLE_PLATE_CONFLICT: Ya existe un vehículo con esa matrícula en tu empresa
+  CONTRACT_UPDATE: No es posible actualizar el contrato de la suscripción  
   SERVICE_UNAVAILABLE: Servicio no disponible
 
 orgSelect:
@@ -612,3 +614,27 @@ apiKeys:
   revoked: Revocada
   revoke: Revocar
   revokeConfirm: "¿Revocar esta API key? Las integraciones que la estén usando dejarán de funcionar."
+
+pricing:
+  confirmation: Confirmación
+  resume: Resumen
+  concept: Concepto
+  before: Antes
+  after: Después
+  changed: Modificado
+  changes: Cambios en el Plan
+  price: Cambios en el precio
+  cancel: Cancelar
+  confirm: Confirmar
+  previous: Volver
+  next: Siguiente
+  BillingInformation:  Información de los cobros
+  startDate: Mes actual empieza en
+  endDate: Mes actual termina en
+  autoRenew: Auto renovación
+  renewalPeriod: Período de renovación
+  days: días
+  usedPercentage: Tiempo transcurrido del mes actual
+  activateRenew: Activar auto renovación
+  desactivateRenew: Desactivar auto renovación
+  
