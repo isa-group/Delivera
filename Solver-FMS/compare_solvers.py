@@ -6,18 +6,25 @@ Por que a traves de la API y no llamando a cada motor: es el unico camino que
 ejerce el mapeo real y trata a todos los solvers exactamente igual, que es la
 condicion para que la comparacion signifique algo.
 
-Cada ejecucion produce DOS ficheros cuyo nombre es (datos-2026-08-13-1316-mi-experimento.csv):
+Cada ejecucion produce TRES ficheros que comparten nombre
+(...-2026-08-13-1316-mi-experimento):
 
-  datos-<fecha>.csv     Una fila por ejecucion individual: instancia, solver,
-                        parametros, semilla, caracteristicas de la instancia y
-                        resultado. Es el dato crudo, en columnas fijas y en ingles,
-                        pensado para concatenar los CSV de varios experimentos y
-                        analizarlos juntos sin cruzar nada.
-  informe-<fecha>.md    El informe legible, en español: fecha, configuracion,
-                        resumen, una tabla por solver y el comparativo por instancia.
+  instancias-<fecha>.csv  Una fila por INSTANCIA: las propiedades del problema
+                          -clientes, depositos, capacidad, demanda, densidad, BKS- que
+                          no dependen de quien lo resuelva ni de cuantas veces.
+  datos-<fecha>.csv       Una fila por EJECUCION: instancia, solver, repeticion,
+                          parametros, semilla y resultado. Se cruza con la anterior
+                          por `filename` y no repite ninguna de sus columnas.
+  informe-<fecha>.md      El informe legible, en español: fecha, configuracion,
+                          resumen, una tabla por solver y el comparativo por instancia.
 
-La division es deliberada: el CSV es para la maquina y no debe cambiar de forma
-entre experimentos; el informe es para leerlo y citarlo.
+Dos ficheros de datos y no uno porque son dos niveles de observacion distintos. Las
+propiedades de una instancia valen para la instancia, no para cada una de sus once
+ejecuciones: meterlas en cada fila las repite sin añadir nada y estropea cualquier
+agregado, porque al promediarlas sobre las ejecuciones las instancias con mas
+ejecuciones pesan mas. La division con el informe es la otra: los CSV son para la
+maquina y no deben cambiar de forma entre experimentos; el informe es para leerlo y
+citarlo.
 
 Que hace distinto a mirar el coste que devuelve cada motor:
 
@@ -40,23 +47,26 @@ Uso:
 """
 
 import argparse
-import csv
 import http.client
 import sys
+from collections import namedtuple
 from pathlib import Path
 
 from experimentation import BASE_DIR
 from experimentation.comparison import gateway, instance as instances
-from experimentation.comparison.dataset import CSV_COLUMNS
+from experimentation.comparison.dataset import Output
 from experimentation.comparison.report import write_report
 from experimentation.comparison.runner import Config, run_instance
 
 DEFAULT_OUT_DIR = BASE_DIR / "results"
 
+# Las tres salidas de un experimento, que comparten nombre y se citan juntas.
+Run = namedtuple("Run", "instances runs report")
+
 
 def reserve_run(out_dir, config):
     """
-    Nombres de las dos salidas de este experimento, y el identificador que las une.
+    Nombres de las tres salidas de este experimento, y el identificador que las une.
 
     Al minuto y no al segundo porque el nombre se lee y se cita. Dos experimentos dentro
     del mismo minuto -dos pruebas rapidas sobre una instancia- desempatan con un sufijo en
@@ -66,14 +76,15 @@ def reserve_run(out_dir, config):
     for attempt in range(1, 100):
         run_id = config.run_id if attempt == 1 else f"{config.run_id}-{attempt}"
         stem = f"{run_id}-{config.label}" if config.label else run_id
-        csv_path = out_dir / f"datos-{stem}.csv"
-        report_path = out_dir / f"informe-{stem}.md"
+        paths = Run(instances=out_dir / f"instancias-{stem}.csv",
+                    runs=out_dir / f"datos-{stem}.csv",
+                    report=out_dir / f"informe-{stem}.md")
 
-        if not csv_path.exists() and not report_path.exists():
+        if not any(path.exists() for path in paths):
             # El identificador que se guarda en cada fila es el que desempata, no el de la
             # hora: si no, dos experimentos del mismo minuto serian el mismo en el CSV.
             config.run_id = run_id
-            return csv_path, report_path
+            return paths
 
     sys.exit(f"Demasiados experimentos con el mismo nombre en {out_dir}")
 
@@ -128,38 +139,46 @@ def main():
     if not out_dir.is_absolute():
         out_dir = BASE_DIR / out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
-    csv_path, report_path = reserve_run(out_dir, config)
+    paths = reserve_run(out_dir, config)
 
     best_known = instances.load_best_known()
     records = []
+    # Las propiedades de cada instancia, para el informe. Son las mismas filas que van al
+    # CSV de instancias: una por instancia, no una por ejecucion.
+    properties = {}
 
     print(f"Ejecucion {config.run_id}  |  {len(names)} instancias  |  "
           f"solvers {', '.join(solvers)}  |  {args.runs} repeticiones")
-    print(f"Datos en {csv_path}")
+    print(f"Instancias en  {paths.instances}")
+    print(f"Ejecuciones en {paths.runs}")
 
-    handle = open(csv_path, "w", newline="", encoding="utf-8")
-    writer = csv.writer(handle)
-    writer.writerow(CSV_COLUMNS)
+    output = Output(paths.instances, paths.runs)
 
     try:
         for position, name in enumerate(names, start=1):
             if not instances.exists(name):
                 print(f"\n{name}: no existe en el banco de instancias, se salta")
                 continue
-            records += run_instance(config, name, solvers, best_known.get(name),
-                                    writer, handle, f"[{position}/{len(names)}] ")
+            rows, instance_properties = run_instance(
+                config, name, solvers, best_known.get(name), output,
+                f"[{position}/{len(names)}] ")
+            records += rows
+            properties[name] = instance_properties
     except KeyboardInterrupt:
         # Interrumpir un barrido largo es normal. Lo medido hasta aqui se conserva y el
         # informe se genera igual, diciendo cuantas instancias entraron.
         print("\n\nInterrumpido. Se genera el informe con lo medido hasta ahora.")
     finally:
-        handle.close()
+        output.close()
         if records:
-            write_report(report_path, config, records, solvers, csv_path.name)
-            print(f"\nDatos:   {csv_path}")
-            print(f"Informe: {report_path}")
+            write_report(paths.report, config, records, solvers, properties,
+                         {"instances": paths.instances.name, "runs": paths.runs.name})
+            print(f"\nInstancias:  {paths.instances}")
+            print(f"Ejecuciones: {paths.runs}")
+            print(f"Informe:     {paths.report}")
         else:
-            csv_path.unlink(missing_ok=True)
+            paths.instances.unlink(missing_ok=True)
+            paths.runs.unlink(missing_ok=True)
             print("\nNo hay ninguna ejecucion que registrar.")
 
 

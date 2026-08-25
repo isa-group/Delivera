@@ -134,7 +134,11 @@ class Instance:
         return problems
 
     def features(self):
-        #Devuelve las caracteristicas de la instancia que van al CSV y al informe.
+        """
+        Las propiedades de la instancia que se usan como caracteristicas del problema
+        para entrenar el arbol. No son todas las que se calculan, solo las que no dependen de la solucion: el BKS es una propiedad de la instancia, 
+        pero no se puede usar para entrenar el arbol porque no esta disponible al elegir solver.
+        """
         customers = list(self.customers.values())
         depots = list(self.depots.values())
         capacity = self.capacity()
@@ -143,25 +147,37 @@ class Instance:
         xs = [c["x"] for c in customers]
         ys = [c["y"] for c in customers]
         area = (max(xs) - min(xs)) * (max(ys) - min(ys))
+        limit = self.max_duration()
 
         return {
             "num_customers": len(customers),
             "num_depots": len(depots),
             "vehicles_per_depot": self.fleet,
             "vehicle_capacity": capacity,
-            "max_duration": self.max_duration(),
+            # El fichero codifica "sin limite" con un 0, y 0 no es una duracion: es la
+            # ausencia del dato. Escribirlo tal cual dejaria "sin limite" por debajo de
+            # la instancia mas apretada del banco en cualquier orden numerico. Se separan
+            # las dos cosas: si hay limite, y cuanto vale cuando lo hay.
+            "has_duration_limit": "true" if limit else "false",
+            "max_duration": limit or None,
             "total_demand": demand,
             # Cuanto de la flota hace falta como minimo: mide lo apretada que esta la
             # instancia de capacidad, que es lo que separa a las faciles de las duras.
+            # Vale porque en este banco los depositos comparten capacidad y flota.
             "load_ratio": demand / (len(depots) * self.fleet * capacity),
             "avg_service_duration": statistics.fmean(c["service"] for c in customers),
             "customers_per_depot": len(customers) / len(depots),
+            # Area del rectangulo que envuelve a los clientes. Los depositos quedan
+            # fuera del calculo a proposito: mide donde hay que repartir, no desde donde.
             "area": area,
             "customer_density": len(customers) / area if area else 0.0,
             "mean_nn_distance": statistics.fmean(
                 min(distance(c, other) for other in customers if other is not c)
                 for c in customers),
-            "mean_depot_distance": statistics.fmean(
+            # Distancia media de un cliente al deposito MAS CERCANO, no a los depositos.
+            # El nombre lo dice entero porque las dos medidas son distintas y la que
+            # importa es esta: es la que se recorre de verdad.
+            "mean_nearest_depot_distance": statistics.fmean(
                 min(distance(c, depot) for depot in depots) for c in customers),
         }
 

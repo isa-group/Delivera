@@ -7,9 +7,9 @@ Lo que sostiene los dos scripts de experimentation, separado por para que sirve.
                 instancia. Es lo que usa decision_tree.py.
 
 La division no es cosmetica. `comparison` habla con la pasarela por HTTP y funciona
-solo con la libreria estandar; `tree` no habla con nadie -parte del CSV ya escrito- y
-depende de scikit-learn. Mezclarlos obligaria a instalar scikit-learn para poder medir,
-o a renunciar a el para poder analizar.
+solo con la libreria estandar; `tree` no habla con nadie -parte de los CSV ya escritos-
+y depende de pandas y scikit-learn. Mezclarlos obligaria a instalarlos para poder medir,
+o a renunciar a ellos para poder analizar.
 
 Aqui arriba solo queda lo que comparten: donde esta la raiz.
 """

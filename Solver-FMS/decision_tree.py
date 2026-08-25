@@ -13,16 +13,17 @@ Este fichero es solo la linea de comandos y el cableado. Lo que hace el trabajo 
 `experimentation/tree/`, separado para que se pueda reutilizar el modelo sin arrastrar
 el generador de informes:
 
-    dataset.py    Que significa "conviene": coste, y a igualdad de coste, tiempo
+    dataset.py    El cruce de las dos tablas y que significa "conviene": coste, y a
+                  igualdad de coste, tiempo
     model.py      Entrenar, validar contra la regla mayoritaria y verificar el algoritmo
     plot.py       El arbol como imagen
     report.py     El informe en Markdown
 
-Requiere scikit-learn y matplotlib, a diferencia del paquete `comparison`:
-    pip install scikit-learn matplotlib
+Requiere pandas, scikit-learn y matplotlib, a diferencia del paquete `comparison`:
+    pip install pandas scikit-learn matplotlib
 
 Uso:
-    python decision_tree.py                                    # el CSV mas reciente
+    python decision_tree.py                                    # el experimento mas reciente
     python decision_tree.py results/datos-*.csv                # varios experimentos
     python decision_tree.py --exclude RANDOM,GREEDY            # solo candidatos reales
     python decision_tree.py --tolerance 2.0 --max-depth 4
@@ -96,9 +97,9 @@ def main():
     config = parse_args()
     excluded = {s.strip().upper() for s in config.exclude.split(",") if s.strip()}
     paths = resolve_inputs(config.csv)
-    rows = load(paths, excluded)
+    table = load(paths, excluded)
 
-    dataset = build_dataset(rows, config.tolerance)
+    dataset = build_dataset(table, config.tolerance)
     if not dataset:
         sys.exit("No hay instancias con resultados utilizables")
 

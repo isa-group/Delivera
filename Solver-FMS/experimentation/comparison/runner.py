@@ -2,7 +2,8 @@
 Lanzar, medir, validar y convertir cada ejecucion en una fila.
 
 Es la capa donde se produce el dato. Lo que sale de aqui son diccionarios con las
-columnas de dataset.CSV_COLUMNS, ya listos para volcar o para agregar.
+columnas de dataset.RUN_COLUMNS, ya listos para volcar o para agregar. Las propiedades
+de la instancia no se mezclan en ellos: van a la otra tabla, una vez por instancia.
 """
 
 import http.client
@@ -12,7 +13,7 @@ import time
 from datetime import datetime
 
 from .. import BASE_DIR
-from .dataset import compact, digest, format_row, mean_time, summarize_violations
+from .dataset import compact, digest, mean_time, summarize_violations
 from .gateway import declared_defaults, solve
 from .instance import Instance, routes_of
 
@@ -42,10 +43,17 @@ def git_commit():
         return "desconocido"
 
 
-def run_instance(config, instance_name, solvers, bks, writer, handle, prefix=""):
-    """Ejecuta todos los solvers sobre una instancia y devuelve una fila por ejecucion."""
+def run_instance(config, instance_name, solvers, bks, output, prefix=""):
+    """
+    Ejecuta todos los solvers sobre una instancia.
+
+    Escribe UNA fila en la tabla de instancias -las propiedades del problema, que no
+    dependen de quien lo resuelva- y una fila por ejecucion en la de resultados.
+    Devuelve las de resultados y esas propiedades: las dos cosas que necesita el informe.
+    """
     instance = Instance.load(instance_name)
-    features = instance.features()
+    properties = {**instance.features(), "bks": bks}
+    output.instance(instance_name, properties)
 
     header = f"\n{prefix}{instance_name}  {instance.describe()}"
     if bks:
@@ -61,23 +69,20 @@ def run_instance(config, instance_name, solvers, bks, writer, handle, prefix="")
         rows = []
 
         for repetition in range(1, attempts + 1):
-            row = execute(config, instance, features, solver, info, repetition, bks)
+            row = execute(config, instance, solver, info, repetition, bks)
             rows.append(row)
             records.append(row)
-            writer.writerow(format_row(row))
-            # Un barrido de las 33 instancias son minutos: si se corta a mitad, lo ya
-            # medido tiene que estar en disco.
-            handle.flush()
+            output.run(row)
             if row["status"] == "error":
                 print(f"  {solver:<9}fallo: {row['error']}")
                 break
 
         print_solver_line(solver, rows)
 
-    return records
+    return records, properties
 
 
-def execute(config, instance, features, solver, info, repetition, bks):
+def execute(config, instance, solver, info, repetition, bks):
     """Una ejecucion: la lanza, la mide, la valida y la convierte en fila."""
     parameters = {}
     # Con --seed las repeticiones son reproducibles y distintas entre si: la k-esima
@@ -96,9 +101,7 @@ def execute(config, instance, features, solver, info, repetition, bks):
         "solver_version": info.get("version", ""),
         "strategy": info.get("strategy", ""),
         "deterministic": str(bool(info.get("deterministic"))).lower(),
-        "bks": bks,
     }
-    row.update(features)
 
     effective = dict(declared_defaults(info))
     effective.update(parameters)

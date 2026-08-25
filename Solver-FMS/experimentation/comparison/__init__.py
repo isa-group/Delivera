@@ -5,7 +5,7 @@ compare_solvers.py.
   instance.py   Que es una instancia Cordeau, cuanto cuesta una solucion y si es valida
   gateway.py    Hablar con la pasarela: catalogo y resolucion
   runner.py     Lanzar, medir y convertir cada ejecucion en una fila
-  dataset.py    El esquema del CSV y la agregacion de repeticiones
+  dataset.py    Las dos tablas, su esquema y la agregacion de repeticiones
   report.py     El informe en Markdown
 
 Sin dependencias externas: solo la libreria estandar. Es deliberado -medir no deberia

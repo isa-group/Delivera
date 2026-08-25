@@ -1,25 +1,39 @@
 """
-El esquema del CSV y la agregacion de repeticiones.
+El esquema de los datos y la agregacion de repeticiones.
 
-Aqui vive el contrato de los datos: que columnas hay, en que orden y con cuantos
-decimales. Que ese contrato no cambie entre experimentos es lo que permite concatenar
-los CSV de varias sesiones y analizarlos juntos.
+Aqui vive el contrato: que tablas hay, que columnas tiene cada una, en que orden y con
+cuantos decimales. Que ese contrato no cambie entre experimentos es lo que permite
+concatenar los datos de varias sesiones y analizarlos juntos.
+
+    instancias-<fecha>.csv   una fila por INSTANCIA: el problema
+    datos-<fecha>.csv        una fila por EJECUCION: el resultado
+
+Se cruzan por `filename`. La segunda no repite nada de la primera.
 """
 
+import csv
 import json
 import statistics
 
-# El esquema del CSV, en un solo sitio. Los experimentos se distinguen por run_id y
-# label, no por tener columnas distintas.
-CSV_COLUMNS = [
+# Una fila por instancia. Todo lo que hay aqui sale del fichero de la instancia y no
+# depende del solver: es el problema, no la solucion. El BKS entra porque es una
+# propiedad publicada de la instancia, no un resultado de este experimento.
+INSTANCE_COLUMNS = [
+    "filename",
+    "num_customers", "num_depots", "vehicles_per_depot", "vehicle_capacity",
+    "has_duration_limit", "max_duration", "total_demand", "load_ratio",
+    "avg_service_duration", "customers_per_depot", "area", "customer_density",
+    "mean_nn_distance", "mean_nearest_depot_distance", "bks",
+]
+
+# Una fila por ejecucion: un solver, una repeticion, una instancia. `filename` es la
+# clave que lleva a la tabla de instancias; ninguna otra columna de alli se repite aqui.
+# `gap_pct` si pertenece a este nivel aunque se calcule con el BKS: cambia de una
+# repeticion a otra, porque cambia el coste.
+RUN_COLUMNS = [
     # Identificacion de la ejecucion
     "filename", "solver", "repetition", "run_id", "label", "timestamp",
     "solver_version", "strategy", "deterministic", "seed", "params",
-    # Caracteristicas de la instancia
-    "num_customers", "num_depots", "vehicles_per_depot", "vehicle_capacity",
-    "max_duration", "total_demand", "load_ratio", "avg_service_duration",
-    "customers_per_depot", "area", "customer_density", "mean_nn_distance",
-    "mean_depot_distance", "bks",
     # Resultado
     "status", "cost", "reported_cost", "gap_pct", "routes", "vehicles_used",
     "extra_trips", "feasible", "violations", "violations_detail", "elapsed_ms",
@@ -32,13 +46,13 @@ DECIMALS = {
     "cost": 2, "reported_cost": 2, "bks": 2, "gap_pct": 2, "elapsed_ms": 0,
     "max_duration": 0, "load_ratio": 4, "avg_service_duration": 2,
     "customers_per_depot": 2, "area": 2, "customer_density": 5,
-    "mean_nn_distance": 4, "mean_depot_distance": 4,
+    "mean_nn_distance": 4, "mean_nearest_depot_distance": 4,
 }
 
 
-def format_row(row):
+def format_row(row, columns):
     values = []
-    for column in CSV_COLUMNS:
+    for column in columns:
         value = row.get(column)
         if value is None or value == "":
             values.append("")
@@ -47,6 +61,38 @@ def format_row(row):
         else:
             values.append(value)
     return values
+
+
+class Output:
+    """
+    Un escritor de CSV que mantiene el contrato de columnas y decimales. Se puede usar
+    para escribir las tablas de instancias y ejecuciones de un experimento.
+    """
+
+    def __init__(self, instances_path, runs_path):
+        self._instances_handle = instances_path.open("w", newline="", encoding="utf-8")
+        self._runs_handle = runs_path.open("w", newline="", encoding="utf-8")
+        self._instances = csv.writer(self._instances_handle)
+        self._runs = csv.writer(self._runs_handle)
+        self._instances.writerow(INSTANCE_COLUMNS)
+        self._runs.writerow(RUN_COLUMNS)
+        self._written = set()
+
+    def instance(self, name, properties):
+        if name in self._written:
+            return
+        self._written.add(name)
+        self._instances.writerow(format_row({**properties, "filename": name},
+                                            INSTANCE_COLUMNS))
+        self._instances_handle.flush()
+
+    def run(self, row):
+        self._runs.writerow(format_row(row, RUN_COLUMNS))
+        self._runs_handle.flush()
+
+    def close(self):
+        self._instances_handle.close()
+        self._runs_handle.close()
 
 
 def compact(mapping):

@@ -13,7 +13,11 @@ from .dataset import digest, mean_time
 from .gateway import declared_defaults
 
 
-def write_report(path, config, records, solvers, csv_name):
+def write_report(path, config, records, solvers, properties, sources):
+    """
+    Genera un informe en Markdown a partir de los datos de un experimento. Se puede
+    abrir en un navegador o convertir a PDF con pandoc.
+    """
     grouped = {}
     for row in records:
         grouped.setdefault((row["filename"], row["solver"]), []).append(row)
@@ -23,11 +27,11 @@ def write_report(path, config, records, solvers, csv_name):
     wins = count_wins(names, solvers, summaries)
 
     lines = []
-    lines += report_header(config, records, names, solvers, csv_name)
+    lines += report_header(config, records, names, solvers, sources)
     lines += report_solver_catalog(solvers)
     lines += report_global(names, solvers, summaries, wins)
-    lines += report_by_instance(names, solvers, summaries, records)
-    lines += report_per_solver(names, solvers, summaries, records)
+    lines += report_by_instance(names, solvers, summaries, properties)
+    lines += report_per_solver(names, solvers, summaries, properties)
     lines += report_incidents(records)
     lines += report_notes()
 
@@ -48,7 +52,7 @@ def count_wins(names, solvers, summaries):
     return wins
 
 
-def report_header(config, records, names, solvers, csv_name):
+def report_header(config, records, names, solvers, sources):
     executions = len(records)
     failed = sum(1 for r in records if r["status"] == "error")
     elapsed = time.time() - config.started_at
@@ -62,7 +66,10 @@ def report_header(config, records, names, solvers, csv_name):
         f"**Duración total:** {human_duration(elapsed)}  ",
         f"**Gateway:** `{config.url}`  ",
         f"**Commit del repositorio:** `{config.commit}`  ",
-        f"**Datos crudos:** [`{csv_name}`](./{csv_name}) - {executions} ejecuciones"
+        f"**Instancias:** [`{sources['instances']}`](./{sources['instances']}) - "
+        f"{len(names)} filas, una por instancia  ",
+        f"**Ejecuciones:** [`{sources['runs']}`](./{sources['runs']}) - "
+        f"{executions} filas, una por ejecucion"
         + (f", {failed} con error" if failed else "") + "  ",
         "",
         "| Configuración | Valor |",
@@ -144,17 +151,15 @@ def report_global(names, solvers, summaries, wins):
     return lines
 
 
-def report_by_instance(names, solvers, summaries, records):
+def report_by_instance(names, solvers, summaries, properties):
     lines = ["## Comparativa por instancia", "",
              "Mejor coste factible de cada solver sobre cada instancia.", "",
              "| Instancia | Clientes | Depósitos | Dur. máx | BKS | "
              + " | ".join(f"`{s}`" for s in solvers) + " | Ganador |",
              "|---|---:|---:|---:|---:|" + "---:|" * len(solvers) + "---|"]
 
-    features = {r["filename"]: r for r in records}
-
     for name in names:
-        row = features[name]
+        row = properties[name]
         limit = int(row["max_duration"]) if row["max_duration"] else "-"
         cells = []
         best_solver, best_cost = None, math.inf
@@ -181,9 +186,8 @@ def report_by_instance(names, solvers, summaries, records):
     return lines
 
 
-def report_per_solver(names, solvers, summaries, records):
+def report_per_solver(names, solvers, summaries, properties):
     lines = ["## Detalle por solver", ""]
-    features = {r["filename"]: r for r in records}
 
     for solver, info in solvers.items():
         lines += [f"### `{solver}` - {info.get('name', '')} v{info.get('version', '')}", "",
@@ -194,7 +198,7 @@ def report_per_solver(names, solvers, summaries, records):
 
         for name in names:
             summary = summaries.get((name, solver))
-            row = features[name]
+            row = properties[name]
             if summary is None:
                 lines.append(f"| `{name}` | {row['num_customers']} | {row['num_depots']} "
                              f"| 0 | - | - | - | - | - | - | - | - | - |")
@@ -260,9 +264,17 @@ def report_notes():
     return [
         "## Notas metodológicas",
         "",
+        "- **Los datos van en dos ficheros porque hay dos niveles de observación.** Las "
+        "propiedades del problema -clientes, depósitos, capacidad, densidad, BKS- son de "
+        "la instancia y no cambian porque se resuelva once veces: van una sola vez, en "
+        "el fichero de instancias. El coste, el tiempo y la semilla son de cada "
+        "ejecución: van en el de ejecuciones. Se cruzan por `filename`. Repetir las "
+        "primeras en cada fila de las segundas no añadía información y sí sesgaba "
+        "cualquier media: al agregar sobre las ejecuciones, las instancias con más "
+        "ejecuciones pesarían más.",
         "- **El coste es el recalculado desde las paradas**, no el que informa el motor. "
-        "El CSV trae los dos (`cost` y `reported_cost`): si alguna vez dejaran de "
-        "coincidir, se vería.",
+        "El fichero de ejecuciones trae los dos (`cost` y `reported_cost`): si alguna vez "
+        "dejaran de coincidir, se vería.",
         "- **La factibilidad se valida en cada ejecución**: cliente servido exactamente una "
         "vez, carga informada igual a la suma de demandas, capacidad, duración máxima "
         "(distancia + tiempos de servicio) y vehículos por depósito. Un coste por debajo "
