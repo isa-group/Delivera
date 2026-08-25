@@ -97,10 +97,6 @@ server:
 
 
 app:
-  space:
-    service: ${SPACE_SERVICE}
-    version: ${SPACE_SERVICE_VERSION}
-    basic-plan: ${SPACE_BASICE_PLAN}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS}
   gateway: 

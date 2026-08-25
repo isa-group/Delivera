@@ -93,10 +93,6 @@ server:
     client-auth: none
 
 app:
-  space:
-    service: delivera
-    version: 1.0.7
-    basic-plan: MICRO
   gateway: 
     enabled: true
   cors:
