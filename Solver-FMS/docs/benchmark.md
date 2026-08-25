@@ -109,7 +109,7 @@ que se equivoque al sumar no puede quedar impune por haberlo calculado él mismo
 > **La comprobación 5 cuenta vehículos distintos, no rutas.** Un vehículo puede hacer más de un
 > viaje: lo que no puede es no existir. Es una comprobación laxa a propósito, y el precio es que se
 > pasa con facilidad -un vehículo que hace 26 viajes la pasa-, así que **no dice nada sobre cuántos
-> viajes hace la flota**. Eso se ve comparando `routes` con `vehicles_used` en el CSV de
+> viajes hace la flota**. Eso se ve comparando `routes` con `vehicles_used` en el fichero de
 > `compare_solvers.py`: en `p22` el aleatorio hace 139 rutas con 9 vehículos y el genético 36 con 36.
 
 El coste **no** hace fallar el test. Comparar calidad es cosa de `compare_solvers.py`; aquí lo que se
@@ -189,7 +189,7 @@ argumentos lanza **las 33 instancias** con todos los solvers del catálogo.
 | `--runs` | 3 | Repeticiones **por solver no determinista**. Con menos de 5 la desviación no es fiable |
 | `--seed` | - | Semilla base. La repetición *k* usa `seed+k-1`, y el experimento entero se repite tal cual |
 | `--out` | `results/` | Directorio donde deja el informe y los datos |
-| `--label` | - | Etiqueta del experimento. Va al nombre de los ficheros y a una columna del CSV |
+| `--label` | - | Etiqueta del experimento. Va al nombre de los tres ficheros y a una columna de las ejecuciones |
 | `--timeout` | `600` | Segundos por petición |
 
 ### Dónde está cada cosa
@@ -232,24 +232,63 @@ from experimentation.comparison.instance import Instance, all_names
 filas = [Instance.load(nombre).features() for nombre in all_names()]
 ```
 
-### Las dos salidas
+### Las tres salidas
 
-Cada ejecución deja dos ficheros bajo `--out`, con la fecha y la etiqueta en el nombre:
+Cada ejecución deja tres ficheros bajo `--out`, con la fecha y la etiqueta en el nombre:
 
 ```
+instancias-2026-08-13-1316.csv
 datos-2026-08-13-1316.csv
 informe-2026-08-13-1316.md
+instancias-2026-08-13-1332-semilla-fija.csv
 datos-2026-08-13-1332-semilla-fija.csv
 informe-2026-08-13-1332-semilla-fija.md
 ```
 
-- **`datos-<fecha>.csv`** - una fila por ejecución individual, en columnas fijas y en inglés. Es el
-  dato crudo. Que el esquema no cambie entre experimentos es lo que permite concatenar los CSV de
-  varias sesiones y analizarlos juntos: se distinguen por `run_id` y `label`, no por tener columnas
-  distintas.
+- **`instancias-<fecha>.csv`** - una fila por **instancia**: las propiedades del problema. Es la
+  tabla que describe *qué* se ha resuelto.
+- **`datos-<fecha>.csv`** - una fila por **ejecución**: un solver, una repetición, una instancia.
+  Es la tabla que describe *qué salió*. Se cruza con la anterior por `filename` y no repite
+  ninguna de sus columnas. Que el esquema no cambie entre experimentos es lo que permite
+  concatenar los CSV de varias sesiones y analizarlos juntos: se distinguen por `run_id` y
+  `label`, no por tener columnas distintas.
 - **`informe-<fecha>.md`** - el informe legible: fecha de ejecución, commit, configuración,
   descriptores de los solvers con sus parámetros, resumen global, comparativa por instancia, **una
   tabla por solver** con las 33 filas, incidencias y notas metodológicas.
+
+### Por qué dos ficheros de datos y no uno
+
+Porque hay **dos niveles de observación** y meterlos en la misma tabla obliga a mentir en uno de
+los dos.
+
+Una instancia Cordeau tiene 50 clientes, 4 depósitos y un BKS de 576,87: eso vale para la
+instancia, y sigue valiendo tanto si se resuelve una vez como once. El coste, el tiempo, la semilla
+y la factibilidad son de cada vuelta concreta. En un único fichero, las catorce columnas del
+problema se repetían idénticas en las once filas de cada instancia. Los problemas de hacerlo así no
+son de estilo:
+
+- **Cualquier agregado sale sesgado.** La media de `load_ratio` sobre las filas del CSV no es la
+  media de las instancias: es la media ponderada por número de ejecuciones, y una instancia con
+  once ejecuciones pesa once veces más que una en la que un solver falló a la primera. Quien abra
+  el fichero y haga la media obtiene un número que parece describir el banco y no lo describe.
+- **La tabla admite estados imposibles.** Con las propiedades repetidas, nada impide que dos filas
+  de `p01` digan que tiene 50 y 60 clientes. El fichero deja de garantizar lo que afirma.
+- **Se lee mal.** Un fichero con una fila por ejecución invita a contar ejecuciones; si además
+  trae las propiedades del problema, invita a contar instancias sobre las mismas filas. Son dos
+  preguntas distintas y ahora cada una tiene su tabla.
+
+Cruzarlas es una línea, y el prefijo del nombre las mantiene emparejadas:
+
+```python
+import pandas as pd
+
+ejecuciones = pd.read_csv("results/datos-2026-08-13-1316.csv")
+instancias = pd.read_csv("results/instancias-2026-08-13-1316.csv")
+todo = ejecuciones.merge(instancias, on="filename")
+```
+
+`decision_tree.py` hace ese cruce solo: se le pasa el `datos-*.csv` y busca su `instancias-*.csv`
+al lado.
 
 La fecha llega al minuto, no al segundo, porque el nombre se lee y se cita. Dos experimentos dentro
 del mismo minuto -dos pruebas rápidas sobre una instancia- desempatan con un sufijo
@@ -261,22 +300,50 @@ leerlo y citarlo. El CSV se va escribiendo y vaciando a disco según avanza, y u
 Ctrl-C genera igualmente el informe con lo medido hasta ese momento: un barrido completo son varios
 minutos y lo ya medido no se tira.
 
-### Las columnas del CSV
+### Las columnas de `instancias-<fecha>.csv`
 
-Tres bloques. **Identificación**: `filename` (el id de la instancia), `solver`, `repetition`,
+Una fila por instancia. Todo sale del fichero de la instancia y nada depende del solver.
+
+| Columna | Qué es |
+|---|---|
+| `filename` | El id de la instancia. Es la clave que la une con las ejecuciones |
+| `num_customers`, `num_depots`, `vehicles_per_depot`, `vehicle_capacity` | El tamaño declarado del problema |
+| `has_duration_limit` | `true`/`false`. Si las rutas tienen duración máxima |
+| `max_duration` | La duración máxima **cuando la hay**; vacío cuando no |
+| `total_demand` | Suma de las demandas de los clientes |
+| `load_ratio` | Demanda total entre capacidad total de la flota. Mide lo apretada que está la instancia |
+| `avg_service_duration` | Tiempo de servicio medio por cliente. Es `0` en 23 de las 33: la mayoría de las Cordeau no lo modelan |
+| `customers_per_depot`, `area`, `customer_density` | La geometría: cuántos clientes por depósito y en cuánto sitio |
+| `mean_nn_distance` | Distancia media de un cliente a su cliente más próximo. Mide si están agrupados |
+| `mean_nearest_depot_distance` | Distancia media de un cliente al depósito **más cercano** |
+| `bks` | La mejor solución publicada. Es una propiedad de la instancia, no un resultado de este experimento |
+
+Dos detalles del modelo que no son cosméticos:
+
+- **`max_duration` va vacío cuando no hay límite**, y la bandera `has_duration_limit` lo dice
+  aparte. El fichero de la instancia codifica «sin límite» con un `0`, y ese `0` no es una
+  duración: es la ausencia del dato. Escrito tal cual, «sin límite» queda por debajo de la
+  instancia más apretada del banco en cualquier orden numérico, y cualquier corte o filtro por esa
+  columna dice lo contrario de lo que pasa. Vacío es lo que significa: no hay valor.
+- **`mean_nearest_depot_distance` es la distancia al depósito más cercano**, no a los depósitos.
+  Se llamaba `mean_depot_distance`, que se leía como si promediara sobre todos. Son dos medidas
+  distintas y la que importa es esta: es la que se recorre.
+
+### Las columnas de `datos-<fecha>.csv`
+
+Una fila por ejecución. Dos bloques.
+
+**Identificación**: `filename` (la clave hacia la tabla de instancias), `solver`, `repetition`,
 `run_id`, `label`, `timestamp`, `solver_version`, `strategy`, `deterministic`, `seed` y `params` -
 los parámetros efectivos con los que corrió, que son los valores por defecto del descriptor más lo
 que se le enviara.
 
-**Características de la instancia**: `num_customers`, `num_depots`, `vehicles_per_depot`,
-`vehicle_capacity`, `max_duration`, `total_demand`, `load_ratio`, `avg_service_duration`,
-`customers_per_depot`, `area`, `customer_density`, `mean_nn_distance`, `mean_depot_distance` y `bks`.
-Van repetidas en cada fila, y no en un fichero aparte, para que el CSV sea autocontenido: describen
-el problema, no la solución, y son las columnas que hacen falta para relacionar el tipo de instancia
-con el algoritmo que le conviene.
+**Resultado**: `status`, `cost`, `reported_cost`, `gap_pct`, `routes`, `vehicles_used`,
+`extra_trips`, `feasible`, `violations`, `violations_detail`, `elapsed_ms`, `engine_ms` y `error`.
 
-**Resultado**: `status`, `cost`, `reported_cost`, `gap_pct`, `routes`, `vehicles_used`, `feasible`,
-`violations`, `violations_detail`, `elapsed_ms`, `engine_ms` y `error`.
+`gap_pct` se calcula con el BKS pero pertenece a este nivel: cambia de una repetición a otra
+porque cambia el coste. Lo que no está aquí es el `bks` en sí, que es el mismo para las once filas
+de una instancia y vive en la otra tabla.
 
 ### Salida en la terminal
 

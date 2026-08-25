@@ -1,14 +1,16 @@
 # Árbol de decisión: qué solver conviene
 
 Entrena un árbol de decisión sobre los datos que produce [`compare_solvers.py`](benchmark.md) y
-obtiene una regla que elige solver a partir de las características de la instancia: número de
+obtiene una regla que elige solver a partir de las propiedades de la instancia: número de
 clientes, depósitos, capacidad, densidad, demanda total y ocho más.
+
+Se le pasa el `datos-*.csv` de un experimento y **busca su `instancias-*.csv` al lado**, que es de donde salen esas propiedades. El nivel de observación del árbol es la instancia: una fila, una decisión. Las ejecuciones se agregan hasta ahí -cada solver se queda con su mejor coste y su tiempo medio- y se les pegan las propiedades del problema.
 
 Los solvers **se leen de los datos**, no están escritos en el código. El script clasifica sobre
 los que encuentre en el CSV, sean dos o seis.
 
 ```bash
-python decision_tree.py                          # el CSV más reciente de results/
+python decision_tree.py                          # el experimento más reciente de results/
 python decision_tree.py results/datos-*.csv      # varios experimentos juntos
 python decision_tree.py --exclude RANDOM,GREEDY  # solo candidatos de producción
 ```
@@ -16,7 +18,7 @@ python decision_tree.py --exclude RANDOM,GREEDY  # solo candidatos de producció
 Desde `Solver-FMS/`. A diferencia del paquete `comparison`, este **necesita dependencias**:
 
 ```bash
-pip install scikit-learn matplotlib
+pip install pandas scikit-learn matplotlib
 ```
 
 Cada ejecución deja dos ficheros bajo `--out`: el informe `tree-<fecha>.md` y la imagen
@@ -24,7 +26,7 @@ Cada ejecución deja dos ficheros bajo `--out`: el informe `tree-<fecha>.md` y l
 
 | Parámetro | Por defecto | Significado |
 |---|---|---|
-| `csv` | el más reciente de `results/` | Uno o varios `datos-*.csv`. Al juntarlos, cada instancia se queda con su mejor coste |
+| `csv` | el más reciente de `results/` | Uno o varios `datos-*.csv`. Su `instancias-*.csv` hermano se lee solo. Al juntarlos, cada instancia se queda con su mejor coste |
 | `--exclude` | - | Solvers a dejar fuera, separados por coma |
 | `--tolerance` | `1.0` | Margen en % dentro del cual dos solvers se consideran de igual calidad |
 | `--max-depth` | `10` | Profundidad máxima del árbol |
@@ -69,7 +71,7 @@ Dos detalles del cálculo:
 
 - El coste es el **mejor** de las N repeticiones; el tiempo es la **media**. Eso favorece
   ligeramente al estocástico, que pagó N veces ese tiempo para conseguir su mejor vuelta.
-- Si dos solvers empatan **exactamente** en tiempo, decide el orden de aparición en el CSV.
+- Si dos solvers empatan **exactamente** en tiempo, decide el orden de aparición en las ejecuciones.
 
 ## Cómo leer el informe
 
