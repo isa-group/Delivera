@@ -33,12 +33,15 @@ export function useLoad() {
         try {
           const response = await _api.post(_url,_body)
           if (response.ok) {
-            const data = await response.json()
-            _ref.value = _transformationFunction == null ?
+            if (response.status == 204) {
+              if (_transformationFunction != null)  _transformationFunction()
+            } else {
+              const data = await response.json()
+              _ref.value = _transformationFunction == null ?
               data : _transformationFunction(data)
-    
+            }
             if(_refLoaded != null) _refLoaded.value = true
-          }else {
+          } else {
             const error = await response.json().catch(()=> null)
             _refLoadError.value = _api.translateError(error, 'error.connection')
           }
@@ -48,8 +51,34 @@ export function useLoad() {
     
     }
 
+    async function put(_api,_url, _body ,_ref, _refLoadError,  _refLoaded = null, _transformationFunction = null) {
+      if (_refLoaded != null && _refLoaded.value) return;
+      
+      if (_api == null || _url == null || _ref == null || _refLoadError == null) return;
+      try {
+        const response = await _api.put(_url,_body)
+        if (response.ok) {
+          if (response.status == 204) {
+            if (_transformationFunction != null)  _transformationFunction()
+          } else {
+            const data = await response.json()
+            _ref.value = _transformationFunction == null ?
+            data : _transformationFunction(data)
+          }
+          if(_refLoaded != null) _refLoaded.value = true
+        } else {
+          const error = await response.json().catch(()=> null)
+          _refLoadError.value = _api.translateError(error, 'error.connection')
+        }
+      } catch {
+        _refLoadError.value = t('error.connection')
+      }
+  
+  }
+
     return {
         executeLoad,
-        post
+        post, 
+        put
     }
 }

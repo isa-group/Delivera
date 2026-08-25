@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n'
 import { useAppConfig } from '@/composables/useAppConfig'
 import { useAuthStore } from '@/stores/auth'
 import TimelineList from '@/components/TimelineList.vue'
-import { startAuthRefresh } from '@/composables/useRefreshToken'
 import { getDeviceId } from '../../composables/useRefreshToken'
 import { useValidation } from '@/composables/useValidation'
 
@@ -91,7 +90,6 @@ async function submitClaim() {
     const data = await res.json()
     if (res.ok) {
       auth.applyLoginData(data)
-      startAuthRefresh()
       router.push('/my-orders')
     } else {
       const code = data?.code
