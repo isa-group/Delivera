@@ -42,41 +42,78 @@ venir de saltarse una restricción sin que el test lo cace.
 
 ## Cómo ejecutarlo
 
+`SolverBenchmarkTest`, en `/fms-gateway`, ejerce **todos** los solvers registrados. Es un test de
+integración: necesita el sistema levantado.
+
 ```bash
-mvn test -Dtest=CordeauBenchmarkTest -Dbenchmark=true -Dinstance=p22 -Druns=3
+docker compose up -d
 ```
 
-Desde `engines/genetic-engine`. En PowerShell hay que entrecomillar cada argumento: `"-Dbenchmark=true"`.
+```bash
+mvn test -Dtest=SolverBenchmarkTest -Dbenchmark=true -Dinstances=p01,p22 -Druns=3
+```
+
+Desde `/fms-gateway`. En la terminal hay que entrecomillar cada argumento: `"-Dbenchmark=true"`.
 
 | Parámetro | Por defecto | Significado |
 |---|---|---|
-| `-Dbenchmark=true` | — | **Obligatorio.** Sin él el test se salta, para no ralentizar el build |
-| `-Dinstance=` | `p22` | Nombre de la instancia, sin extensión |
-| `-Druns=` | `1` | Repeticiones. Útil porque el algoritmo no es determinista |
-
-El test no levanta Docker: instancia `GeneticRouteSolver` directamente y replica el mapeo del
-gateway (`StandardInstanceMapper` + `DistanceMatrixCalculator`).
+| `-Dbenchmark=true` | - | **Obligatorio.** Sin él el test se salta, para no ralentizar el build |
+| `-Dinstances=` | `p01` | Instancias separadas por coma, o `all` para las 33 |
+| `-Dsolvers=` | todos | Subconjunto, por ejemplo `GREEDY,GENETIC` |
+| `-Druns=` | `1` | Repeticiones **por solver no determinista**. Los deterministas se ejecutan una vez |
+| `-Dgateway=` | `http://localhost:8090` | Gateway contra el que medir |
+| `-Dtimeout=` | `600` | Segundos por petición |
 
 Salida:
 
 ```
-  run 1: cost=5952,10  routes=36  time=2249ms
-[p22] runs=5  best=5935,41  avg=5956,11  avgTime=2104ms  BKS=5702,16  gapBest=4,09%  gapAvg=4,45%
+Solvers registrados: [RANDOM, GREEDY, GENETIC]
+
+p22  9 depositos, 360 clientes, duracion maxima 200  |  BKS 5702,16
+  solver     n      mejor      media     gap  rutas   tiempo  factible     semilla
+  RANDOM     2   20326,68   20918,49 +256,5%    131    189ms  si         127997977
+  GREEDY     1    9517,33    9517,33  +66,9%     63    214ms  si                 -
+  GENETIC    2    5946,53    5953,76   +4,3%     36     2,3s  si        1012033380
 ```
+
+### La columna `semilla`
+
+Es la semilla de la **mejor** de las repeticiones, la que hay que reenviar en `parameters` para
+volver a obtener exactamente esa solución. Aparece `-` en los solvers deterministas, que no dependen
+del azar. Es lo que hace útil subir `-Druns`: una buena vuelta ya no se pierde, se puede repetir y
+usar de punto de partida para afinar parámetros.
+
+### Los solvers no están escritos en el test
+
+Se leen de `GET /api/v1/fms/solvers`, que se deriva de la configuración de motores. Registrar un
+motor nuevo basta para que entre en el benchmark, aunque esté implementado en otra tecnología: lo
+único que se le exige es el contrato HTTP. El descriptor aporta también el campo `deterministic`,
+que es lo que decide si repetir el solver varias veces o una sola.
 
 ## Qué valida
 
-`assertFeasible` comprueba, en cada ejecución:
+`CordeauInstance.violations` comprueba, en cada ejecución y para cada solver:
 
-1. Cada cliente aparece en **exactamente una** ruta.
+1. Cada cliente aparece en **exactamente una** ruta, y ninguna ruta visita clientes inexistentes.
 2. `totalLoad` de cada ruta coincide con la suma de las demandas de sus paradas.
 3. Ninguna ruta excede la **capacidad** del vehículo.
 4. Ninguna ruta excede la **duración máxima** del depósito, contando distancia + tiempos de servicio.
-5. Ningún depósito usa **más rutas que vehículos** tiene.
+5. Ningún depósito usa **más vehículos distintos** de los que tiene.
 
-> El test está escrito para el motor genético. La comprobación 5 cuenta rutas por depósito, lo que
-> presupone una ruta por vehículo. Greedy y random modelan multi-viaje —varias rutas comparten
-> `vehicleId`— así que esa comprobación no les aplica tal cual.
+Devuelve **todas** las violaciones, no solo la primera: así se ve de un vistazo si a un motor se le
+escapa una restricción concreta o si la solución está rota de arriba abajo.
+
+El coste se **recalcula desde las paradas**, no se toma el `totalCost` que informa el motor. Un motor
+que se equivoque al sumar no puede quedar impune por haberlo calculado él mismo.
+
+> **La comprobación 5 cuenta vehículos distintos, no rutas.** Un vehículo puede hacer más de un
+> viaje: lo que no puede es no existir. Es una comprobación laxa a propósito, y el precio es que se
+> pasa con facilidad -un vehículo que hace 26 viajes la pasa-, así que **no dice nada sobre cuántos
+> viajes hace la flota**. Eso se ve comparando `routes` con `vehicles_used` en el fichero de
+> `compare_solvers.py`: en `p22` el aleatorio hace 139 rutas con 9 vehículos y el genético 36 con 36.
+
+El coste **no** hace fallar el test. Comparar calidad es cosa de `compare_solvers.py`; aquí lo que se
+comprueba es que lo que devuelve cada motor sea una solución válida del problema.
 
 ## Resultados actuales del motor genético
 
@@ -126,46 +163,205 @@ Como referencia de cuánto se ha avanzado: antes de las correcciones descritas e
 [decisiones-y-correcciones.md](decisiones-y-correcciones.md), p22 daba 6737,95 **y era infactible**
 (rutas con carga por encima de la capacidad del vehículo).
 
-> **Verifica la tabla de BKS.** Los valores están en la constante `BEST_KNOWN` de
-> `CordeauBenchmarkTest`. Son los publicados habitualmente para el conjunto Cordeau, pero solo se han
+> **Verifica la tabla de BKS.** Los valores están en `Solver-FMS/best-known.json`, que leen tanto el
+> test como `compare_solvers.py`. Son los publicados habitualmente para el conjunto Cordeau, pero solo se han
 > contrastado explícitamente p01, p22 y p23. Si alguno estuviera mal, el gap que imprime el test
 > estaría mal también. El coste y la validación de factibilidad no dependen de esta tabla.
 
-## Comparar los tres solvers
+## Comparar todos los solvers
 
-El test anterior mide **solo el genético**. Para enfrentar los tres sobre las mismas instancias hay
-un script que ataca la API y valida lo que devuelve cada uno:
+El test anterior mide **solo el genético**. Para enfrentar a todos los registrados sobre las mismas
+instancias hay un script que ataca la API, valida lo que devuelve cada uno y deja el experimento por
+escrito:
 
 ```bash
-python compare_solvers.py --instances p01,p22 --runs 3
+python compare_solvers.py
 ```
 
-Desde `Solver-FMS/`, con el sistema levantado. Sin dependencias: solo la librería estándar.
+Desde `Solver-FMS/`, con el sistema levantado. Sin dependencias: solo la librería estándar. Sin
+argumentos lanza **las 33 instancias** con todos los solvers del catálogo.
 
 | Parámetro | Por defecto | Significado |
 |---|---|---|
 | `--url` | `http://localhost:8090` | Gateway contra el que medir |
-| `--instances` | `p01` | Instancias separadas por coma |
-| `--all` | — | Las 33 del banco |
+| `--instances` | `all` | `all`, o instancias separadas por coma (`p01,p22`) |
 | `--solvers` | todos | Subconjunto, por ejemplo `GREEDY,GENETIC` |
 | `--runs` | 3 | Repeticiones **por solver no determinista**. Con menos de 5 la desviación no es fiable |
-| `--csv` | — | Vuelca cada ejecución para analizarla aparte |
+| `--seed` | - | Semilla base. La repetición *k* usa `seed+k-1`, y el experimento entero se repite tal cual |
+| `--out` | `results/` | Directorio donde deja el informe y los datos |
+| `--label` | - | Etiqueta del experimento. Va al nombre de los tres ficheros y a una columna de las ejecuciones |
+| `--timeout` | `600` | Segundos por petición |
 
-Salida:
+### Dónde está cada cosa
+
+`compare_solvers.py` es solo la línea de comandos y el cableado. El trabajo está en el paquete
+`experimentation/`, dividido en dos según para qué sirve:
+
+| Paquete | Para qué | Dependencias |
+|---|---|---|
+| `comparison/` | **Medir**: lanzar los solvers y dejar el experimento por escrito. Lo usa `compare_solvers.py` | Solo librería estándar |
+| `tree/` | **Analizar**: aprender de esas mediciones qué solver conviene. Lo usa `decision_tree.py` | scikit-learn, matplotlib |
+
+La división no es cosmética: mezclarlos obligaría a instalar scikit-learn para poder medir, o a
+renunciar a él para poder analizar.
+
+| `comparison/` | Qué sabe |
+|---|---|
+| `instance.py` | Qué es una instancia Cordeau: sus características, cuánto cuesta una solución y qué restricciones incumple |
+| `gateway.py` | Hablar con la pasarela: catálogo y resolución |
+| `runner.py` | Lanzar, medir y convertir cada ejecución en una fila |
+| `dataset.py` | El esquema del CSV y la agregación de repeticiones |
+| `report.py` | El informe en Markdown |
+
+| `tree/` | Qué sabe |
+|---|---|
+| `dataset.py` | Qué significa «conviene»: coste, y a igualdad de coste, tiempo |
+| `model.py` | Entrenar, validar contra la regla mayoritaria y verificar el algoritmo |
+| `plot.py` | El árbol como imagen |
+| `report.py` | El informe en Markdown |
+
+Cómo se ejecuta e interpreta el árbol está en [decision-tree.md](decision-tree.md).
+
+La separación tiene un destinatario concreto: **el análisis posterior de los resultados necesita
+`instance.py` y nada más**. Leer las características de las 33 instancias no debería exigir que haya
+un gateway levantado ni arrastrar el generador de informes.
+
+```python
+from experimentation.comparison.instance import Instance, all_names
+
+filas = [Instance.load(nombre).features() for nombre in all_names()]
+```
+
+### Las tres salidas
+
+Cada ejecución deja tres ficheros bajo `--out`, con la fecha y la etiqueta en el nombre:
 
 ```
-p22  9 depositos, 360 clientes, duracion maxima 200  |  BKS 5702.16
-  solver     n      mejor      media    desv     gap  rutas   tiempo
-  RANDOM     3   20656.41   20826.14   221.0 +262.3%    130     81ms
-  GREEDY     1    9517.33    9517.33       -  +66.9%     63     77ms
-  GENETIC    3    5952.10    5960.98     7.7   +4.4%     36     2.6s
+instancias-2026-08-13-1316.csv
+datos-2026-08-13-1316.csv
+informe-2026-08-13-1316.md
+instancias-2026-08-13-1332-semilla-fija.csv
+datos-2026-08-13-1332-semilla-fija.csv
+informe-2026-08-13-1332-semilla-fija.md
+```
+
+- **`instancias-<fecha>.csv`** - una fila por **instancia**: las propiedades del problema. Es la
+  tabla que describe *qué* se ha resuelto.
+- **`datos-<fecha>.csv`** - una fila por **ejecución**: un solver, una repetición, una instancia.
+  Es la tabla que describe *qué salió*. Se cruza con la anterior por `filename` y no repite
+  ninguna de sus columnas. Que el esquema no cambie entre experimentos es lo que permite
+  concatenar los CSV de varias sesiones y analizarlos juntos: se distinguen por `run_id` y
+  `label`, no por tener columnas distintas.
+- **`informe-<fecha>.md`** - el informe legible: fecha de ejecución, commit, configuración,
+  descriptores de los solvers con sus parámetros, resumen global, comparativa por instancia, **una
+  tabla por solver** con las 33 filas, incidencias y notas metodológicas.
+
+### Por qué dos ficheros de datos y no uno
+
+Porque hay **dos niveles de observación** y meterlos en la misma tabla obliga a mentir en uno de
+los dos.
+
+Una instancia Cordeau tiene 50 clientes, 4 depósitos y un BKS de 576,87: eso vale para la
+instancia, y sigue valiendo tanto si se resuelve una vez como once. El coste, el tiempo, la semilla
+y la factibilidad son de cada vuelta concreta. En un único fichero, las catorce columnas del
+problema se repetían idénticas en las once filas de cada instancia. Los problemas de hacerlo así no
+son de estilo:
+
+- **Cualquier agregado sale sesgado.** La media de `load_ratio` sobre las filas del CSV no es la
+  media de las instancias: es la media ponderada por número de ejecuciones, y una instancia con
+  once ejecuciones pesa once veces más que una en la que un solver falló a la primera. Quien abra
+  el fichero y haga la media obtiene un número que parece describir el banco y no lo describe.
+- **La tabla admite estados imposibles.** Con las propiedades repetidas, nada impide que dos filas
+  de `p01` digan que tiene 50 y 60 clientes. El fichero deja de garantizar lo que afirma.
+- **Se lee mal.** Un fichero con una fila por ejecución invita a contar ejecuciones; si además
+  trae las propiedades del problema, invita a contar instancias sobre las mismas filas. Son dos
+  preguntas distintas y ahora cada una tiene su tabla.
+
+Cruzarlas es una línea, y el prefijo del nombre las mantiene emparejadas:
+
+```python
+import pandas as pd
+
+ejecuciones = pd.read_csv("results/datos-2026-08-13-1316.csv")
+instancias = pd.read_csv("results/instancias-2026-08-13-1316.csv")
+todo = ejecuciones.merge(instancias, on="filename")
+```
+
+`decision_tree.py` hace ese cruce solo: se le pasa el `datos-*.csv` y busca su `instancias-*.csv`
+al lado.
+
+La fecha llega al minuto, no al segundo, porque el nombre se lee y se cita. Dos experimentos dentro
+del mismo minuto -dos pruebas rápidas sobre una instancia- desempatan con un sufijo
+(`...-1316-2.csv`) en vez de pisarse, y ese mismo sufijo va en la columna `run_id`, de modo que el
+nombre del fichero y el identificador de sus filas siempre coinciden.
+
+La división es deliberada: el CSV es para la máquina y no debe cambiar de forma; el informe es para
+leerlo y citarlo. El CSV se va escribiendo y vaciando a disco según avanza, y una interrupción con
+Ctrl-C genera igualmente el informe con lo medido hasta ese momento: un barrido completo son varios
+minutos y lo ya medido no se tira.
+
+### Las columnas de `instancias-<fecha>.csv`
+
+Una fila por instancia. Todo sale del fichero de la instancia y nada depende del solver.
+
+| Columna | Qué es |
+|---|---|
+| `filename` | El id de la instancia. Es la clave que la une con las ejecuciones |
+| `num_customers`, `num_depots`, `vehicles_per_depot`, `vehicle_capacity` | El tamaño declarado del problema |
+| `has_duration_limit` | `true`/`false`. Si las rutas tienen duración máxima |
+| `max_duration` | La duración máxima **cuando la hay**; vacío cuando no |
+| `total_demand` | Suma de las demandas de los clientes |
+| `load_ratio` | Demanda total entre capacidad total de la flota. Mide lo apretada que está la instancia |
+| `avg_service_duration` | Tiempo de servicio medio por cliente. Es `0` en 23 de las 33: la mayoría de las Cordeau no lo modelan |
+| `customers_per_depot`, `area`, `customer_density` | La geometría: cuántos clientes por depósito y en cuánto sitio |
+| `mean_nn_distance` | Distancia media de un cliente a su cliente más próximo. Mide si están agrupados |
+| `mean_nearest_depot_distance` | Distancia media de un cliente al depósito **más cercano** |
+| `bks` | La mejor solución publicada. Es una propiedad de la instancia, no un resultado de este experimento |
+
+Dos detalles del modelo que no son cosméticos:
+
+- **`max_duration` va vacío cuando no hay límite**, y la bandera `has_duration_limit` lo dice
+  aparte. El fichero de la instancia codifica «sin límite» con un `0`, y ese `0` no es una
+  duración: es la ausencia del dato. Escrito tal cual, «sin límite» queda por debajo de la
+  instancia más apretada del banco en cualquier orden numérico, y cualquier corte o filtro por esa
+  columna dice lo contrario de lo que pasa. Vacío es lo que significa: no hay valor.
+- **`mean_nearest_depot_distance` es la distancia al depósito más cercano**, no a los depósitos.
+  Se llamaba `mean_depot_distance`, que se leía como si promediara sobre todos. Son dos medidas
+  distintas y la que importa es esta: es la que se recorre.
+
+### Las columnas de `datos-<fecha>.csv`
+
+Una fila por ejecución. Dos bloques.
+
+**Identificación**: `filename` (la clave hacia la tabla de instancias), `solver`, `repetition`,
+`run_id`, `label`, `timestamp`, `solver_version`, `strategy`, `deterministic`, `seed` y `params` -
+los parámetros efectivos con los que corrió, que son los valores por defecto del descriptor más lo
+que se le enviara.
+
+**Resultado**: `status`, `cost`, `reported_cost`, `gap_pct`, `routes`, `vehicles_used`,
+`extra_trips`, `feasible`, `violations`, `violations_detail`, `elapsed_ms`, `engine_ms` y `error`.
+
+`gap_pct` se calcula con el BKS pero pertenece a este nivel: cambia de una repetición a otra
+porque cambia el coste. Lo que no está aquí es el `bks` en sí, que es el mismo para las once filas
+de una instancia y vive en la otra tabla.
+
+### Salida en la terminal
+
+```
+[22/33] p22  9 depositos, 360 clientes, duracion maxima 200  |  BKS 5702.16
+  solver     n      mejor      media    desv     gap  rutas   tiempo  factible         semilla
+  RANDOM     3   20656.41   20826.14   221.0 +262.3%    130     81ms       0/3      1668748295
+  GREEDY     1    9517.33    9517.33       -  +66.9%     63     77ms       0/1               -
+  GENETIC    3    5952.10    5960.98     7.7   +4.4%     36     2.6s       3/3      1012033380
 ```
 
 ### La columna `desv`
 
-Ningún motor salvo el voraz es reproducible, así que una ejecución suelta no dice nada. Si dos
-configuraciones se separan menos que esta desviación, la diferencia es ruido y no mejora. Aparece `-`
-cuando solo ha habido una ejecución: sin repeticiones no hay dispersión que medir.
+Salvo el voraz, ningún motor repite resultado si no se le fija la semilla, y por defecto el script no
+se la fija: mide la variabilidad real del algoritmo, que es lo que interesa comparar. Una ejecución
+suelta, por tanto, no dice nada. Si dos configuraciones se separan menos que esta desviación, la
+diferencia es ruido y no mejora. Aparece `-` cuando solo ha habido una ejecución: sin repeticiones no
+hay dispersión que medir.
 
 **Con pocas repeticiones engaña.** El genético converge a la misma solución a menudo, y en instancias
 pequeñas es fácil que dos vueltas den el mismo número. En `p01`, cinco vueltas dan tres valores
@@ -174,13 +370,26 @@ distintos; dos vueltas pueden dar cero dispersión aparente.
 El número de repeticiones lo decide el descriptor del solver: si declara `deterministic: true`, se
 ejecuta una sola vez porque repetirlo solo gasta tiempo.
 
-### El coste que se compara
+Con `--seed` el experimento pasa a ser reproducible: la repetición *k* usa `seed+k-1`, de modo que las
+repeticiones siguen siendo distintas entre sí pero el barrido completo se puede volver a lanzar y dar
+lo mismo. Es lo que conviene para comparar dos configuraciones del genético sin que el azar entre en
+la comparación.
 
-Es el **recalculado desde las paradas** de cada ruta, no el que informa el motor. El `--csv` trae los
-dos, `coste` y `coste_informado`, así que si alguna vez dejaran de coincidir se vería.
+### El coste que se compara, y la factibilidad
 
-El script no comprueba que la solución cumpla las restricciones de la instancia. Eso lo hace
-`assertFeasible` en el test del motor genético, descrito más arriba.
+El coste es el **recalculado desde las paradas** de cada ruta, no el que informa el motor. El CSV trae
+los dos, `cost` y `reported_cost`, así que si alguna vez dejaran de coincidir se vería.
+
+El script **valida además las restricciones de la instancia** en cada ejecución, con las mismas
+comprobaciones que `CordeauInstance` en el test del gateway: cliente servido exactamente una vez,
+carga informada, capacidad, duración máxima y vehículos por depósito. Son dos implementaciones de las
+mismas reglas -una en Java y otra en Python- que hay que mantener a la vez, a cambio de que el script
+no dependa de Maven.
+
+Por eso el **mejor coste de cada solver y las victorias del informe se calculan solo sobre
+ejecuciones factibles**. Sin esa regla la comparación se invierte: el voraz ignora la duración máxima
+y el número de vehículos, así que en las 22 instancias con límite puede ganar en distancia
+precisamente por saltarse la restricción.
 
 ## Benchmark a través de la API
 

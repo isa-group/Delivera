@@ -23,6 +23,9 @@ public class StandardInstanceParser {
         JsonNode root = objectMapper.readTree(content);
 
         int type = root.get("problem_type_code").asInt();
+        // Nombre legible de la variante (MDVRP, MDVRPTW...). Es informativo: el
+        // codigo numerico es el que manda, y no todos los ficheros lo traen.
+        String problemType = root.path("problem_type").asText(null);
         int vehiclesPerDepot = root.get("vehicles_per_depot").asInt();
         int customerCount = root.get("num_customers").asInt();
         int depotCount = root.get("num_depots").asInt();
@@ -49,7 +52,7 @@ public class StandardInstanceParser {
             depots.add(parseNodeEntry(depotNode));
         }
 
-        return new StandardInstance(type, vehiclesPerDepot, customerCount, depotCount,
+        return new StandardInstance(type, problemType, vehiclesPerDepot, customerCount, depotCount,
                 depotConfigs, customers, depots);
     }
 

@@ -23,6 +23,12 @@ public record RoutingResponse(
         @Schema(description = "Tiempo de computo en milisegundos", example = "6")
         Long computationTimeMs,
 
+        @Schema(description = "Semilla con la que se ejecuto el solver. Reenviarla en " +
+                "'parameters' reproduce exactamente esta solucion. Ausente en los solvers " +
+                "deterministas, que no dependen del azar",
+                example = "1234", nullable = true)
+        Long seed,
+
         @ArraySchema(
                 arraySchema = @Schema(description = "Lista de rutas que componen la solucion"),
                 schema = @Schema(implementation = RouteDto.class))

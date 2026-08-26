@@ -44,15 +44,12 @@ public class RouteScheduler {
         List<RouteDto> routes = new ArrayList<>();
         List<List<Integer>> split = splitter.split(depot, customerOrder);
 
-        for (int i = 0; i < split.size(); i++) {
-            List<Integer> route = split.get(i);
+        for (List<Integer> route : split) {
             if (route.isEmpty()) {
                 continue;
             }
 
-            String vehicleId = (i < depotVehicles.size())
-                    ? depotVehicles.get(i).id()
-                    : "V-GA-" + depot.id() + "-" + (i + 1);
+            String vehicleId = vehicleFor(depotVehicles, depot, routes.size());
 
             List<String> stops = new ArrayList<>(route.size());
             double totalDistance = 0.0;
@@ -72,5 +69,11 @@ public class RouteScheduler {
         }
 
         return routes;
+    }
+
+    private String vehicleFor(List<VehicleDto> depotVehicles, DepotDto depot, int index) {
+        return depotVehicles.isEmpty()
+                ? "V-GA-" + depot.id() + "-" + (index + 1)
+                : depotVehicles.get(index % depotVehicles.size()).id();
     }
 }

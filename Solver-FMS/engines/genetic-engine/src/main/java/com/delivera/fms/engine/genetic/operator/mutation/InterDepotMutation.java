@@ -5,7 +5,7 @@ import com.delivera.fms.engine.genetic.dto.DepotDto;
 import com.delivera.fms.engine.genetic.scheduler.PermutationCodec;
 import com.delivera.fms.engine.genetic.scheduler.RouteSplitter;
 import org.uma.jmetal.solution.permutationsolution.PermutationSolution;
-import org.uma.jmetal.util.pseudorandom.JMetalRandom;
+import org.uma.jmetal.util.pseudorandom.PseudoRandomGenerator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +24,7 @@ public class InterDepotMutation {
     private static final double BORDER_RATIO = 1.3;
 
     private final double probability;
-    private final JMetalRandom random;
+    private final PseudoRandomGenerator random;
     private final List<CustomerDto> customers;
     private final List<DepotDto> depots;
     private final double[][] distanceMatrix;
@@ -34,9 +34,10 @@ public class InterDepotMutation {
                                List<CustomerDto> customers,
                                List<DepotDto> depots,
                                double[][] distanceMatrix,
-                               RouteSplitter splitter) {
+                               RouteSplitter splitter,
+                               PseudoRandomGenerator random) {
         this.probability = probability;
-        this.random = JMetalRandom.getInstance();
+        this.random = random;
         this.customers = customers;
         this.depots = depots;
         this.distanceMatrix = distanceMatrix;
