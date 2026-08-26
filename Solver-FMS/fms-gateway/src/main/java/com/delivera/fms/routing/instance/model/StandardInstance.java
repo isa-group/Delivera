@@ -4,6 +4,7 @@ import java.util.List;
 
 public record StandardInstance(
         int type,
+        String problemType,
         int vehiclesPerDepot,
         int customerCount,
         int depotCount,

@@ -59,6 +59,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage());
     }
 
+    @ExceptionHandler(InstanceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleInstanceNotFound(InstanceNotFoundException ex) {
+        log.warn("Instance not found: {}", ex.getMessage());
+        return buildResponse(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage());
+    }
+
     @ExceptionHandler(WebClientResponseException.class)
     public ResponseEntity<Map<String, Object>> handleEngineError(WebClientResponseException ex) {
         log.error("Engine returned error: {} - {}", ex.getStatusCode(), ex.getResponseBodyAsString());
