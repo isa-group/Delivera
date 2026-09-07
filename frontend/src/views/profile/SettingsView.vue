@@ -455,11 +455,12 @@ function toggleAddCompany() {
     addingCompany.value = false
     return
   }
+  /*
   const sub = subscription.value
   if (sub && !sub.companies.unlimited && sub.companies.current >= sub.companies.max) {
     addError.value = t('settings.companyLimitReached')
     return
-  }
+  }*/
   addingCompany.value = true
 }
 
@@ -471,6 +472,7 @@ async function addCompany() {
   try {
     const res = await api.post('/settings/companies', { name: newCompanyName.value.trim(), activityType: newActivityType.value })
     if (res.ok) {
+      console.log("ERROR?")
       const created = await res.json()
       allCompanies.value.push(created)
       auth.loadCompanies()

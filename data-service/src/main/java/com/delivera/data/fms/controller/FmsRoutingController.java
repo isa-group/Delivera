@@ -1,6 +1,9 @@
 package com.delivera.data.fms.controller;
 
 import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.data.fms.dto.ClusterConfig;
+import com.delivera.data.fms.dto.DbscanResult;
+import com.delivera.data.fms.dto.RoutingRequest;
 import com.delivera.data.fms.dto.RoutingResponse;
 import com.delivera.data.fms.dto.TypeSolver;
 import com.delivera.data.fms.service.FmsRoutingService;
@@ -10,11 +13,15 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -44,4 +51,30 @@ public class FmsRoutingController {
         RoutingResponse response = fmsRoutingService.solveForCompany(companyId, solverType);
         return ResponseEntity.ok(response);
     }
+
+
+    @Operation(summary = "Get data that will be used to run MD-CVRP solvers ",
+            description = "Obtain the related company's data that is used in the MD-CVRP")
+    @GetMapping("/data")
+    public ResponseEntity<RoutingRequest> data(
+            @Parameter(description = "Tipo de solver a utilizar (RANDOM o GREEDY)")
+            @RequestParam(defaultValue = "GREEDY") TypeSolver solverType) {
+        UUID companyId = securityUtils.getCurrentCompanyId();
+        RoutingRequest response = fmsRoutingService.getRoutingRequestForCompany(companyId, solverType, true);
+        return ResponseEntity.ok(response);
+    }
+
+
+    @Operation(summary = "Get data that will be used to run MD-CVRP solvers ",
+            description = "Obtain the related company's data that is used in the MD-CVRP")
+    @PostMapping("/cluster")
+    public ResponseEntity<DbscanResult> cluster(
+            @Parameter(description = "Tipo de solver a utilizar (RANDOM o GREEDY)")
+            @RequestParam(defaultValue = "GREEDY") TypeSolver solverType, @RequestBody ClusterConfig config) {
+        UUID companyId = securityUtils.getCurrentCompanyId();
+        DbscanResult response = fmsRoutingService.clusters(companyId,config, solverType, false);
+        return ResponseEntity.ok(response);
+    }
+
+
 }

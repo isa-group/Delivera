@@ -1,14 +1,15 @@
 package com.delivera.data.fms.service;
 
-import com.delivera.data.depot.model.OperationalUnit;
 import com.delivera.data.depot.repository.OperationalUnitRepository;
+import com.delivera.data.fms.dto.ClusterConfig;
+import com.delivera.data.fms.dto.Coordinates;
 import com.delivera.data.fms.dto.CustomerDto;
+import com.delivera.data.fms.dto.DbscanResult;
 import com.delivera.data.fms.dto.DepotDto;
 import com.delivera.data.fms.dto.RoutingRequest;
 import com.delivera.data.fms.dto.RoutingResponse;
 import com.delivera.data.fms.dto.TypeSolver;
 import com.delivera.data.fms.dto.VehicleDto;
-import com.delivera.data.order.model.Order;
 import com.delivera.data.order.model.OrderStatus;
 import com.delivera.data.order.repository.OrderRepository;
 import com.delivera.data.vehicle.repository.VehicleRepository;
@@ -17,11 +18,15 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,67 +36,53 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
     private final OperationalUnitRepository unitRepository;
     private final OrderRepository orderRepository;
     private final VehicleRepository vehicleRepository;
-
+    private final FmsClusterService clusterService;
 
     @Override
-    public RoutingResponse solveForCompany(UUID companyId, TypeSolver solverType) {
-        List<OperationalUnit> units = unitRepository.findAllByCompanyId(companyId);
-        List<OperationalUnit> depots = units.stream()
-                .filter(u -> u.getLatitude() != null && u.getLongitude() != null)
-                .toList();
-
+    @Transactional(readOnly = true)
+    public RoutingRequest getRoutingRequestForCompany(UUID companyId, TypeSolver solverType, Boolean showAllDepots) {
         AtomicInteger index = new AtomicInteger(0); // Es literalmente un contador en este caso (sino habría que usar 2 bucles for para asignar el index a cada depot y customer)
-        List<DepotDto> depotDtos = depots.stream()
-                .map(u -> new DepotDto(
-                        u.getId().toString(),
-                        u.getLatitude().doubleValue(),
-                        u.getLongitude().doubleValue(),
-                        index.getAndIncrement()
-                ))
-                .toList();
-
-        List<Order> orders = orderRepository.findByCompanyId(companyId);
-        List<Order> routableOrders = orders.stream()
-                .filter(o -> o.getStatus() == OrderStatus.PENDING || o.getStatus() == OrderStatus.IN_TRANSIT)
-                .filter(o -> {
-                    if (o.getDestination() != null
-                            && o.getDestination().getLatitude() != null
-                            && o.getDestination().getLongitude() != null) {
-                        return true;
-                    }
-                    return o.getRecipientLatitude() != null && o.getRecipientLongitude() != null;
-                })
-                .toList();
-
-        List<CustomerDto> customerDtos = routableOrders.stream()
-                .map(o -> {
-                    double lat;
-                    double lng;
-                    if (o.getDestination() != null
-                            && o.getDestination().getLatitude() != null
-                            && o.getDestination().getLongitude() != null) {
-                        lat = o.getDestination().getLatitude().doubleValue();
-                        lng = o.getDestination().getLongitude().doubleValue();
-                    } else {
-                        lat = o.getRecipientLatitude().doubleValue();
-                        lng = o.getRecipientLongitude().doubleValue();
-                    }
-                    return new CustomerDto(
-                            o.getId().toString(),
-                            1,
-                            lat,
-                            lng,
-                            index.getAndIncrement()
-                    );
-                })
-                .toList();
-
-
         List<VehicleDto> vehicleDtos = vehicleRepository.findDTOsByCompanyId(companyId);
+      
+        Set<String> depotsWithVehicle = vehicleDtos
+        .stream().map(vehicle -> vehicle.getStartDepotId().toString()).collect(Collectors.toSet());
+    
+        List<DepotDto> depotDtos = unitRepository.findRotubleUnitsByCompanyId(companyId)
+        .stream()
+        .filter(depot -> showAllDepots || depotsWithVehicle.contains(depot.getId().toString()))
+        .map(routableUnit -> new DepotDto(
+                routableUnit.getId().toString(),
+                routableUnit.getLat().doubleValue(),
+                routableUnit.getLgn().doubleValue(),
+                index.getAndIncrement()
+        ))
+        .toList();
+
+        List<CustomerDto> customerDtos = orderRepository.findRoutableOrdersByCompanyIdAndStatus(
+            companyId, 
+            Set.of(OrderStatus.PENDING, OrderStatus.IN_TRANSIT)
+        ).stream().map(routableOrder -> {
+            return new CustomerDto(
+                routableOrder.getId().toString(),
+                1,
+                routableOrder.getLat().doubleValue(),
+                routableOrder.getLng().doubleValue(),
+                index.getAndIncrement()
+            );
+        }).toList();
+
+       
+
+       
+       
+        System.out.println(depotDtos.size());
+        List<Coordinates> coordinates = new ArrayList<>(depotDtos);
+        coordinates.addAll(customerDtos);
                 
         int totalNodes = depotDtos.size() + customerDtos.size();
-        double[][] distanceMatrix = buildMockDistanceMatrix(totalNodes);
-
+        //double[][] distanceMatrix = buildMockDistanceMatrix(totalNodes);
+        double[][] distanceMatrix = buildHaversineDistanceMatrix(totalNodes,coordinates);
+        
         RoutingRequest request = new RoutingRequest(
                 UUID.randomUUID().toString(),
                 depotDtos,
@@ -101,6 +92,23 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
                 solverType
         );
 
+        return request;
+    }
+
+
+    @Override
+    public DbscanResult clusters(UUID companyId, ClusterConfig config, TypeSolver solverType, Boolean showAllDepots) {
+        RoutingRequest request = getRoutingRequestForCompany(companyId, solverType, false);
+        return clusterService.clusterClients(
+            config, request.customers(), request.depots(), request.distanceMatrix());
+    }
+
+
+
+
+    @Override
+    public RoutingResponse solveForCompany(UUID companyId, TypeSolver solverType) {
+        RoutingRequest request = getRoutingRequestForCompany(companyId, solverType, false);
         return fmsRoutingClient.post()
                 .uri("/api/v1/fms/routing/solve")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -127,4 +135,29 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
         }
         return matrix;
     }
+
+    //Primero depot y luego customer
+    private double[][] buildHaversineDistanceMatrix(int size,List<Coordinates> coordinates) {
+        double[][] matrix = new double[size][size];
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                if (i == j) {
+                    matrix[i][j] = 0.0;
+                } else {
+                    Coordinates coordinatesI = coordinates.get(i);
+                    Coordinates coordinatesJ = coordinates.get(j);
+                    
+                    matrix[i][j] = Haversine.distanceKm(
+                        coordinatesI.getLat(),coordinatesI.getLng(),
+                        coordinatesJ.getLat(),coordinatesJ.getLng()
+                    );
+                }
+            }
+        }
+        return matrix;
+    }
+
+   
+
+    
 }

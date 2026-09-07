@@ -374,6 +374,7 @@ nav:
   workers: Team
   admin: Administration
   pricing: Pricing
+  routes: Routes
 
 admin:
   title: Administration panel
@@ -640,3 +641,30 @@ pricing:
   activateRenew: Activate auto renew
   desactivateRenew: Desactivate auto renew
 
+routes:
+  title: Route Planning System
+  selectMode: Select mode 
+  showData: Show Data
+  selectSolvers: Select solvers
+  executeSolvers: Execute solvers 
+  modes:
+    best: 
+      name: Best available algorithm 
+      description: Uses the best available algorithm for your routing scenario.
+    fastest:
+      name: Fastest and cheapest
+      description: Uses the fastest and most cost-effective algorithm available. The resulting solution may not be optimal.
+    comparison:
+      name: Comparison
+      description: Run multiple algorithms and compare their results.
+    custom:
+      name: Custom
+      description: Select the algorithm you want to use.
+  grouping:
+    maxRadiusKm: p
+    maxDepotRadiusKm: p
+    minClusterSize: p
+    maxClusterSize: p
+    noiseClusterMaxDistanceKm: p
+    noiseMaxDistanceKm:  p
+  

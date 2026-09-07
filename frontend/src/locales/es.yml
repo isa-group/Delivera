@@ -374,6 +374,7 @@ nav:
   workers: Equipo
   admin: Administración
   pricing: Planes de Precios
+  routes: Rutas
 
 admin:
   title: Panel de administración
@@ -638,3 +639,45 @@ pricing:
   activateRenew: Activar auto renovación
   desactivateRenew: Desactivar auto renovación
   
+routes:
+  title: Sistema de creación de rutas
+  configData: Seleccionar datos
+  groupingData: Agrupar y recopilar datos
+  selectMode: Seleccionar el modo
+  showData: Mostrar los datos
+  selectSolvers: Seleccionar los resolutores
+  executeSolvers: Ejecutar los resolutores
+  modes:
+    best: 
+      name: Mejor algoritmo disponible
+      description: Usa automáticamente el mejor algoritmo disponible para su caso concreto.
+    fastest:
+      name: Más rápido y barato
+      description: Usa el algoritmo más rápido y barato posible, no tiene porque ser la mejor solución disponible.
+    comparison:
+      name: Comparación
+      description: Selección de varios algoritmos para hacer comparativas entre los resultados.
+    custom:
+      name: Personalizado
+      description: Escoge el algoritmo disponible que prefieras.
+  dataModes:
+    auto:
+      name: Agrupación automática
+      description: Usa un radio de agrupación predeterminado, ideal cuando tienes zonas muy separadas.
+    all:
+      name: Todos a la vez
+      description: Usa todos los pedidos disponibles en una misma ejecución, útil cuando tienes un única zona o varias zonas con pocos kilómetros de diferencia.
+    custom: 
+      name: Personalizado
+      description: Elige si agrupar o no los datos y los parámetros de agrupación.
+    benchmarks:
+      name: Banco de prueba
+      description: Escoge entre los distintos datos de prueba disponibles.
+  grouping:
+    maxRadiusKm: Radio máximo de búsqueda por grupo (Km)
+    maxDepotRadiusKm: Radio máximo de asignación de unidad por grupo (Km)
+    minClusterSize: Tamaño mínimo del grupo
+    maxClusterSize: Tamaño máximo del grupo
+    noiseClusterMaxDistanceKm: Distancia máxima de reagrupación de aislados (Km)
+    noiseMaxDistanceKm: Distancia máxima de reagrupación de aislados al cliente más cercano del grupo (Km)
+  execute: Ejecutar

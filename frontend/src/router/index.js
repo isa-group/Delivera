@@ -36,6 +36,8 @@ const UnitWorkersView = () => import('@/views/units/UnitWorkersView.vue')
 const UnitAssignWorkersView = () => import('@/views/units/UnitAssignWorkersView.vue')
 const UnitsMapView = () => import('@/views/units/UnitsMapView.vue')
 const OnboardingView = () => import('@/views/auth/OnboardingView.vue')
+const RoutesView = () => import('@/views/routes/RoutesView.vue')
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -53,6 +55,7 @@ const router = createRouter({
       children: [
         { path: 'home', component: HomeView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN', 'ANALYST', 'OPERATOR'] } },
         { path: '/pricing', component: Pricing, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN']} }, 
+        { path: 'routes', component: RoutesView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN', 'ANALYST', 'OPERATOR'] } },
         { path: 'profile', component: ProfileView, meta: { requiresAuth: true } },
         { path: 'my-orders', component: MyOrdersView, meta: { requiresAuth: true } },
         { path: 'my-orders/detail', component: MyOrderDetailView, meta: { requiresAuth: true } },

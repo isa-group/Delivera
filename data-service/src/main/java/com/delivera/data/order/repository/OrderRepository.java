@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.delivera.data.common.dto.IdCountProjection;
 import com.delivera.data.order.dto.OrderAdminSummary;
+import com.delivera.data.order.dto.RoutableOrder;
 import com.delivera.data.order.dto.RouteAdminEntry;
 import com.delivera.data.order.model.Order;
 import com.delivera.data.order.model.OrderStatus;
@@ -304,4 +305,51 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
               )
        """)
        List<RouteAdminEntry> findAllActiveWithPositions(@Param("activeSatus") Set<OrderStatus> activeSatus);
+
+
+
+
+
+       @Query("""
+       SELECT new com.delivera.data.order.dto.RoutableOrder(
+              o.id,
+              CASE
+                     WHEN destination IS NOT NULL
+                     THEN destination.latitude
+                     ELSE o.recipientLatitude
+              END,
+              CASE
+                     WHEN destination IS NOT NULL
+                     THEN destination.longitude
+                     ELSE o.recipientLongitude
+              END
+       )
+       FROM Order o
+       LEFT JOIN o.destination destination
+       WHERE 
+              o.companyId = :companyId
+              AND
+              o.status IN (:activeSatus)
+              AND 
+              (      
+                     (
+                            o.recipientLatitude IS NOT NULL
+                            AND
+                            o.recipientLongitude IS NOT NULL
+                     )
+                     OR
+                     (
+                            destination IS NOT NULL
+                            AND
+                            destination.latitude IS NOT NULL
+                            AND 
+                            destination.longitude IS NOT NULL
+
+                     )     
+              )
+       """)
+       List<RoutableOrder> findRoutableOrdersByCompanyIdAndStatus(
+              @Param("companyId") UUID companyId,
+              @Param("activeSatus") Set<OrderStatus> activeSatus 
+       );
 }

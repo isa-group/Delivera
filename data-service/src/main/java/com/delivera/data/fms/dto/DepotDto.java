@@ -15,5 +15,15 @@ public record DepotDto(
 
         @Schema(description = "Indice del deposito en la matriz de distancias", example = "0")
         Integer matrixIndex
-) {
+)implements Coordinates{
+
+        @Override
+        public Double getLat() {
+                return this.lat();
+        }
+
+        @Override
+        public Double getLng() {
+                return this.lng();
+        }
 }

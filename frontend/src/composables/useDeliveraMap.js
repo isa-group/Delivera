@@ -70,10 +70,21 @@ function _divIcon(bg, piClass, size = 32) {
   })
 }
 
-export function ownUnitIcon() { return _divIcon(COLORS.own, 'pi pi-building') }
-export function otherUnitIcon() { return _divIcon(COLORS.other, 'pi pi-building') }
-export function customerIcon() { return _divIcon(COLORS.other, 'pi pi-user') }
-export function selfIcon() { return _divIcon(COLORS.own, 'pi pi-user') }
+function _divIconStop(bg, stop, size = 32) {
+  return L.divIcon({
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center"><p style="color:#fff;font-size:${Math.round(size * 0.5)}px">${stop}</p></div>`,
+    className: 'delivera-marker',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2 - 2],
+  })
+}
+
+export function ownUnitIcon(customColor = COLORS.own) { return _divIcon(customColor, 'pi pi-building') }
+export function otherUnitIcon(customColor = COLORS.other) { return _divIcon(customColor, 'pi pi-building') }
+export function customerIcon(customColor = COLORS.other) { return _divIcon(customColor, 'pi pi-user') }
+export function selfIcon(customColor = COLORS.own) { return _divIcon(customColor, 'pi pi-user') }
+export function stopIcon(stop, customColor = COLORS.other) { return _divIconStop(customColor,stop)}
 
 // ---------------------------------------------------------------------------
 // Cluster options — número en blanco sobre círculo morado.
@@ -139,13 +150,14 @@ function bindPopupWithAction(marker, htmlBuilder, actionId, onAction) {
 // - navigateTo: url | null  (null = no dblclick nav, p.e. unidad ajena / cliente no fidelizado)
 // ---------------------------------------------------------------------------
 export function addMarker(map, {
-  id, lat, lon, kind, title, subtitle, actionLabel, navigateTo, router,
+  id, lat, lon, kind, title, subtitle, actionLabel, navigateTo, router, stop, customColor
 }) {
   let icon
-  if (kind === 'OWN_UNIT') icon = ownUnitIcon()
-  else if (kind === 'OTHER_UNIT') icon = otherUnitIcon()
-  else if (kind === 'SELF') icon = selfIcon()
-  else icon = customerIcon()
+  if (kind === 'OWN_UNIT') icon = ownUnitIcon(customColor)
+  else if (kind === 'OTHER_UNIT') icon = otherUnitIcon(customColor)
+  else if (kind === 'SELF') icon = selfIcon(customColor)
+  else if (kind === 'STOP') icon = stopIcon(stop, customColor)
+  else icon = customerIcon(customColor)
 
   const marker = L.marker([lat, lon], { icon })
   const actionId = `m-${kind}-${id ?? Math.random().toString(36).slice(2)}`
@@ -172,6 +184,227 @@ export function addMarker(map, {
 
   return marker
 }
+// ---------------------------------------------------------------------------
+// Route factory — intenta OSRM (polilínea continua morada). Si falla,
+// usa una línea recta discontinua entre ambos puntos.
+//
+// Devuelve una referencia con el layer creado para poder ocultar en zoom out.
+// ---------------------------------------------------------------------------
+
+
+export function routesOverlays(map, layersBySolverRef) {
+  return L.control.layers(null, layersBySolverRef.value).addTo(map);
+}
+
+export function initOverlays(map) {
+ return  L.control.layers(null, {}).addTo(map);
+}
+
+export function addlayer(layerOverlay, layer, name) {
+  layerOverlay.addOverlay(layer, name)
+}
+
+
+export function initSolverLayer(solver, layersBySolverRef) {
+  layersBySolverRef.value = { 
+    ...layersBySolverRef.value, 
+    [solver] : {
+      root:L.layerGroup(),
+      routes: []
+
+    }
+  }
+  console.log(layersBySolverRef.value)
+}
+
+export function initLayer() {
+  return L.layerGroup()
+}
+
+
+
+function interpolateColor(start, end, factor) {
+  return {
+      r: Math.round(start.r + factor * (end.r - start.r)),
+      g: Math.round(start.g + factor * (end.g - start.g)),
+      b: Math.round(start.b + factor * (end.b - start.b))
+  };
+}
+function hexToRgb(hex) {
+  const value = hex.replace('#', '');
+
+  return {
+      r: parseInt(value.substring(0, 2), 16),
+      g: parseInt(value.substring(2, 4), 16),
+      b: parseInt(value.substring(4, 6), 16)
+  };
+}
+
+function lightenColor(hex, factor = 0.6) {
+  const rgb = hexToRgb(hex);
+
+  return {
+      r: Math.round(rgb.r + (255 - rgb.r) * factor),
+      g: Math.round(rgb.g + (255 - rgb.g) * factor),
+      b: Math.round(rgb.b + (255 - rgb.b) * factor)
+  };
+}
+
+
+
+export function drawGradientRoute({
+  map,
+  latLngs,
+  baseColor,
+  startColor,
+  endColor,
+  lightenFactor = 0.6,
+  weight = 5,
+  dashed = false
+}) {
+  if (baseColor) {
+    startColor = lightenColor(baseColor, lightenFactor);
+    endColor = hexToRgb(baseColor);
+  }
+  for (let i = 0; i < latLngs.length - 1; i++) {
+      const factor =
+          i / Math.max(1, latLngs.length - 2);
+
+      const color =
+          interpolateColor(
+              startColor,
+              endColor,
+              factor
+          );
+      
+      const line = !dashed? L.polyline(
+          [
+              latLngs[i],
+              latLngs[i + 1]
+          ],
+          {
+              color: `rgb(${color.r},${color.g},${color.b})`,
+              weight
+          }
+      ): L.polyline([
+              latLngs[i],
+              latLngs[i + 1]
+          ],
+          {
+              color: `rgb(${color.r},${color.g},${color.b})`,
+              weight,
+              dashArray: '2,10'
+          })
+      /*bindPopupWithAction(
+        line,
+        popupHtml({
+          title: "HOLA",
+          subtitle: "HOLA",
+          actionLabel: "HOLA"
+        }),
+        null,
+        null,
+      )*/
+      line.addTo(map)
+
+  }
+}
+
+function addClientIndexs(map,latLngs) {
+  const bounds = L.latLngBounds(latLngs);
+  const center = bounds.getCenter();
+  let index = 0
+  L.divIcon({
+    html: `
+        <div class="route-step">
+            ${index}
+        </div>
+    `,
+    className: '',
+    iconSize: [30, 30]
+  })
+  
+
+}
+function addDirectionMarkers(map, latLngs, color) {
+
+  const every = 20;
+
+  for (let i = every; i < latLngs.length - every; i += every) {
+
+      const p1 = latLngs[i];
+      const p2 = latLngs[i + 1];
+
+      const angle =
+          Math.atan2(
+              p2[0] - p1[0],
+              p2[1] - p1[1]
+          ) * 180 / Math.PI;
+
+      L.marker(p1, {
+          icon: L.divIcon({
+              html: `
+                  <div style="
+                      color:${color};
+                      transform:rotate(${angle}deg);
+                      font-size:12px;
+                  ">
+                      ➤
+                  </div>
+              `,
+              className: '',
+              iconSize: [12,12]
+          })
+      }).addTo(map);
+  }
+}
+
+
+export async function  addFmsRoute(map, {
+  depotId, stops, depotsById, customersById,
+  timeoutMs = 6000, markers ,popupTitle, popupSubtitle, actionLabel, router,
+  color, useDataFunction = null, dashed
+}) {
+  const route = [depotId, ...stops,depotId ]
+  const coords = route.map(
+      (id,indx)=> {
+        if (indx == 0 || indx == route.length-1){
+          return depotsById[id]
+        } else {
+          return customersById[id]
+        }
+      }
+    ).map(coord => {
+      return `${coord.lon},${coord.lat}`
+    })
+  const coordinates = coords.join(";")
+  //console.table(coords)
+  const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?geometries=geojson&overview=full`
+  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) })
+  if (!res.ok) return null
+  const data = await res.json()
+  if (useDataFunction != null) {
+    useDataFunction(data)
+  }
+  const geometry =
+    data.routes[0].geometry.coordinates
+
+  //console.log(data)
+  const latLngs =
+      geometry.map(([lng, lat]) => [lat, lng])
+
+
+  drawGradientRoute({
+      map: map,
+      latLngs: latLngs,
+      baseColor: color,
+      lightenFactor: 0.7,
+      dashed
+  });
+
+  
+}
+
 
 // ---------------------------------------------------------------------------
 // Route factory — intenta OSRM (polilínea continua morada). Si falla,
@@ -182,16 +415,19 @@ export function addMarker(map, {
 export async function addRoute(map, {
   orderId, origin, dest, popupTitle, popupSubtitle, actionLabel, router,
   timeoutMs = 6000, originMarker = null, destMarker = null, status = null,
-  currentLocation = null,
+  currentLocation = null, customColor = null, useDataFunction = null
 }) {
   const entry = { layer: null, solid: true, originMarker, destMarker, currentMarker: null }
-  const color = routeColorFor(status)
+  const color = customColor==null? routeColorFor(status) : customColor
 
   async function fetchOSRM() {
     const url = `https://router.project-osrm.org/route/v1/driving/${origin.lon},${origin.lat};${dest.lon},${dest.lat}?geometries=geojson&overview=simplified`
     const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) })
     if (!res.ok) return null
     const data = await res.json()
+    if (useDataFunction != null) {
+      useDataFunction(data)
+    }
     const coords = data.routes?.[0]?.geometry?.coordinates
     if (!coords || coords.length < 2) return null
     return coords.map(([lon, lat]) => [lat, lon])
