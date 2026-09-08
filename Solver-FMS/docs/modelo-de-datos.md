@@ -94,7 +94,11 @@ la desigualdad triangular.
 | `solverUsed` | `String` | `"RANDOM"`, `"GREEDY"` o `"GENETIC"` |
 | `totalCost` | `Double` | Suma de `totalDistance` de todas las rutas |
 | `computationTimeMs` | `Long` | Tiempo de resolución del motor |
+| `seed` | `Long` | Semilla con la que se ejecutó el solver. Ausente en los deterministas |
 | `routes` | `RouteDto[]` | Rutas de la solución |
+
+`seed` cierra el ciclo de la reproducibilidad: los solvers estocásticos devuelven siempre la semilla
+que han usado, la hayas enviado tú en `parameters` o la haya sorteado el motor. Reenviarla con la misma instancia y los mismos parámetros da **exactamente** la misma solución, así que cualquier ejecución es repetible a posteriori, incluida una buena que salga por casualidad en un barrido.
 
 ### `RouteDto`
 
@@ -108,13 +112,15 @@ la desigualdad triangular.
 
 El depósito **no** aparece en `stops`; está implícito al principio y al final.
 
-> **Diferencia de semántica entre motores.** En greedy y random, un mismo `vehicleId` puede aparecer
-> en **varias** rutas: modelan multi-viaje, un vehículo hace varios trayectos. En el motor genético
-> cada ruta lleva un vehículo distinto y el número de rutas por depósito nunca supera su flota. Si
-> consumes `routes` contando vehículos, ten en cuenta de qué motor viene.
+> **Un mismo `vehicleId` puede aparecer en varias rutas.** Es multi-viaje: el vehículo hace un
+> segundo trayecto. Greedy y random lo hacen de continuo; el genético solo cuando no le queda otra,
+> porque busca activamente un vehículo por ruta. Si consumes `routes` contando vehículos, cuenta
+> identificadores distintos y no rutas.
 >
-> Cuando el motor genético necesita más rutas que vehículos declarados —solo puede pasar si no
-> consigue reparar la solución— genera identificadores sintéticos `V-GA-<depósito>-<n>`.
+> **Ningún motor devuelve un vehículo que no esté en la petición.** La flota es un dato del problema:
+> si un depósito declara 4 vehículos, sus rutas se reparten entre esos 4 aunque hagan falta 5. La
+> única excepción es la petición que no declara `vehicles`, que es como se pide una flota sin límite;
+> ahí el genético nombra las rutas con identificadores sintéticos `V-GA-<depósito>-<n>`.
 
 ## Formato de instancia de benchmark
 
@@ -141,14 +147,14 @@ Mapeo que aplica `StandardInstanceMapper`:
 
 | Campo de la instancia | Destino |
 |---|---|
-| `depots[i].x`, `.y` | `DepotDto.lng`, `DepotDto.lat` — **ojo: `x` es longitud, `y` es latitud** |
+| `depots[i].x`, `.y` | `DepotDto.lng`, `DepotDto.lat` - **ojo: `x` es longitud, `y` es latitud** |
 | `depots[i].max_duration` | `DepotDto.maxDuration` |
 | `depots[i].vehicle_capacity` | `VehicleDto.capacity` de sus vehículos |
 | `vehicles_per_depot` | Cuántos `VehicleDto` se generan por depósito |
 | `customers[i].demand` | `CustomerDto.demand` |
 | `customers[i].service_duration` | `CustomerDto.serviceDuration` |
-| — | `DepotDto.id` = `"1"`, `"2"`, … según posición |
-| — | `CustomerDto.id` = el `id` numérico de la instancia, como texto |
+| - | `DepotDto.id` = `"1"`, `"2"`, … según posición |
+| - | `CustomerDto.id` = el `id` numérico de la instancia, como texto |
 
 La matriz la calcula `DistanceMatrixCalculator` con distancia **euclídea** sobre `(lng, lat)`.
 
@@ -157,9 +163,9 @@ La matriz la calcula `DistanceMatrixCalculator` con distancia **euclídea** sobr
 `StandardInstanceParser` lee estos campos y los guarda en `NodeEntry`, pero el mapeador no los
 propaga y ningún motor los conoce:
 
-- `visit_frequency`, `num_combinations`, `visit_combinations` — pertenecen al problema *periódico*
+- `visit_frequency`, `num_combinations`, `visit_combinations` - pertenecen al problema *periódico*
   (PVRP), no al MD-CVRP.
-- `time_window_earliest`, `time_window_latest` — ventanas de tiempo. Ningún motor las soporta.
+- `time_window_earliest`, `time_window_latest` - ventanas de tiempo. Ningún motor las soporta.
 
 Están ahí para no perder información al parsear, de cara a soportar esas variantes más adelante.
 

@@ -194,6 +194,40 @@ duración se acumulan por separado.
 
 ---
 
+## 17. El azar venía de un singleton de proceso
+
+**Qué pasaba.** Todos los operadores tomaban su generador con `JMetalRandom.getInstance()`: el cruce,
+las dos mutaciones y el propio solver. Los operadores se construyen por petición, así que el campo
+`random` parecía un colaborador propio de cada ejecución, pero `getInstance()` devuelve siempre el
+mismo objeto. Había **un único flujo de números aleatorios para todo el proceso**.
+
+**Por qué importa.** Sin semilla daba igual, y por eso no se notaba. En cuanto se quiere reproducir
+una ejecución, rompe: dos peticiones concurrentes se turnan los números del mismo generador, y un
+`setSeed` de la segunda reinicia el flujo de la primera a mitad de ejecución. Ninguna de las dos
+reproduce, y desde fuera solo se ve un coste distinto, indistinguible de la variabilidad normal del
+algoritmo. Que `GeneticRouteSolver` sea un `@Service` (bean singleton) descarta además guardar el
+generador en un campo: tiene que viajar como argumento.
+
+**Cómo se resolvió.** Un `PseudoRandomGenerator` por ejecución, creado en `solve()` a partir de la
+semilla y pasado por constructor a los tres operadores y como argumento a `initializePopulation`,
+`tournamentSelect` y `restartPopulation`. Se usa `JavaRandomGenerator`, que es **el mismo generador
+que `JMetalRandom` traía por defecto**: el cambio no altera la calidad estadística ni invalida los
+resultados de benchmark anteriores, solo deja de compartir el estado. `JMetalRandom` no aporta nada
+más, porque se limita a delegar en la interfaz con las mismas firmas.
+
+**Lo que hizo que mereciera la pena.** El resto del motor ya era determinista: la parada depende de
+evaluaciones y generaciones, nunca del reloj; `PermutationCodec.depotOrder` recorre los depósitos en
+`LinkedHashMap` sembrado desde la lista, así que las sumas de distancias acumulan siempre en el mismo
+orden; las ordenaciones son estables y no hay streams paralelos. El singleton era lo único que
+impedía la reproducibilidad bit a bit.
+
+**Descartado:** `JMetalRandom.getInstance().setSeed(seed)` al principio de `solve()`. Es una línea y
+funciona con un solo hilo, pero deja el motor a una petición cada vez —con `maxRestarts` alto una
+instancia grande tarda minutos y las demás se comen el timeout de 300 s del despachador— y convierte
+un invariante en algo que hay que recordar.
+
+---
+
 ## Cambios menores
 
 - Comparación de índices con `HashSet` en lugar de `contains` sobre lista, que era O(n²) por hijo.
