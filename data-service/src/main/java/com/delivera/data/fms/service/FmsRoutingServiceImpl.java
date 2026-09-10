@@ -1,5 +1,6 @@
 package com.delivera.data.fms.service;
 
+import com.delivera.data.depot.dto.RoutableUnit;
 import com.delivera.data.depot.repository.OperationalUnitRepository;
 import com.delivera.data.fms.dto.ClusterConfig;
 import com.delivera.data.fms.dto.Coordinates;
@@ -10,11 +11,13 @@ import com.delivera.data.fms.dto.RoutingRequest;
 import com.delivera.data.fms.dto.RoutingResponse;
 import com.delivera.data.fms.dto.TypeSolver;
 import com.delivera.data.fms.dto.VehicleDto;
+import com.delivera.data.order.dto.RoutableOrder;
 import com.delivera.data.order.model.OrderStatus;
 import com.delivera.data.order.repository.OrderRepository;
 import com.delivera.data.vehicle.repository.VehicleRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -28,6 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+@Slf4j 
 @Service
 @RequiredArgsConstructor
 public class FmsRoutingServiceImpl implements FmsRoutingService {
@@ -38,6 +42,62 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
     private final VehicleRepository vehicleRepository;
     private final FmsClusterService clusterService;
 
+
+
+    @Transactional(readOnly = true)
+    public RoutingRequest getRoutingRequestForCompany(
+        UUID companyId, 
+        Set<UUID> clients,
+        Set<UUID> depots,
+        TypeSolver solverType
+    ) {
+        AtomicInteger index = new AtomicInteger(0); // Es literalmente un contador en este caso (sino habría que usar 2 bucles for para asignar el index a cada depot y customer)
+        List<VehicleDto> vehicleDtos = vehicleRepository.retrieveDTOsByCompanyIdInSelectedDepots(
+            companyId, depots
+        );
+      
+        Set<String> depotsWithVehicle = vehicleDtos
+        .stream().map(vehicle -> vehicle.getStartDepotId().toString()).collect(Collectors.toSet());
+        
+        
+        List<DepotDto> depotDtos =  transformInDTO(
+            unitRepository.retrieveDepotsByCompanyId(companyId, depots),
+            depotsWithVehicle,
+            false,
+            index
+        );
+        
+
+        List<CustomerDto> customerDtos = transformInDTO(
+            orderRepository.retrieveSelectedClientsByCompanyIdAndStatus(
+                companyId, 
+                Set.of(OrderStatus.PENDING, OrderStatus.IN_TRANSIT),
+                clients
+            ),
+            index
+        );
+       
+
+       
+        List<Coordinates> coordinates = new ArrayList<>(depotDtos);
+        coordinates.addAll(customerDtos);
+                
+        int totalNodes = depotDtos.size() + customerDtos.size();
+
+        double[][] distanceMatrix = buildHaversineDistanceMatrix(totalNodes,coordinates);
+        
+        RoutingRequest request = new RoutingRequest(
+                UUID.randomUUID().toString(),
+                depotDtos,
+                customerDtos,
+                vehicleDtos,
+                distanceMatrix,
+                solverType
+        );
+
+        return request;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public RoutingRequest getRoutingRequestForCompany(UUID companyId, TypeSolver solverType, Boolean showAllDepots) {
@@ -47,40 +107,25 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
         Set<String> depotsWithVehicle = vehicleDtos
         .stream().map(vehicle -> vehicle.getStartDepotId().toString()).collect(Collectors.toSet());
     
-        List<DepotDto> depotDtos = unitRepository.findRotubleUnitsByCompanyId(companyId)
-        .stream()
-        .filter(depot -> showAllDepots || depotsWithVehicle.contains(depot.getId().toString()))
-        .map(routableUnit -> new DepotDto(
-                routableUnit.getId().toString(),
-                routableUnit.getLat().doubleValue(),
-                routableUnit.getLgn().doubleValue(),
-                index.getAndIncrement()
-        ))
-        .toList();
+        List<DepotDto> depotDtos = transformInDTO( 
+            unitRepository.findRotubleUnitsByCompanyId(companyId),
+            depotsWithVehicle,
+            showAllDepots,
+            index
+        );
 
-        List<CustomerDto> customerDtos = orderRepository.findRoutableOrdersByCompanyIdAndStatus(
-            companyId, 
-            Set.of(OrderStatus.PENDING, OrderStatus.IN_TRANSIT)
-        ).stream().map(routableOrder -> {
-            return new CustomerDto(
-                routableOrder.getId().toString(),
-                1,
-                routableOrder.getLat().doubleValue(),
-                routableOrder.getLng().doubleValue(),
-                index.getAndIncrement()
-            );
-        }).toList();
-
+        List<CustomerDto> customerDtos = transformInDTO(
+            orderRepository.findRoutableOrdersByCompanyIdAndStatus(
+                companyId, 
+                Set.of(OrderStatus.PENDING, OrderStatus.IN_TRANSIT)
+            ), 
+            index
+        );
        
-
-       
-       
-        System.out.println(depotDtos.size());
         List<Coordinates> coordinates = new ArrayList<>(depotDtos);
         coordinates.addAll(customerDtos);
                 
         int totalNodes = depotDtos.size() + customerDtos.size();
-        //double[][] distanceMatrix = buildMockDistanceMatrix(totalNodes);
         double[][] distanceMatrix = buildHaversineDistanceMatrix(totalNodes,coordinates);
         
         RoutingRequest request = new RoutingRequest(
@@ -96,11 +141,17 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
     }
 
 
+    // TODO: Inspect computation time;
     @Override
     public DbscanResult clusters(UUID companyId, ClusterConfig config, TypeSolver solverType, Boolean showAllDepots) {
         RoutingRequest request = getRoutingRequestForCompany(companyId, solverType, false);
-        return clusterService.clusterClients(
-            config, request.customers(), request.depots(), request.distanceMatrix());
+        DbscanResult result = clusterService.clusterClients(
+            config, 
+            request.customers(), 
+            request.depots(), 
+            request.distanceMatrix()
+        );
+        return result;
     }
 
 
@@ -117,26 +168,7 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
                 .body(RoutingResponse.class);
     }
 
-    /**
-     * Mock distance matrix for testing purposes.
-     * TODO: Reemplazar con un cálculo real de distancias (fórmula de Haversine o API externa de ruteo como OSRM/Google Maps).
-     * Genera una distancia random entre 1 y 50 km para cada par de nodos (depots y clientes).
-     */
-    private double[][] buildMockDistanceMatrix(int size) {
-        double[][] matrix = new double[size][size];
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                if (i == j) {
-                    matrix[i][j] = 0.0;
-                } else {
-                    matrix[i][j] = Math.round((Math.random() * 49.0 + 1.0) * 100.0) / 100.0;
-                }
-            }
-        }
-        return matrix;
-    }
-
-    //Primero depot y luego customer
+    // coordinates = [ ...depots, ...customers]
     private double[][] buildHaversineDistanceMatrix(int size,List<Coordinates> coordinates) {
         double[][] matrix = new double[size][size];
         for (int i = 0; i < size; i++) {
@@ -155,6 +187,59 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
             }
         }
         return matrix;
+    }
+
+
+    @Override
+    public RoutingResponse solverForCompany(
+        UUID companyId, 
+        Set<UUID> customers, 
+        Set<UUID> depots,
+        TypeSolver solverType
+    ) {
+
+        RoutingRequest request = getRoutingRequestForCompany(companyId,customers, depots, solverType);
+        return fmsRoutingClient.post()
+                .uri("/api/v1/fms/routing/solve")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .retrieve()
+                .body(RoutingResponse.class);
+    }
+
+
+
+
+    private  List<DepotDto> transformInDTO(
+        List<RoutableUnit> routableUnits,
+        Set<String> validDepots,
+        Boolean showAll,
+        AtomicInteger index
+    ) {
+        return  routableUnits.stream()
+        .filter(depot -> showAll || validDepots.contains(depot.getId().toString()))
+        .map(routableUnit -> new DepotDto(
+                routableUnit.getId().toString(),
+                routableUnit.getLat().doubleValue(),
+                routableUnit.getLgn().doubleValue(),
+                index.getAndIncrement()
+        ))
+        .toList();
+    }
+
+    private  List<CustomerDto> transformInDTO(
+        List<RoutableOrder> routableOrders,
+        AtomicInteger index
+    ) {
+        return  routableOrders.stream().map(routableOrder -> {
+            return new CustomerDto(
+                routableOrder.getId().toString(),
+                1,
+                routableOrder.getLat().doubleValue(),
+                routableOrder.getLng().doubleValue(),
+                index.getAndIncrement()
+            );
+        }).toList();
     }
 
    

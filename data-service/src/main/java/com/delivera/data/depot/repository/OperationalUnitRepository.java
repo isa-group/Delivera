@@ -165,4 +165,25 @@ public interface OperationalUnitRepository extends JpaRepository<OperationalUnit
    List<RoutableUnit> findRotubleUnitsByCompanyId(
         @Param("companyId") UUID companyId
     );
+
+    @Query("""
+        SELECT new com.delivera.data.depot.dto.RoutableUnit(
+            u.id,
+            u.latitude,
+            u.longitude
+        )
+        FROM OperationalUnit u
+        WHERE
+            u.companyId = :companyId
+            AND
+            u.latitude IS NOT NULL
+            AND
+            u.longitude IS NOT NULL   
+            AND
+            u.id IN :depotIds    
+        """)
+       List<RoutableUnit> retrieveDepotsByCompanyId(
+            @Param("companyId") UUID companyId,
+            @Param ("depotIds") Set<UUID> depotIds
+        );
 }

@@ -1,6 +1,7 @@
 package com.delivera.data.fms.service;
 
 
+import java.util.Set;
 import java.util.UUID;
 
 import com.delivera.data.fms.dto.ClusterConfig;
@@ -12,6 +13,9 @@ import com.delivera.data.fms.dto.TypeSolver;
 public interface FmsRoutingService {
 
     RoutingResponse solveForCompany(UUID companyId, TypeSolver solverType);
+
+
+    RoutingResponse solverForCompany(UUID companyId, Set<UUID> customers, Set<UUID> depots ,TypeSolver solverType);
 
     RoutingRequest getRoutingRequestForCompany(UUID companyId, TypeSolver solverType, Boolean showAllDepots );
 

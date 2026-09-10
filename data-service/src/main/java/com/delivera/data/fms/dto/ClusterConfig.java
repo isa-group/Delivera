@@ -35,6 +35,8 @@ public class ClusterConfig {
     @Min(value = 0)
     private double noiseMaxDistanceKm = 250;
 
+    @Builder.Default
+    private  boolean dbscan = true;
 
 
 

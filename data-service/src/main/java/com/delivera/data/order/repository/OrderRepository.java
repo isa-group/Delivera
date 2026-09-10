@@ -352,4 +352,51 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
               @Param("companyId") UUID companyId,
               @Param("activeSatus") Set<OrderStatus> activeSatus 
        );
+
+       @Query("""
+       SELECT new com.delivera.data.order.dto.RoutableOrder(
+              o.id,
+              CASE
+                     WHEN destination IS NOT NULL
+                     THEN destination.latitude
+                     ELSE o.recipientLatitude
+              END,
+              CASE
+                     WHEN destination IS NOT NULL
+                     THEN destination.longitude
+                     ELSE o.recipientLongitude
+              END
+       )
+       FROM Order o
+       LEFT JOIN o.destination destination
+       WHERE 
+              o.companyId = :companyId
+              AND
+              o.status IN (:activeSatus)
+              AND o.id IN (:clientIds)
+              AND 
+              (      
+                     (
+                            o.recipientLatitude IS NOT NULL
+                            AND
+                            o.recipientLongitude IS NOT NULL
+                     )
+                     OR
+                     (
+                            destination IS NOT NULL
+                            AND
+                            destination.latitude IS NOT NULL
+                            AND 
+                            destination.longitude IS NOT NULL
+
+                     )     
+              )
+              
+       
+       """)
+       List<RoutableOrder> retrieveSelectedClientsByCompanyIdAndStatus(
+              @Param("companyId") UUID companyId,
+              @Param("activeSatus") Set<OrderStatus> activeSatus,
+              @Param ("clientIds") Set<UUID> clientIds
+       );
 }

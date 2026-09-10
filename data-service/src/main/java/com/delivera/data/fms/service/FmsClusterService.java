@@ -17,7 +17,7 @@ import com.delivera.data.fms.dto.DbscanResult;
 import com.delivera.data.fms.dto.DepotDto;
 
 import lombok.RequiredArgsConstructor;
-
+ 
 @Service
 @RequiredArgsConstructor
 public class FmsClusterService {
@@ -30,32 +30,49 @@ public class FmsClusterService {
         double[][] distanceMatrix
     ){
         long init = System.currentTimeMillis();
-
-        DbscanResult result =  executeDBSCAN(
-            config,
-            customers,
-            depots,
-            distanceMatrix
-        );
-
-        result = silenceNoise(config, result, distanceMatrix);
+        DbscanResult result;
+        if (config.isDbscan()) {
+            result =  executeDBSCAN(
+                config,
+                customers,
+                depots,
+                distanceMatrix
+            );
+    
+            result = silenceNoise(config, result, distanceMatrix);
+        } else {
+            result = onlyOneCluster(customers, depots, distanceMatrix);
+        }
 
         result = subdivideByLimit(config, result, distanceMatrix);
-
+    
         closeClusters(result);
 
         result = assignDepots(config, result, depots, distanceMatrix);
-
+        
         result.setDepots(depots);
 
         result.setConfig(config);
-
+        
         result.setComputationTimeMs(System.currentTimeMillis() - init);
-
-        System.out.println("CLUSTER EXECUTION TIME IS: "+(result.getComputationTimeMs())+" ms");
 
         return result;
 
+    }
+
+
+    public DbscanResult onlyOneCluster( 
+        List<CustomerDto> customers,
+        List<DepotDto> depots, 
+        double[][] distanceMatrix
+    ) {
+        List<Cluster> clusters = new  ArrayList<>();
+        Cluster cluster = Cluster.of();
+        for (CustomerDto customer: customers) {
+            cluster.add(customer);
+        }
+        clusters.add(cluster);
+        return  DbscanResult.builder().clusters(clusters).build();
     }
 
     public void closeClusters(DbscanResult dbscanResult) {

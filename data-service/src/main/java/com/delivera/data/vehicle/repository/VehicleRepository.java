@@ -29,6 +29,21 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
     """)
     List<VehicleDto> findDTOsByCompanyId(UUID companyId);
 
+    @Query("""
+        SELECT new com.delivera.data.fms.dto.VehicleDto(
+            v.id,
+            v.capacity,
+            v.depot.id
+        )
+        FROM Vehicle v
+        WHERE 
+            v.companyId = :companyId 
+            AND
+            v.depot.id IN :depotIds
+
+        """)
+        List<VehicleDto> retrieveDTOsByCompanyIdInSelectedDepots(UUID companyId, Set<UUID> depotIds);
+
     List<Vehicle> findAllByCompanyId(UUID companyId);
 
     Optional<Vehicle> findByIdAndCompanyId(UUID id, UUID companyId);
