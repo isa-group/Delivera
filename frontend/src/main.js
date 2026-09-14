@@ -115,7 +115,7 @@ app.component('EmptyState', EmptyState)
 app.component('TimelineList', TimelineList)
 
 try{
-  await refreshIfNeeded()
+  //await refreshIfNeeded()
 } catch(e) {/**/}
 
 
