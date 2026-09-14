@@ -74,9 +74,7 @@ export function useRoutesGrouping({
     }
 
     async function executeGrouping() {
-        console.log(groupingParams.value)
         await post(dataApi,"/fms/routing/cluster",groupingParams.value,groups,groupsError)
-        console.log(groups.value)
         goToPhase({name: "selectMode"})
 
     }

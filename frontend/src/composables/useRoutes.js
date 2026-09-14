@@ -104,18 +104,41 @@ export function useRoutes() {
         }
         
     })
-    onUnmounted(() => {
+
+    function removeSelectedLayers(_layerIds) {
+        const layerIds = new Set(_layerIds)
+        if (layerOverlay?._layers) {
+            layerOverlay._layers = [...layerOverlay._layers]
+            .filter(la => !layerIds.has(la.layer?._leaflet_id))
+        }
+    }
+
+    function removeGroupLayers() {
+        const layerIds = new Set()
         for (const layer of groupLayers.value) {
+            layerIds.add(layer._leaflet_id)
             layer.remove()
         }
+        groupLayers.value = []
+        removeSelectedLayers(layerIds)
+     
+       
+    }
+
+
+    onUnmounted(() => {
+        removeGroupLayers()
         initialCustomerLayer = null
         initalDepotLayer = null
         finalDepotLayer = null
-        groupLayers.value = []
+
         unmountMap(map,layersBySolver,layerOverlay)
     })
 
     async function  runGrouping() {
+        if (groups.value) {
+            removeGroupLayers()
+        }
         await executeGrouping()
         if (groups.value) {
             const executionResult = groups.value
@@ -134,9 +157,6 @@ export function useRoutes() {
                 }
             }
             const clusterDepots = [...executionResult.depots].filter(d => depotsIndexs.has(d.matrixIndex))
-            console.log(executionResult.clusters)
-            console.log(executionResult.depots)
-            console.log(clusterDepots)
             finalDepotLayer = initLayer()
             addDepots({map: finalDepotLayer, depots: clusterDepots, customColor: DEPOT_COLOR })
             addlayer(layerOverlay,finalDepotLayer, t("routes.layers.depots"))
