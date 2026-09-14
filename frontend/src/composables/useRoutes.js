@@ -115,7 +115,7 @@ export function useRoutes() {
 
     function removeGroupLayers() {
         const layerIds = new Set()
-        for (const layer of groupLayers.value) {
+        for (const {id, layer} of groupLayers.value) {
             layerIds.add(layer._leaflet_id)
             layer.remove()
         }
@@ -148,7 +148,7 @@ export function useRoutes() {
                 addCustomers({map: clusterLayer, customers:cluster.customers, customColor: CLUSTER_COLOR })
                 groupLayers.value = [
                     ...groupLayers.value,
-                    clusterLayer
+                    {id:cluster.id, layer:clusterLayer}
                 ]
                 clusterLayer.addTo(map)
                 addlayer(layerOverlay,clusterLayer, t("routes.layers.cluster")+" "+cluster.id)
