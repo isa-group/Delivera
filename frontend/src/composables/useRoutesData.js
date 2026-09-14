@@ -60,7 +60,7 @@ export function useRoutesData({
     function selectDataMode(id) {
         const oneSelected = selectOnlyOne(id,selections)
         if (oneSelected) {
-            goToPhase({name: "selectMode"})
+            goToPhase({name: "groupingData"})
         } else {
             disabledNextPhases()
         }

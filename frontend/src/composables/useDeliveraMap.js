@@ -214,7 +214,6 @@ export function initSolverLayer(solver, layersBySolverRef) {
 
     }
   }
-  console.log(layersBySolverRef.value)
 }
 
 export function initLayer() {
@@ -251,7 +250,6 @@ function lightenColor(hex, factor = 0.6) {
 }
 
 
-
 export function drawGradientRoute({
   map,
   latLngs,
@@ -266,9 +264,18 @@ export function drawGradientRoute({
     startColor = lightenColor(baseColor, lightenFactor);
     endColor = hexToRgb(baseColor);
   }
-  for (let i = 0; i < latLngs.length - 1; i++) {
+  const chunkSize = Math.max(
+    5,
+    Math.min(
+        100,
+        Math.floor(latLngs.length / 50)
+    )
+  );
+
+  for (let i = 0; i < latLngs.length - chunkSize; i += chunkSize) {
+
       const factor =
-          i / Math.max(1, latLngs.length - 2);
+          i / Math.max(1, latLngs.length - chunkSize);
 
       const color =
           interpolateColor(
@@ -276,88 +283,23 @@ export function drawGradientRoute({
               endColor,
               factor
           );
-      
-      const line = !dashed? L.polyline(
-          [
-              latLngs[i],
-              latLngs[i + 1]
-          ],
-          {
-              color: `rgb(${color.r},${color.g},${color.b})`,
-              weight
-          }
-      ): L.polyline([
-              latLngs[i],
-              latLngs[i + 1]
-          ],
-          {
-              color: `rgb(${color.r},${color.g},${color.b})`,
-              weight,
-              dashArray: '2,10'
-          })
-      /*bindPopupWithAction(
-        line,
-        popupHtml({
-          title: "HOLA",
-          subtitle: "HOLA",
-          actionLabel: "HOLA"
-        }),
-        null,
-        null,
-      )*/
-      line.addTo(map)
 
-  }
-}
+      const chunk = latLngs.slice(
+          i,
+          Math.min(i + chunkSize + 1, latLngs.length)
+      );
 
-function addClientIndexs(map,latLngs) {
-  const bounds = L.latLngBounds(latLngs);
-  const center = bounds.getCenter();
-  let index = 0
-  L.divIcon({
-    html: `
-        <div class="route-step">
-            ${index}
-        </div>
-    `,
-    className: '',
-    iconSize: [30, 30]
-  })
-  
-
-}
-function addDirectionMarkers(map, latLngs, color) {
-
-  const every = 20;
-
-  for (let i = every; i < latLngs.length - every; i += every) {
-
-      const p1 = latLngs[i];
-      const p2 = latLngs[i + 1];
-
-      const angle =
-          Math.atan2(
-              p2[0] - p1[0],
-              p2[1] - p1[1]
-          ) * 180 / Math.PI;
-
-      L.marker(p1, {
-          icon: L.divIcon({
-              html: `
-                  <div style="
-                      color:${color};
-                      transform:rotate(${angle}deg);
-                      font-size:12px;
-                  ">
-                      ➤
-                  </div>
-              `,
-              className: '',
-              iconSize: [12,12]
-          })
+      L.polyline(chunk, {
+          color: `rgb(${color.r},${color.g},${color.b})`,
+          weight
       }).addTo(map);
   }
 }
+
+
+
+
+
 
 
 export async function  addFmsRoute(map, {
@@ -378,7 +320,6 @@ export async function  addFmsRoute(map, {
       return `${coord.lon},${coord.lat}`
     })
   const coordinates = coords.join(";")
-  //console.table(coords)
   const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?geometries=geojson&overview=full`
   const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) })
   if (!res.ok) return null
@@ -389,7 +330,7 @@ export async function  addFmsRoute(map, {
   const geometry =
     data.routes[0].geometry.coordinates
 
-  //console.log(data)
+  console.log(data)
   const latLngs =
       geometry.map(([lng, lat]) => [lat, lng])
 
@@ -398,11 +339,11 @@ export async function  addFmsRoute(map, {
       map: map,
       latLngs: latLngs,
       baseColor: color,
-      lightenFactor: 0.7,
+      lightenFactor: 0.4,
       dashed
   });
 
-  
+
 }
 
 

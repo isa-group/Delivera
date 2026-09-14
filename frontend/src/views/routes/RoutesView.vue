@@ -1,6 +1,6 @@
 <script setup>
 import { useRoutes } from '@/composables/useRoutes';
-import { Step, StepList, Stepper } from 'primevue';
+import { Checkbox, Step, StepList, Stepper } from 'primevue';
 import { useI18n } from 'vue-i18n';
 import OptionsGrid from './OptionsGrid.vue';
 
@@ -21,6 +21,7 @@ const {
         selectedSolversId,
         selectedDataModeId,
         realCostBySolver,
+        groupingParamsDisabled,
         selectPhase,
         canGoToPhase,
         allowNextPhases,
@@ -74,6 +75,15 @@ console.log(realCostBySolver)
                         v-if="showGroupingParams()"
                         class="parameter-box"
                     >
+                        <div class="parameter-checkbox">
+                            <h4>{{t("routes.grouping.dbscan")}}</h4>
+                            <Checkbox
+                                class="parameter-checkbox-input"
+                                v-model="groupingParams.dbscan"
+                                :binary="true"
+                            />
+                        </div>
+                        
                         <div 
                             class="parameter-card"
                             :key="selector.key" 
@@ -87,6 +97,7 @@ console.log(realCostBySolver)
                                     :max="selector.max"
                                     :step="selector.step"
                                     v-model.number="groupingParams[selector.key]"
+                                    :disabled="groupingParamsDisabled[selector.key]"
                                 />
                                 <input
                                     class="parameter-card-textInput"
@@ -94,6 +105,7 @@ console.log(realCostBySolver)
                                     :step="selector.step"
                                     v-model.number="groupingParams[selector.key]"
                                     @change="clampValue(selector)"
+                                    :disabled="groupingParamsDisabled[selector.key]"
                                 />
                             </div> 
                         </div>

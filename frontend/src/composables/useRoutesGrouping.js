@@ -1,4 +1,4 @@
-import { ref } from "vue"
+import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { useServices } from "./useServices"
 import { useLoad } from "./useLoad"
@@ -17,12 +17,26 @@ export function useRoutesGrouping({
     const groupsError = ref()
 
     const groupingParams = ref({
-        maxRadiusKm: 100,
-        maxDepotRadiusKm: 250,
-        minClusterSize: 1,
+        dbscan: true,
+        maxRadiusKm: 50,
+        maxDepotRadiusKm: 150,
+        minClusterSize: 3,
         maxClusterSize: 20,
-        noiseClusterMaxDistanceKm: 125,
-        noiseMaxDistanceKm: 70
+        noiseClusterMaxDistanceKm: 150,
+        noiseMaxDistanceKm: 30
+    })
+
+    const groupingParamsDisabled = computed(() => {
+        return {
+            dbscan: false,
+            maxRadiusKm: !groupingParams.value?.dbscan,
+            maxDepotRadiusKm: false,
+            minClusterSize: !groupingParams.value?.dbscan,
+            maxClusterSize: false,
+            noiseClusterMaxDistanceKm: !groupingParams.value?.dbscan,
+            noiseMaxDistanceKm: !groupingParams.value?.dbscan
+        }
+
     })
 
     function objectByName(name,min, max, step=1) {
@@ -37,12 +51,12 @@ export function useRoutesGrouping({
 
 
     const groupingNormalSelectors = [
-        objectByName("maxRadiusKm",1,500),
         objectByName("maxDepotRadiusKm",1,500),
-        objectByName("minClusterSize",1,100),
         objectByName("maxClusterSize",1,100),
+        objectByName("minClusterSize",1,100),
+        objectByName("maxRadiusKm",1,500),
         objectByName("noiseClusterMaxDistanceKm",1,500),
-        objectByName("noiseMaxDistanceKm",1,500)        
+        objectByName("noiseMaxDistanceKm",1,500)  
     ]
 
 
@@ -63,19 +77,18 @@ export function useRoutesGrouping({
         console.log(groupingParams.value)
         await post(dataApi,"/fms/routing/cluster",groupingParams.value,groups,groupsError)
         console.log(groups.value)
-        goToPhase(3)
+        goToPhase({name: "selectMode"})
 
     }
 
-
-
-
+    
 
 
     return {
         groupingParams,
         groupingNormalSelectors,
         groups,
+        groupingParamsDisabled,
         showGroupingParams,
         clampValue,
         executeGrouping

@@ -643,28 +643,62 @@ pricing:
 
 routes:
   title: Route Planning System
-  selectMode: Select mode 
-  showData: Show Data
+
+  configData: Select data
+  groupingData: Group and analyze data
+  selectMode: Select mode
+  showData: Show data
   selectSolvers: Select solvers
-  executeSolvers: Execute solvers 
+  executeSolvers: Execute solvers
+
   modes:
-    best: 
-      name: Best available algorithm 
-      description: Uses the best available algorithm for your routing scenario.
+    best:
+      name: Best available algorithm
+      description: Uses the most suitable algorithm available for the selected routing scenario.
+
     fastest:
       name: Fastest and cheapest
       description: Uses the fastest and most cost-effective algorithm available. The resulting solution may not be optimal.
+
     comparison:
       name: Comparison
       description: Run multiple algorithms and compare their results.
+
     custom:
       name: Custom
       description: Select the algorithm you want to use.
+
+  dataModes:
+    auto:
+      name: Default grouping
+      description: Uses the default grouping parameters.
+
+    all:
+      name: All at once
+      description: Uses all available orders as a single group. Useful when working with a single customer area.
+
+    custom:
+      name: Custom
+      description: Allows you to configure grouping parameters manually.
+
+    benchmarks:
+      name: Benchmarks
+      description: Allows you to select from different sample datasets.
+
   grouping:
-    maxRadiusKm: p
-    maxDepotRadiusKm: p
-    minClusterSize: p
-    maxClusterSize: p
-    noiseClusterMaxDistanceKm: p
-    noiseMaxDistanceKm:  p
+    maxRadiusKm: Maximum cluster radius (km)
+    maxDepotRadiusKm: Maximum depot assignment radius (km)
+    minClusterSize: Minimum cluster size
+    maxClusterSize: Maximum cluster size
+    noiseClusterMaxDistanceKm: Maximum isolated client-to-cluster distance (km)
+    noiseMaxDistanceKm: Maximum isolated client-to-nearest-customer distance (km)
+    dbscan: Use pre-grouping
   
+  layers:
+    initialCustomers: All clients
+    initialDepots: All units
+    cluster: Group
+    depots: Selected units
+    GENETIC: Genetic
+    GREEDY: Greedy
+  execute: Execute

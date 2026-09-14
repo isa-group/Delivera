@@ -22,13 +22,13 @@ export function useRoutesMap() {
    
 
     const colorBySolver = {
-        "GREEDY":"#a10000",
+        "GREEDY":"#283593",
         "GENETIC":"#026901"
     }
 
     const dashedColorBySolver = {
-        "GREEDY":"#551919",
-        "GENETIC":"#61895e"
+        "GREEDY":"#283593",
+        "GENETIC":"#026901"
     }
 
 
@@ -177,8 +177,6 @@ export function useRoutesMap() {
             duration: 0
         }        
         for (const route of routes) {
-            //if (routeIndx != 0) continue;
-            console.log(route.vehicleId.startsWith("V-GA-"))
             const useDataFunction = (data) => {
                 osrmRoutes.push(data)
                 const route = data.routes?.[0]
@@ -228,17 +226,6 @@ export function useRoutesMap() {
             ...realCostBySolver.value,
             [solverType]: routeMetrics
         }
-        /*console.log(osrmRoutes)
-        console.log(routeMetrics)
-        console.log(
-            routeMetrics.distance / 1000,
-            "km"
-        )
-        console.log(
-            routeMetrics.duration / 3600,
-            "h"
-        )*/
-
     }
 
 
