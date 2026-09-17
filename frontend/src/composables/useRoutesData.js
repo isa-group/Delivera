@@ -51,8 +51,6 @@ export function useRoutesData({
 
     ]
 
-    //const radius = ref(50)
-
     async function loadInitialData() {
         await executeLoad(dataApi,url,data,dataError)
     }

@@ -157,6 +157,59 @@
 }
 
 
+.groups-table {
+    border-radius: 20px;
+    overflow: hidden;
+    width: 510px;
+}
+
+.slot-info-box {
+    background: #eef6ff;
+    border-left: 4px solid #3b82f6;
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.groups-table-info {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.groups-table :deep(.p-datatable-wrapper) {
+    min-height: 450px;
+    max-height: 450px;
+    overflow-y: auto;
+}
+
+.groups-table :deep(.p-datatable-table) {
+    border-radius: 20px;
+}
+
+.groups-table :deep(thead th) {
+    background: #f8fafc;
+    font-weight: 700;
+}
+
+.groups-table :deep(tbody tr:hover) {
+    background: #f1f5f9;
+}
+
+.groups-table {
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.groups-table :deep(.p-datatable-table-container) {
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.groups-table :deep(.p-datatable-table) {
+    border-radius: 1rem;
+}
+
 
 @media (max-width: 768px) {
 

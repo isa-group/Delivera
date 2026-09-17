@@ -701,4 +701,22 @@ routes:
     depots: Selected units
     GENETIC: Genetic
     GREEDY: Greedy
+  
+  tables:
+    group: Group
+    slot: Slot
+    clients: Clients
+    demand: Demand
+    units: Units
+    cohesion: Cohesion
+    density: Density
+    radius: Radius (Km)
+    area: Area (Km^2)
+  slot:
+    title: What is an execution slot?
+    p1: A slot represents an independent solver execution.
+    p2: Groups assigned to the same slot are solved together.
+    p3: It's allowed to combine groups if maximum number of clients per execution is not exceeded.
+    p4: More compact slots usually produce more efficient solutions.
   execute: Execute
+  showExtraMetrics: Show extra metrics

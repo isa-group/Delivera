@@ -688,4 +688,21 @@ routes:
     depots: Unidades escogidas
     GENETIC: Genético
     GREEDY: Voraz
+  tables:
+    group: Grupo
+    slot: Ranura
+    clients: Clientes
+    demand: Demanda
+    units: Unidades
+    cohesion: Cohesión
+    density: Densidad
+    radius: Radio (Km)
+    area: Área (Km^2)
+  slot:
+    title: ¿Qué es una ranura de ejecución?
+    p1: Una ranura representa una ejecución independiente del resolutor.
+    p2: Los grupos asignados a la misma ranura se resolverán conjuntamente.
+    p3: Puede combinar grupos siempre que no se supere el límite máximo de clientes por ejecución.
+    p4: Las agrupaciones más compactas suelen producir resultados más eficientes.
   execute: Ejecutar
+  showExtraMetrics: Mostrar métricas adicionales

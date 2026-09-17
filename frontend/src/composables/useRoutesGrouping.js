@@ -7,14 +7,26 @@ export function useRoutesGrouping({
     disabledNextPhases,
     goToPhase,
     getCurrentPhaseName
-},{addCustomers, addDepots}) {
+},{addCustomers, addDepots}, {maxPerExecution}) {
 
     const { t } = useI18n() 
     const dataApi = useServices("data-service")
     const {post} = useLoad()
 
     const groups = ref({})
+
+    const executionSlots = ref({})
+
+    const groupsRows = ref([])
+
+    const groupsRowsMetadata = ref([])
+
+    const availableSlots = ref([])
+
     const groupsError = ref()
+
+    const showExtraMetrics = ref(false)
+
 
     const groupingParams = ref({
         dbscan: true,
@@ -52,7 +64,7 @@ export function useRoutesGrouping({
 
     const groupingNormalSelectors = [
         objectByName("maxDepotRadiusKm",1,500),
-        objectByName("maxClusterSize",1,100),
+        objectByName("maxClusterSize",1,maxPerExecution.value),
         objectByName("minClusterSize",1,100),
         objectByName("maxRadiusKm",1,500),
         objectByName("noiseClusterMaxDistanceKm",1,500),
@@ -64,6 +76,11 @@ export function useRoutesGrouping({
         return  getCurrentPhaseName() === "groupingData"
     }
 
+    function showGroupDatatable(){
+        return  getCurrentPhaseName() === "showData"
+    }
+
+
     function clampValue(selector) {
         const value = groupingParams.value[selector.key];
     
@@ -73,13 +90,89 @@ export function useRoutesGrouping({
         );
     }
 
+    
+    function setGroupData() {
+        if (groups.value) {
+            groupsRows.value = []
+            groupsRowsMetadata.value = []
+            executionSlots.value = {}
+            let index = 0
+            for (const cluster of groups.value?.clusters || []) {
+                groupsRows.value = [
+                    ...groupsRows.value,
+                    {
+                        id: cluster.id,
+                        customerCount: cluster.metadata.customerCount,
+                        totalDemand: cluster.metadata.totalDemand,
+                        depots: cluster.depots.length,
+                        executionSlot: index
+                    }
+
+                ]
+
+                groupsRowsMetadata.value = [
+                    ...groupsRowsMetadata.value,
+                    {
+                        id: cluster.id,
+                        cohesion: cluster.metadata?.cohesion * 100,
+                        density: cluster.metadata?.density,
+                        radius: cluster.metadata?.coverageRadiusKm,
+                        area: cluster.metadata?.area
+                    }
+                ]
+
+                executionSlots.value = {
+                    ... executionSlots.value,
+                    [index]: {ids: new Set([cluster.id]), customerCount: cluster.metadata.customerCount}
+                }
+
+                index ++
+            }
+        }
+    }
+
     async function executeGrouping() {
         await post(dataApi,"/fms/routing/cluster",groupingParams.value,groups,groupsError)
+        setGroupData()
         goToPhase({name: "selectMode"})
 
     }
 
+    function toggleShowExtraMetrics() {
+        showExtraMetrics.value = !showExtraMetrics.value
+    }
+
+    function getSlots() {
+        const slots = {}
+        let index = 0
+        for (const {id, customerCount, executionSlot} of  groupsRows.value  || [] ) {
+            if (!slots[index]) {
+                slots[index] = {ids: new Set() , customerCount: 0}
+            }
+
+            if (!slots[executionSlot]) {
+                slots[executionSlot] = {ids: new Set([id]) , customerCount: customerCount }
+            } else {
+                const slot = slots[executionSlot]
+                slot.ids?.add(id)
+                slot.customerCount += customerCount 
+            }
+
+            index++
+        }
+        console.log(slots)
+        return slots
+
+    }
+
     
+    function getAvailableSlots(clusterId) {
+       const cluster = groupsRows.value.find( row => row.id === clusterId)
+       const possibleSlots = Object.entries(getSlots())
+       .filter(([k,v]) => v.ids?.has(clusterId) || (v.customerCount + cluster.customerCount <= maxPerExecution.value ))
+       .map(([k,v]) => {return {value: Number(k), label: Number(k)}})
+       return possibleSlots
+    }
 
 
     return {
@@ -87,8 +180,15 @@ export function useRoutesGrouping({
         groupingNormalSelectors,
         groups,
         groupingParamsDisabled,
+        groupsRows,
+        groupsRowsMetadata,
+        showExtraMetrics,
         showGroupingParams,
+        showGroupDatatable,
         clampValue,
-        executeGrouping
+        executeGrouping,
+        toggleShowExtraMetrics,
+        getAvailableSlots,
+        getSlots
     }
 }

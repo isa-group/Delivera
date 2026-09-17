@@ -1,6 +1,6 @@
 <script setup>
 import { useRoutes } from '@/composables/useRoutes';
-import { Checkbox, Step, StepList, Stepper } from 'primevue';
+import { Checkbox, Column, DataTable, Select, Step, StepList, Stepper } from 'primevue';
 import { useI18n } from 'vue-i18n';
 import OptionsGrid from './OptionsGrid.vue';
 
@@ -22,7 +22,11 @@ const {
         selectedDataModeId,
         realCostBySolver,
         groupingParamsDisabled,
+        groupsRows,
+        groupsRowsMetadata,
+        showExtraMetrics,
         selectPhase,
+        showGroupDatatable,
         canGoToPhase,
         allowNextPhases,
         selectMode,
@@ -35,7 +39,10 @@ const {
         showDataModeSelector,
         showGroupingParams,
         clampValue,
-        runGrouping
+        runGrouping,
+        toggleShowExtraMetrics,
+        focusOnGroup,
+        getAvailableSlots
 
     } = useRoutes()
 
@@ -120,6 +127,106 @@ console.log(realCostBySolver)
                             />
                         </div>
                     </div>
+                    <div>
+                        <DataTable 
+                            class="groups-table"
+                            v-if="showGroupDatatable() && !showExtraMetrics"
+                            :value="groupsRows"
+                            stripedRows
+                            rowHover
+                            scrollable
+                            scrollHeight="300px"
+                            @row-click="e => focusOnGroup(e.data.id)" 
+                        >
+                            <Column field="id" :header="t('routes.tables.group')"/>
+
+                            <Column :header="t('routes.tables.slot')">
+                                <template #body="{ data }">
+                                    <Select
+                                        v-model="data.executionSlot"
+                                        :options="getAvailableSlots(data.id)"
+                                        optionLabel="label"
+                                        optionValue="value"
+                                        @click.stop
+                                    />
+                                </template>
+                            </Column>
+
+                            <Column field="customerCount" :header="t('routes.tables.clients')"/>
+
+                            <Column field="totalDemand" :header="t('routes.tables.demand')"/>
+
+                            <Column field="depots" :header="t('routes.tables.units')"/>                        
+                        </DataTable>
+                        <DataTable 
+                            class="groups-table"
+                            v-if="showGroupDatatable() && showExtraMetrics"
+                            :value="groupsRowsMetadata"
+                            stripedRows
+                            rowHover
+                            scrollable
+                            scrollHeight="300px"
+                            @row-click="e => focusOnGroup(e.data.id)" 
+                        >
+                            <Column field="id" :header="t('routes.tables.group')"/>
+
+                            <Column field="cohesion" :header="t('routes.tables.cohesion')">
+                                <template #body="{ data }">
+                                    {{ data.cohesion.toFixed(1) }}%
+                                </template>
+                            </Column>
+
+                            <Column field="density" :header="t('routes.tables.density')">
+                                <template #body="{ data }">
+                                    {{ data.density.toFixed(4) }}
+                                </template>
+                            </Column>
+
+                            <Column field="radius" :header="t('routes.tables.radius')">
+                                <template #body="{ data }">
+                                    {{ data.radius.toFixed(2) }}
+                                </template>
+                            </Column>
+                            <Column field="area" :header="t('routes.tables.area')">
+                                <template #body="{ data }">
+                                    {{ data.area.toFixed(2) }}
+                                </template>
+                            </Column>
+                        </DataTable>
+                        <div class="groups-table-info"
+                            v-if="showGroupDatatable()"
+                        >
+                            <PButton
+                                v-if="showGroupDatatable()"
+                                :label="t('routes.showExtraMetrics')"
+                                icon="pi pi-eye"
+                                :aria-label="t('routes.showExtraMetrics')"
+                                @click="toggleShowExtraMetrics()"
+                            />
+                            <div class="slot-info-box">
+                                <h4>{{t("routes.slot.title")}}</h4>
+
+                                <p>
+                                    {{t("routes.slot.p1")}}
+                                </p>
+
+                                <p>
+                                    {{t("routes.slot.p2")}}
+    
+                                </p>
+                                <p>
+                                    {{t("routes.slot.p3")}}
+                                </p>
+
+                                <p>
+                                    {{t("routes.slot.p4")}}
+
+                                </p>
+                            </div>
+                        </div>
+                       
+                    </div>
+                    
 
                     
                     <OptionsGrid

@@ -53,6 +53,9 @@ export function useRoutes() {
     // =====================================
     // [START] UTILS
     // =====================================
+
+    const maxPerExecution = ref(20)
+
     const wizard = useRoutesWizard()
     const {goToPhase} = wizard
     const mapUtils = useRoutesMap()
@@ -70,10 +73,11 @@ export function useRoutes() {
         data,
         loadInitialData: loadInitialData,
     } = dataUtils
-    const groupingUtils = useRoutesGrouping(wizard, mapUtils)
+    const groupingUtils = useRoutesGrouping(wizard, mapUtils,{maxPerExecution})
     const {
         groups,
-        executeGrouping
+        executeGrouping,
+        groupsRows
     } = groupingUtils
     const solverUtils = useRoutesSolver(wizard,modesUtils)
     const {executeAllSelected, routesBySolver} = solverUtils
@@ -82,8 +86,11 @@ export function useRoutes() {
     let initalDepotLayer = null
     let finalDepotLayer = null
     const groupLayers = ref([])
-    
+    const selectedClusterId = ref(null)
+   
+    let intervalId = null;
 
+    
     onMounted(async () => {
         initMap()
         await loadInitialData()
@@ -112,17 +119,49 @@ export function useRoutes() {
             .filter(la => !layerIds.has(la.layer?._leaflet_id))
         }
     }
+    
 
     function removeGroupLayers() {
         const layerIds = new Set()
-        for (const {id, layer} of groupLayers.value) {
+        for (const {id, layer} of groupLayers.value || []) {
             layerIds.add(layer._leaflet_id)
             layer.remove()
         }
+        if (finalDepotLayer) {
+            layerIds.add(finalDepotLayer._leaflet_id)
+            finalDepotLayer = null
+        }
         groupLayers.value = []
         removeSelectedLayers(layerIds)
+        
      
        
+    }
+
+    function updateMapVisibility(selectedId) {
+        const toggleGroup = selectedId === selectedClusterId.value
+        for (const {id, layer} of groupLayers.value || []) {
+            
+            const newFocus = (Number(id) === selectedId && !toggleGroup)
+            const visible =   toggleGroup || newFocus ;
+
+            if (visible) {
+                map.addLayer(layer);
+            } else {
+                map.removeLayer(layer);
+            }
+        }
+        return toggleGroup
+    }
+
+    function focusOnGroup(selectedId) {
+        const toggleGroup = updateMapVisibility(selectedId);
+        if (toggleGroup) {
+            selectedClusterId.value = null;
+        } else {
+            selectedClusterId.value = selectedId;
+        }
+        
     }
 
 
@@ -136,6 +175,7 @@ export function useRoutes() {
     })
 
     async function  runGrouping() {
+        selectedClusterId.value == null
         if (groups.value) {
             removeGroupLayers()
         }
@@ -183,6 +223,7 @@ export function useRoutes() {
         console.log(routesBySolver.value)
         console.log(realCostBySolver.value)
         console.log(data.value)
+        console.log(groupsRows.value)
     }
  
     // =====================================
@@ -199,7 +240,8 @@ export function useRoutes() {
         realCostBySolver: computed(() => Object.entries(realCostBySolver.value)),
         run,
         runGrouping,
-        showExecutions
+        showExecutions,
+        focusOnGroup
     }
 
 }
