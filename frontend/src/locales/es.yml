@@ -698,6 +698,14 @@ routes:
     density: Densidad
     radius: Radio (Km)
     area: Área (Km^2)
+  
+  solvers:
+    greedy:
+      name: Voraz
+      description: "..."
+    genetic:
+      name: Genético
+      description: "..."
   slot:
     title: ¿Qué es una ranura de ejecución?
     p1: Una ranura representa una ejecución independiente del resolutor.
@@ -705,4 +713,7 @@ routes:
     p3: Puede combinar grupos siempre que no se supere el límite máximo de clientes por ejecución.
     p4: Las agrupaciones más compactas suelen producir resultados más eficientes.
   execute: Ejecutar
-  showExtraMetrics: Mostrar métricas adicionales
+  show: Mostrar
+  hide: ocultar
+  extraMetrics: métricas adicionales
+  catalog: Catálogo

@@ -1,20 +1,25 @@
 import { useI18n } from "vue-i18n"
 import { useSelections } from "./useSelections"
-import { ref } from "vue"
+import { computed, ref, watch } from "vue"
 import { useLoad } from "./useLoad"
 import { useServices } from "./useServices"
 import { addlayer, initSolverLayer } from "./useDeliveraMap"
 
 export function useRoutesSolver(
     {
-    disabledNextPhases,
-    goToPhase,
-    allowNextPhase,
-    getCurrentPhaseName
+        disabledNextPhases,
+        goToPhase,
+        allowNextPhase,
+        getCurrentPhaseName
     },
     {
         isComparisonMode, 
         isCustomMode
+    },
+    {
+        groupsRows,
+        getSlotInstance,
+        countSlots
     }
 ) {
 
@@ -28,9 +33,11 @@ export function useRoutesSolver(
     const dataApi = useServices('data-service')
     const routesBySolver = ref({})
     const routesErrorBySolver = ref({})
+    const showCatalog = ref(false)
+
+    const slotRows = computed(() => setSlotRows())
 
     
-
     
     const solvers = [
         {
@@ -47,7 +54,15 @@ export function useRoutesSolver(
             type: "GENETIC"
         }
     ]
+
+    const translateSolver = {
+        "GREEDY":"GREEDY",
+        "GENETIC":"GENETIC"
+    }
     
+    function getSolverNames() {
+        return Object.keys(translateSolver)
+    }
     
         
     
@@ -76,17 +91,14 @@ export function useRoutesSolver(
 
     
 
-    const translateSolver = {
-        "GREEDY":"GREEDY",
-        "GENETIC":"GENETIC"
-    }
+    
 
-    async function  promiseExecuteSolver(solverType) {
+    async function  promiseExecuteSolver(instance, solverType) {
         if (translateSolver[solverType] && !isSolved(solverType)) {
             return post(
                 dataApi,
-                "/fms/routing/solve?solverType="+translateSolver[solverType],
-                {},
+                "/fms/routing/solve/cluster?solverType="+translateSolver[solverType],
+                instance,
                 routesBySolver,
                 routesErrorBySolver,
                 null,
@@ -116,6 +128,7 @@ export function useRoutesSolver(
             }
         }
     }
+    
 
     async function executeAllSelected({
         data,
@@ -144,15 +157,85 @@ export function useRoutesSolver(
         })*/
     
     }
+    
+
+    function createSlotRow(instance) {
+        Object.keys(translateSolver).forEach(solverName => {
+            instance[solverName] = false
+        })
+        instance.execute = false
+        instance.executed = false
+        return instance
+    }
+
+    function setSlotRows() {
+        const newSlotRows = []
+        const instances = []
+        const totalSlots = countSlots()
+        for(let i = 0; i<totalSlots ; i++) {
+            const instance = getSlotInstance(i)
+            const totalCustomers = instance.customers?.size
+            const totalDepots = instance.depots?.size
+            if( totalCustomers == 0 && totalDepots == 0) {
+                continue
+            }
+            instances.push({
+                id: i, 
+                instance: instance, 
+                totalCustomers: totalCustomers, 
+                totalDepots: totalDepots
+            })
+        }
+
+        instances.forEach( instance => {
+            newSlotRows.push(createSlotRow(instance))
+        })
+
+        return newSlotRows
+    }
+    
+    function toggleCatalog() {
+        showCatalog.value = !showCatalog.value
+    }
+
+    function disableSelection(slotId,solverName) {
+        const slot = slotRows.value.find(slot => slot.id === slotId)
+        let disable = true
+        if (isComparisonMode()) {
+            disable = false
+        } else if (isCustomMode()) {
+            let anyActive = ""
+            for (const name of getSolverNames()) {
+                if (slot[name]) {
+                    anyActive = name
+                    break;
+                }
+            }
+            if (!anyActive) {
+                disable = false
+            } else if(anyActive === solverName) {
+                disable = false
+            }
+             
+        }
+
+        return disable || slot.totalDepots == 0
+
+    }
 
     return {
         selectedSolversId: selections,
         solvers,
+        showCatalog,
         routesBySolver,
         routesErrorBySolver,
+        slotRows,
         selectSolver,
         showSolverSelector,
         promiseExecuteSolver,
-        executeAllSelected
+        executeAllSelected,
+        toggleCatalog,
+        getSolverNames,
+        disableSelection
     }
 }

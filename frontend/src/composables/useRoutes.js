@@ -79,7 +79,7 @@ export function useRoutes() {
         executeGrouping,
         groupsRows
     } = groupingUtils
-    const solverUtils = useRoutesSolver(wizard,modesUtils)
+    const solverUtils = useRoutesSolver(wizard,modesUtils, groupingUtils)
     const {executeAllSelected, routesBySolver} = solverUtils
     const { t } = useI18n() 
     let initialCustomerLayer = null

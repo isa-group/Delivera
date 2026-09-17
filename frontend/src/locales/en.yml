@@ -712,6 +712,14 @@ routes:
     density: Density
     radius: Radius (Km)
     area: Area (Km^2)
+  solvers:
+    GREEDY:
+      name: Greedy
+      description: "..."
+    GENETIC:
+      name: Genetic
+      description: "..."
+
   slot:
     title: What is an execution slot?
     p1: A slot represents an independent solver execution.
@@ -719,4 +727,7 @@ routes:
     p3: It's allowed to combine groups if maximum number of clients per execution is not exceeded.
     p4: More compact slots usually produce more efficient solutions.
   execute: Execute
-  showExtraMetrics: Show extra metrics
+  show: Show
+  hide: Hide
+  ExtraMetrics: extra metrics
+  catalog: Catalog

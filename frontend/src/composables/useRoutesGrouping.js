@@ -151,7 +151,7 @@ export function useRoutesGrouping({
             }
 
             if (!slots[executionSlot]) {
-                slots[executionSlot] = {ids: new Set([id]) , customerCount: customerCount }
+                slots[executionSlot] = { ids: new Set([id]) , customerCount: customerCount }
             } else {
                 const slot = slots[executionSlot]
                 slot.ids?.add(id)
@@ -160,9 +160,33 @@ export function useRoutesGrouping({
 
             index++
         }
-        console.log(slots)
         return slots
 
+    }
+
+    function getSlotInstance(slot) {
+        const slots = getSlots()
+        if (!slots[slot]) return;
+        const { ids } = slots[slot]
+        const customers = new Set()
+        const depotIndexs = new Set()
+        const depots = new Set()
+        for (const cluster of groups.value?.clusters || []) { 
+            if (ids.has(cluster.id)) {
+                cluster.customers.forEach(customer => customers.add(customer.id))
+                cluster.depots.forEach(depot => depotIndexs.add(depot))
+            }
+        }
+        for (const depot of groups.value?.depots || []) {
+            if(depotIndexs.has(depot.matrixIndex)) {
+                depots.add(depot.id)
+            }
+        }
+
+        return {
+            customers: customers,
+            depots: depots
+        }
     }
 
     
@@ -172,6 +196,10 @@ export function useRoutesGrouping({
        .filter(([k,v]) => v.ids?.has(clusterId) || (v.customerCount + cluster.customerCount <= maxPerExecution.value ))
        .map(([k,v]) => {return {value: Number(k), label: Number(k)}})
        return possibleSlots
+    }
+
+    function countSlots() {
+        return (groups.value?.clusters || []).length
     }
 
 
@@ -189,6 +217,8 @@ export function useRoutesGrouping({
         executeGrouping,
         toggleShowExtraMetrics,
         getAvailableSlots,
-        getSlots
+        getSlots,
+        getSlotInstance,
+        countSlots
     }
 }

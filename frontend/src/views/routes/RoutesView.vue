@@ -14,6 +14,7 @@ const {
         currentPhaseTitle,
         selectedModesId,
         modes,
+        showCatalog,
         dataModes,
         groupingParams,
         groupingNormalSelectors,
@@ -23,6 +24,7 @@ const {
         realCostBySolver,
         groupingParamsDisabled,
         groupsRows,
+        slotRows,
         groupsRowsMetadata,
         showExtraMetrics,
         selectPhase,
@@ -31,7 +33,8 @@ const {
         allowNextPhases,
         selectMode,
         showModeSelector,
-        selectSolver,
+        disableSelection,
+        getSolverNames,
         showSolverSelector,
         run,
         showExecutions,
@@ -42,7 +45,8 @@ const {
         runGrouping,
         toggleShowExtraMetrics,
         focusOnGroup,
-        getAvailableSlots
+        getAvailableSlots,
+        toggleCatalog
 
     } = useRoutes()
 
@@ -198,9 +202,9 @@ console.log(realCostBySolver)
                         >
                             <PButton
                                 v-if="showGroupDatatable()"
-                                :label="t('routes.showExtraMetrics')"
+                                :label="`${(!showExtraMetrics? t('routes.show') : t('routes.hide'))} ${t('routes.ExtraMetrics')}`"
                                 icon="pi pi-eye"
-                                :aria-label="t('routes.showExtraMetrics')"
+                                :aria-label=" `${(!showExtraMetrics? t('routes.show') : t('routes.hide'))} ${t('routes.ExtraMetrics')}`"
                                 @click="toggleShowExtraMetrics()"
                             />
                             <div class="slot-info-box">
@@ -226,21 +230,51 @@ console.log(realCostBySolver)
                         </div>
                        
                     </div>
-                    
-
-                    
                     <OptionsGrid
                         v-if="showModeSelector()"
                         :items="modes"
                         :selected-ids="selectedModesId"
                         :on-select="selectMode"
                     />
-                    <OptionsGrid
-                        v-if="showSolverSelector()"
-                        :items="solvers"
-                        :selected-ids="selectedSolversId"
-                        :on-select="selectSolver"
-                    />
+                    <div v-if="showSolverSelector()">
+                        <OptionsGrid
+                            v-if="showCatalog"
+                            :items="solvers"
+                            :selected-ids="selectedSolversId"
+                            :on-select="()=>{}"
+                        />
+                        <DataTable
+                            class="groups-table"
+                            v-if="!showCatalog"
+                            :value="slotRows"
+                            stripedRows
+                            rowHover
+                            scrollable
+                            scrollHeight="300px"
+                        >
+                            <Column field="id" :header="t('routes.tables.slot')"/>
+
+                            <Column field="totalCustomers" :header="t('routes.tables.clients')"/>
+
+                            <Column field="totalDepots" :header="t('routes.tables.units')"/>
+
+                            <Column :key="solverName" v-for="solverName in getSolverNames()" :header="t(`routes.solvers.${solverName}.name`)">
+                                <template #body="{ data }">
+                                    <Checkbox
+                                        v-model="data[solverName]"
+                                        binary
+                                        :disabled="disableSelection(data.id, solverName)"
+                                    />
+                                </template>
+                            </Column>
+                        </DataTable>
+                        <PButton
+                            :label="`${(!showCatalog? t('routes.show') : t('routes.hide'))} ${t('routes.catalog')}`"
+                            icon="pi pi-check-circle"
+                            :aria-label="`${(!showCatalog? t('routes.show') : t('routes.hide'))} ${t('routes.catalog')}`"
+                            @click="toggleCatalog()"
+                        />
+                    </div>
                     <PButton
                         :label="t('pricing.cancel')"
                         icon="pi pi-check-circle"
@@ -253,6 +287,8 @@ console.log(realCostBySolver)
                         :aria-label="t('pricing.confirm')"
                         @click="run()"
                     />
+                    
+                   
                     <div :key="tuple[0]" v-for="tuple in realCostBySolver">
                         <p>{{tuple[0]}} - {{ tuple[1].distance/1000 }} km - {{ tuple[1].duration /3600}} h</p>
                     </div>
@@ -271,7 +307,7 @@ console.log(realCostBySolver)
                 :label="t('pricing.nexts')"
                 icon="pi pi-check-circle"
                 :aria-label="t('pricing.nexts')"
-                @click="allowNextPhases(5)"
+                @click="allowNextPhases({maxPhase: 5})"
             />
         </div>
     </div>

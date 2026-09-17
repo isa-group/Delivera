@@ -27,9 +27,12 @@ export function useRoutesWizard() {
         currentPhaseEnabled.value = currentPhase.value 
     }
 
-    function allowNextPhases(maxPhase) {
-        currentPhaseEnabled.value = maxPhase 
+
+
+    function allowNextPhases({maxPhase = null, name = null}) {
+        currentPhaseEnabled.value = maxPhase != null? maxPhase : phases.findIndex(p => p.name == name)+1
     }
+
 
     function allowNextPhase() {
         currentPhaseEnabled.value = currentPhase.value +1
