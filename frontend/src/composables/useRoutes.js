@@ -112,32 +112,29 @@ export function useRoutes() {
         
     })
 
-    function removeSelectedLayers(_layerIds) {
-        const layerIds = new Set(_layerIds)
-        if (layerOverlay?._layers) {
-            layerOverlay._layers = [...layerOverlay._layers]
-            .filter(la => !layerIds.has(la.layer?._leaflet_id))
-        }
-    }
+   
     
 
     function removeGroupLayers() {
-        const layerIds = new Set()
         for (const {id, layer} of groupLayers.value || []) {
-            layerIds.add(layer._leaflet_id)
             layer.remove()
+            layerOverlay.removeLayer(layer)
+            
         }
         if (finalDepotLayer) {
-            layerIds.add(finalDepotLayer._leaflet_id)
+            finalDepotLayer.remove()  
+            layerOverlay.removeLayer(finalDepotLayer)    
+                 
             finalDepotLayer = null
         }
         groupLayers.value = []
-        removeSelectedLayers(layerIds)
-        
-     
+      
        
     }
 
+
+    // TODO: FIX THIS MAY PROVOKE A BUG IN THE MAP,  MAKERS GO CRAZY SOME TIMES
+    /*
     function updateMapVisibility(selectedId) {
         const toggleGroup = selectedId === selectedClusterId.value
         for (const {id, layer} of groupLayers.value || []) {
@@ -153,14 +150,15 @@ export function useRoutes() {
         }
         return toggleGroup
     }
+    */
 
     function focusOnGroup(selectedId) {
-        const toggleGroup = updateMapVisibility(selectedId);
+        /*const toggleGroup = updateMapVisibility(selectedId);
         if (toggleGroup) {
             selectedClusterId.value = null;
         } else {
             selectedClusterId.value = selectedId;
-        }
+        }*/
         
     }
 
