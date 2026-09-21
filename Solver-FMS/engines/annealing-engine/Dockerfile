@@ -2,8 +2,13 @@
 FROM eclipse-temurin:22-jdk-alpine AS build
 RUN apk add --no-cache maven
 WORKDIR /app
+# El agregador lista todos los modulos y Maven exige que existan aunque solo se construya uno:
+# se copian todos los pom (solo los pom) y las fuentes unicamente de lo que se compila.
 COPY pom.xml .
 COPY routing-core/pom.xml routing-core/
+COPY greedy-engine/pom.xml greedy-engine/
+COPY random-engine/pom.xml random-engine/
+COPY genetic-engine/pom.xml genetic-engine/
 COPY annealing-engine/pom.xml annealing-engine/
 RUN mvn -q -pl annealing-engine -am dependency:go-offline
 COPY routing-core/src routing-core/src
