@@ -67,7 +67,7 @@ Desde `/fms-gateway`. En la terminal hay que entrecomillar cada argumento: `"-Db
 Salida:
 
 ```
-Solvers registrados: [RANDOM, GREEDY, GENETIC]
+Solvers registrados: [RANDOM, GREEDY, GENETIC, ANNEALING]
 
 p22  9 depositos, 360 clientes, duracion maxima 200  |  BKS 5702,16
   solver     n      mejor      media     gap  rutas   tiempo  factible     semilla
@@ -82,6 +82,20 @@ Es la semilla de la **mejor** de las repeticiones, la que hay que reenviar en `p
 volver a obtener exactamente esa solución. Aparece `-` en los solvers deterministas, que no dependen
 del azar. Es lo que hace útil subir `-Druns`: una buena vuelta ya no se pierde, se puede repetir y
 usar de punto de partida para afinar parámetros.
+
+### Sin Docker: los tests de regresión de cada motor
+
+Los dos motores metaheurísticos tienen además un test de regresión propio que no necesita la
+pasarela: [`GeneticRegressionTest`](../engines/genetic-engine/src/test/java/com/delivera/fms/engine/genetic/benchmark/GeneticRegressionTest.java)
+y [`AnnealingRegressionTest`](../engines/annealing-engine/src/test/java/com/delivera/fms/engine/annealing/benchmark/AnnealingRegressionTest.java).
+Cargan `p01`, `p07` y `p22` con `CordeauInstanceLoader`, que replica el mapeo de la pasarela
+(lat = y, lng = x, matriz euclídea, `vehicles_per_depot` vehículos por depósito), ejecutan el motor
+con semilla fija y comprueban factibilidad y coste **al décimo decimal**. No juzgan la calidad:
+juzgan que la búsqueda no ha cambiado, que es lo que hace falta para refactorizar con tranquilidad.
+Si un cambio en el algoritmo es deliberado, se actualizan los costes esperados en el mismo commit.
+
+Para explorar parámetros del recocido sin levantar nada está `AnnealingCalibrationTest`, descrito en
+[engines/annealing-engine.md](engines/annealing-engine.md#cómo-calibrar).
 
 ### Los solvers no están escritos en el test
 

@@ -32,7 +32,7 @@ public class RouteOptimizer {
         this.splitter = splitter;
     }
 
-    /** Mejora la secuencia en el sitio. Devuelve si ha cambiado algo. */
+    // Mejora la secuencia en el sitio. Devuelve si ha cambiado algo
     public boolean improve(Depot depot, List<Integer> order) {
         if (order.size() < 2) {
             return false;

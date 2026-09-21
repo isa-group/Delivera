@@ -2,8 +2,9 @@
 
 ## Módulos
 
-Solver-FMS son cuatro aplicaciones Spring Boot independientes, cada una con su propio `pom.xml`,
-su propio `Dockerfile` y su propio contenedor. No hay POM padre: cada módulo se compila por separado.
+Solver-FMS son cinco aplicaciones Spring Boot independientes, cada una con su propio `pom.xml`,
+su propio `Dockerfile` y su propio contenedor, más una biblioteca compartida por los dos motores
+metaheurísticos.
 
 | Módulo | Artefacto | Puerto | Responsabilidad |
 |---|---|---|---|
@@ -11,20 +12,53 @@ su propio `Dockerfile` y su propio contenedor. No hay POM padre: cada módulo se
 | `engines/greedy-engine` | `greedy-engine` | 8091 | Resolución voraz |
 | `engines/random-engine` | `random-engine` | 8092 | Resolución aleatoria |
 | `engines/genetic-engine` | `genetic-engine` | 8093 | Resolución con algoritmo genético |
+| `engines/annealing-engine` | `annealing-engine` | 8094 | Resolución con recocido simulado |
+| `engines/routing-core` | `routing-core` | - | Función objetivo y búsqueda local compartidas (no es un servicio) |
 
-Java 22, Spring Boot 3.4.0. El motor genético añade jMetal 6.6, del que usa la representación
-`PermutationSolution` y el generador de números aleatorios; el algoritmo en sí está escrito a mano,
-no usa los algoritmos de jMetal.
+Java 22, Spring Boot 3.4.0. Los dos motores metaheurísticos añaden jMetal 6.6: el genético usa su representación `PermutationSolution` y el generador aleatorio; el recocido, la plantilla `AbstractLocalSearch` y el mismo generador. Los algoritmos en sí están escritos a mano.
+
+No hay POM padre: cada motor hereda de `spring-boot-starter-parent` y se compila suelto. Sí hay un **agregador** en `engines/pom.xml`, que existe solo para que los motores que dependen de `routing-core` se construyan en orden con un comando:
+
+```bash
+mvn -f engines/pom.xml -pl annealing-engine -am package
+```
+
+Sin él habría que hacer `mvn install` en `routing-core` a mano antes de compilar el motor.
+
+### El núcleo compartido
+
+`routing-core` es una biblioteca sin Spring ni jMetal con lo que **todos los motores metaheurísticos
+deben calcular exactamente igual** para que sus costes sean comparables:
+
+```
+model/    Depot, Customer, Route, RoutingProblem     el problema, con las restricciones dentro del depósito
+split/    RouteSplitter                              troceado óptimo de Prins: la función objetivo
+search/   RouteOptimizer                             2-opt intra-ruta + relocate entre rutas de un depósito
+          DepotRebalancer                            reasignación entre depósitos: reparación de flota + mejora
+```
+
+Cada motor traduce sus DTOs a `RoutingProblem` una vez, al recibir la petición (`ProblemMapper`), y
+a partir de ahí todo el cálculo de costes ocurre en el núcleo. **Eso no es reutilización, es control
+experimental**: si el genético y el recocido midieran el coste con código distinto, una diferencia
+entre ellos podría deberse a la medida y no a la búsqueda.
+
+La extracción se hizo con el genético ya fijado por
+[`GeneticRegressionTest`](../engines/genetic-engine/src/test/java/com/delivera/fms/engine/genetic/benchmark/GeneticRegressionTest.java):
+mismos costes al décimo decimal antes y después, así que el núcleo es el mismo algoritmo que había
+dentro del motor, no una reimplementación.
 
 ### Por qué los DTOs están duplicados
 
 Cada motor tiene su **propia copia** de `CustomerDto`, `DepotDto`, `VehicleDto`, `RouteDto`,
-`RoutingRequest` y `RoutingResponse`, en su propio paquete. No hay módulo compartido.
+`RoutingRequest` y `RoutingResponse`, en su propio paquete. `routing-core` comparte el modelo del
+problema, no el contrato HTTP: los DTOs siguen siendo de cada motor.
 
 La consecuencia práctica: **un motor solo entiende los campos que su copia declara**. La pasarela
-envía `DepotDto.maxDuration` y `CustomerDto.serviceDuration`, pero solo el motor genético los tiene
-declarados; greedy y random los ignoran silenciosamente. Esto funciona porque Spring Boot desactiva
-`FAIL_ON_UNKNOWN_PROPERTIES` por defecto, así que un campo de más no rompe la deserialización.
+envía `DepotDto.maxDuration` y `CustomerDto.serviceDuration`, pero solo los motores genético y de
+recocido los tienen declarados; greedy y random los ignoran silenciosamente. Esto funciona porque
+Spring Boot desactiva `FAIL_ON_UNKNOWN_PROPERTIES` por defecto, así que un campo de más no rompe la
+deserialización. En sentido contrario pasa lo mismo: solo el recocido devuelve `trace`, y la pasarela
+lo declara opcional en su `RoutingResponse` para dejarlo pasar.
 
 Si añades un campo al contrato, tenlo en cuenta: **hay que replicarlo en la copia de cada motor que
 deba usarlo**, y omitirlo en los que no lo necesiten es una decisión, no un olvido.
@@ -56,7 +90,7 @@ configuración completa. Un parámetro no declarado se descarta con un aviso en 
 rango declarado devuelve 400. Ver [metadatos-solvers.md](metadatos-solvers.md).
 
 Los motores dan por hecho que esto ya se ha validado y **no lo vuelven a comprobar**. Si llamas a un
-motor directamente en el puerto 8091-8093, saltándote la pasarela, una matriz mal dimensionada
+motor directamente en el puerto 8091-8094, saltándote la pasarela, una matriz mal dimensionada
 provocará un `ArrayIndexOutOfBoundsException`, no un error 400.
 
 ## Endpoints
@@ -88,18 +122,15 @@ El catálogo de instancias no se declara en ninguna parte: se deriva del conteni
 igual que el de solvers se deriva de `fms.engines`. Dejar un fichero nuevo en el volumen basta
 para que aparezca listado.
 
-### Motores (8091, 8092, 8093)
+### Motores (8091, 8092, 8093, 8094)
 
 | Método | Ruta | Descripción |
 |---|---|---|
 | `POST` | `/api/v1/engine/solve` | Resuelve el problema recibido |
 | `GET` | `/actuator/health` | Estado |
 
-Los tres motores exponen exactamente el mismo contrato. Añadir un cuarto motor es: implementar esos
-dos endpoints —en la tecnología que sea—, añadir el valor al enum `TypeSolver` y declarar su bloque
-bajo `fms.engines` en `application.yml`. Ninguna clase Java más cambia: el cliente HTTP, el despacho,
-el catálogo y los parámetros se derivan de esa configuración. El detalle de qué declarar está en
-[metadatos-solvers.md](metadatos-solvers.md).
+Los motores exponen exactamente el mismo contrato. Añadir un nuevo motor es: implementar esos dos endpoints —en la tecnología que sea—, añadir el valor al enum `TypeSolver` y declarar su bloque bajo `fms.engines` en `application.yml`. Ninguna clase Java más cambia: el cliente HTTP, el despacho, el catálogo y los parámetros se derivan de esa configuración. El detalle de qué declarar está en [metadatos-solvers.md](metadatos-solvers.md). Así se dio de alta el recocido simulado: el único
+código Java de la pasarela que tocó fue el enum y el campo opcional `trace` de la respuesta.
 
 ## Configuración
 
@@ -112,6 +143,7 @@ solo se sobrescriben las URL, por variables de entorno:
 | `FMS_ENGINES_GREEDY_URL` | `http://greedy-engine:8091` |
 | `FMS_ENGINES_RANDOM_URL` | `http://random-engine:8092` |
 | `FMS_ENGINES_GENETIC_URL` | `http://genetic-engine:8093` |
+| `FMS_ENGINES_ANNEALING_URL` | `http://annealing-engine:8094` |
 | `FMS_INSTANCES_DIR` | `/app/instances-MD-CVRP-JSON` |
 
 El directorio de instancias se monta como volumen de solo lectura desde
@@ -132,9 +164,13 @@ El directorio de instancias se monta como volumen de solo lectura desde
 docker compose up --build
 ```
 
-Los cuatro contenedores comparten la red `fms-network`. La pasarela declara `depends_on` con
-`condition: service_healthy`, de modo que no arranca hasta que los tres motores responden a su
+Los contenedores comparten la red `fms-network`. La pasarela declara `depends_on` con
+`condition: service_healthy`, de modo que no arranca hasta que los cuatro motores responden a su
 *healthcheck*.
+
+Los motores que dependen de `routing-core` (genético y recocido) se construyen con `./engines` como
+contexto de Docker y `engines/<motor>/Dockerfile` como fichero, porque la imagen tiene que compilar
+el núcleo antes que el motor. Greedy y random siguen usando su propio directorio como contexto.
 
 Para desarrollo, cada módulo se puede arrancar suelto:
 
@@ -143,4 +179,4 @@ mvn spring-boot:run
 ```
 
 En ese caso hay que apuntar las URL a `localhost`, porque los nombres `greedy-engine`,
-`random-engine` y `genetic-engine` solo resuelven dentro de la red de Docker.
+`random-engine`, `genetic-engine` y `annealing-engine` solo resuelven dentro de la red de Docker.

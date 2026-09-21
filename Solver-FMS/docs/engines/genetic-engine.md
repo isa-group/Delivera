@@ -17,10 +17,10 @@ periódicamente a los mejores individuos. Usa jMetal 6.6 solo por la representac
 ```
 service/
   GeneticRouteSolver        bucle evolutivo, parámetros, decodificación
-    └ MDCVRPProblem         función objetivo (clase interna)
+    └ MDCVRPProblem         función objetivo (clase interna): suma el coste por depósito del núcleo
+  ProblemMapper             DTO del contrato → modelo del núcleo
 
 scheduler/
-  RouteSplitter             troceado óptimo de secuencia en rutas  ← el núcleo
   PermutationCodec          traducción permutación ↔ orden por depósito
   RouteScheduler            construcción de los RouteDto de la respuesta
 
@@ -32,9 +32,21 @@ operator/mutation/
   InterDepotMutation        reasigna un cliente a otro depósito (diversificación)
 
 operator/search/
-  LocalSearch               2-opt intra-ruta + relocate entre rutas del mismo depósito
-  InterDepotLocalSearch     reasignación entre depósitos: reparación + mejora
+  LocalSearch               adaptador de RouteOptimizer (núcleo) al cromosoma
+  InterDepotLocalSearch     adaptador de DepotRebalancer (núcleo) al cromosoma
+
+routing-core (módulo compartido, ver arquitectura.md)
+  RouteSplitter             troceado óptimo de secuencia en rutas  ← el núcleo
+  RouteOptimizer            2-opt intra-ruta + relocate entre rutas del mismo depósito
+  DepotRebalancer           reasignación entre depósitos: reparación + mejora
 ```
+
+`RouteSplitter`, la búsqueda local a nivel de ruta y el reequilibrado entre depósitos vivían dentro
+de este motor y se extrajeron a `routing-core` para compartirlos con el recocido simulado. El
+algoritmo no cambió: [`GeneticRegressionTest`](../../engines/genetic-engine/src/test/java/com/delivera/fms/engine/genetic/benchmark/GeneticRegressionTest.java)
+fija el coste con semilla de `p01`, `p07` y `p22` y dio lo mismo al décimo decimal antes y después.
+Ese test es lo que permite refactorizar sabiendo si la búsqueda ha cambiado; si un cambio es
+deliberado, se actualizan sus costes esperados en el mismo commit.
 
 ## Representación de la solución
 

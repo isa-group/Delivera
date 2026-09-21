@@ -23,7 +23,7 @@ duración de ruta pero **no** suman al coste.
 | `customers` | `CustomerDto[]` | Sí, no vacío | Clientes a servir |
 | `vehicles` | `VehicleDto[]` | No | Flota. Si se omite, se asume capacidad y número ilimitados |
 | `distanceMatrix` | `double[][]` | Sí | Matriz cuadrada `[origen][destino]` |
-| `solverType` | `RANDOM \| GREEDY \| GENETIC` | Sí | Motor a usar. Solo en la pasarela |
+| `solverType` | `RANDOM \| GREEDY \| GENETIC \| ANNEALING` | Sí | Motor a usar. Solo en la pasarela |
 | `parameters` | `Map<String, Object>` | No | Parámetros del solver. Los ausentes toman el valor por defecto declarado en sus metadatos |
 
 `parameters` se resuelve contra los metadatos del solver antes de despachar: los que falten se
@@ -91,7 +91,7 @@ la desigualdad triangular.
 |---|---|---|
 | `problemId` | `String` | El mismo de la petición |
 | `status` | `String` | `"COMPLETED"` |
-| `solverUsed` | `String` | `"RANDOM"`, `"GREEDY"` o `"GENETIC"` |
+| `solverUsed` | `String` | `"RANDOM"`, `"GREEDY"`, `"GENETIC"` o `"ANNEALING"` |
 | `totalCost` | `Double` | Suma de `totalDistance` de todas las rutas |
 | `computationTimeMs` | `Long` | Tiempo de resolución del motor |
 | `seed` | `Long` | Semilla con la que se ejecutó el solver. Ausente en los deterministas |

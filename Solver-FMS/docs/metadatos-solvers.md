@@ -58,8 +58,9 @@ El cliente envía los que quiera cambiar en el mapa `parameters` de la petición
 solos antes de despachar al motor, de forma que la ejecución siempre parte de una configuración
 completa y conocida.
 
-Qué acepta cada motor hoy: `RANDOM` y `GREEDY` ninguno, y `GENETIC` trece, documentados uno a uno en
-[engines/genetic-engine.md](engines/genetic-engine.md#parámetros).
+Qué acepta cada motor hoy: `GREEDY` ninguno, `RANDOM` solo `seed`, `GENETIC` catorce, documentados
+uno a uno en [engines/genetic-engine.md](engines/genetic-engine.md#parámetros), y `ANNEALING` doce, en
+[engines/annealing-engine.md](engines/annealing-engine.md#parámetros).
 
 ## Resolución de parámetros
 
