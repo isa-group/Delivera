@@ -12,6 +12,7 @@ services:
       - FMS_ENGINES_GREEDY_URL=http://greedy-engine:8091
       - FMS_ENGINES_RANDOM_URL=http://random-engine:8092
       - FMS_ENGINES_GENETIC_URL=http://genetic-engine:8093
+      - FMS_ENGINES_ANNEALING_URL=http://annealing-engine:8094
       - FMS_INSTANCES_DIR=/app/instances-MD-CVRP-JSON
     volumes:
       - ./instances-MD-CVRP-JSON:/app/instances-MD-CVRP-JSON:ro
@@ -21,6 +22,8 @@ services:
       random-engine:
         condition: service_healthy
       genetic-engine:
+        condition: service_healthy
+      annealing-engine:
         condition: service_healthy
     networks:
       - fms-network
@@ -55,6 +58,17 @@ services:
     container_name: genetic-engine
     ports:
       - "8093:8093"
+    networks:
+      - fms-network
+    restart: unless-stopped
+
+  annealing-engine:
+    build:
+      context: ./engines
+      dockerfile: annealing-engine/Dockerfile
+    container_name: annealing-engine
+    ports:
+      - "8094:8094"
     networks:
       - fms-network
     restart: unless-stopped

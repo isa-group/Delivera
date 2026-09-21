@@ -41,10 +41,13 @@ public record RoutingRequest(
         @Schema(description = "Parametros de invocacion del solver, por nombre. Los que no se envien " +
                 "toman su valor por defecto. Cada solver publica los que admite, con su significado, " +
                 "rango y valor por defecto, en GET /api/v1/fms/solvers/{type}: GREEDY no admite " +
-                "ninguno, RANDOM admite solo 'seed' y GENETIC admite catorce (populationSize, " +
+                "ninguno, RANDOM admite solo 'seed', GENETIC admite catorce (populationSize, " +
                 "maxEvaluations, minGenerations, crossoverProbability, intraDepotMutationProbability, " +
                 "interDepotMutationProbability, elitismCount, tournamentSize, localSearchFrequency, " +
-                "interDepotFrequency, restartStagnantGenerations, maxRestarts, heuristicSeedRatio y seed). " +
+                "interDepotFrequency, restartStagnantGenerations, maxRestarts, heuristicSeedRatio y seed) " +
+                "y ANNEALING doce (timeLimitMs, maxLevels, calibrationQuantile, initialAcceptanceRate, " +
+                "finalAcceptanceRate, coolingRate, movesPerTemperatureFactor, interDepotMoveProbability, " +
+                "depotCandidateRatio, localSearchFrequency, rebalanceFrequency y seed). " +
                 "'seed' fija el generador aleatorio y hace la ejecucion reproducible; si no se envia, " +
                 "el motor sortea una y la devuelve en el campo 'seed' de la respuesta. " +
                 "Un parametro no declarado se ignora con un aviso; uno fuera de rango rechaza la peticion",

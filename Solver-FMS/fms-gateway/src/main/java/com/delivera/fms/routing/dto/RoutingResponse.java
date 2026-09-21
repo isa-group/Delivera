@@ -14,7 +14,7 @@ public record RoutingResponse(
         String status,
 
         @Schema(description = "Tipo de solver utilizado en la resolucion",
-                allowableValues = {"RANDOM", "GREEDY", "GENETIC"}, example = "GREEDY")
+                allowableValues = {"RANDOM", "GREEDY", "GENETIC", "ANNEALING"}, example = "GREEDY")
         String solverUsed,
 
         @Schema(description = "Costo total de la solucion (suma de distancias de todas las rutas)", example = "775.2683743807665")
@@ -32,6 +32,15 @@ public record RoutingResponse(
         @ArraySchema(
                 arraySchema = @Schema(description = "Lista de rutas que componen la solucion"),
                 schema = @Schema(implementation = RouteDto.class))
-        List<RouteDto> routes
+        List<RouteDto> routes,
+
+        @ArraySchema(
+                arraySchema = @Schema(description = "Curva anytime: instantes, desde el arranque, en " +
+                        "los que mejoro la mejor solucion factible. Permite saber que coste habria dado " +
+                        "el motor con menos presupuesto sin volver a ejecutarlo. Solo la devuelven los " +
+                        "motores que buscan de forma incremental con presupuesto de tiempo (ANNEALING); " +
+                        "el resto la dejan a null", nullable = true),
+                schema = @Schema(implementation = TracePointDto.class))
+        List<TracePointDto> trace
 ) {
 }

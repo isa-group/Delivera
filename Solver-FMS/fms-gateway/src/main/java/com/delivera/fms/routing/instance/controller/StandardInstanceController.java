@@ -135,7 +135,7 @@ public class StandardInstanceController {
     public ResponseEntity<RoutingResponse> sendInstance(
             @Parameter(description = "Nombre del archivo de instancia sin extension (ej. p01)", required = true)
             @RequestParam String fileName,
-            @Parameter(description = "Tipo de solver a utilizar (RANDOM, GREEDY o GENETIC)")
+            @Parameter(description = "Tipo de solver a utilizar (RANDOM, GREEDY, GENETIC o ANNEALING)")
             @RequestParam(defaultValue = "GREEDY") TypeSolver solverType,
             @RequestBody(required = false) Map<String, Object> parameters) throws IOException {
         RoutingResponse response = client.sendInstance(

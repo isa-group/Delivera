@@ -180,6 +180,124 @@ fms:
           min: 0
           max: 281474976710655
 
+    annealing:
+      url: http://annealing-engine:8094
+      display-name: Recocido Simulado
+      description: Metaheuristica de solucion unica con criterio de Metropolis, vecindarios intra e inter deposito, troceado optimo de Prins y busqueda local periodica. Termina por presupuesto de tiempo y devuelve la curva anytime
+      strategy: Metaheuristica
+      technology: Java 22 / Spring Boot + jMetal 6.6
+      version: 1.0.0
+      deterministic: false
+      order: 40
+      parameters:
+        - name: timeLimitMs
+          description: >-
+            Presupuesto de tiempo en milisegundos. Es el criterio de parada principal: el motor
+            lo usa entero, recalentando cuantas veces haga falta, y devuelve la mejor solucion
+            factible vista. Las fases auxiliares pueden pasarse unas decimas
+          type: INTEGER
+          default-value: 5000
+          min: 100
+          max: 300000
+        - name: maxLevels
+          description: >-
+            Tope de niveles de temperatura; 0 significa que solo manda el tiempo. Fijarlo es lo
+            que hace reproducible una ejecucion con semilla, porque con parada por tiempo el
+            numero de movimientos depende de la carga de la maquina
+          type: INTEGER
+          default-value: 0
+          min: 0
+          max: 1000000
+        - name: calibrationQuantile
+          description: >-
+            Que cuantil de los empeoramientos sondeados al arrancar se toma como "empeoramiento
+            pequeno" para calibrar la temperatura. Es el parametro que mas cambia el resultado:
+            desde un optimo local casi todos los movimientos aleatorios empeoran mucho, y calibrar
+            con la mediana deja la busqueda demasiado caliente todo el tiempo
+          type: DECIMAL
+          default-value: 0.05
+          min: 0.01
+          max: 0.5
+        - name: initialAcceptanceRate
+          description: >-
+            Probabilidad con la que se acepta ese empeoramiento pequeno al arrancar. De aqui sale
+            la temperatura inicial, que por tanto se adapta a la escala de cada instancia
+          type: DECIMAL
+          default-value: 0.4
+          min: 0.01
+          max: 0.99
+        - name: finalAcceptanceRate
+          description: >-
+            Probabilidad de aceptar ese mismo empeoramiento por debajo de la cual el sistema se
+            considera frio y se recalienta a la mitad de la temperatura inicial desde el mejor
+            conocido. Junto con coolingRate fija cuantos niveles dura un ciclo
+          type: DECIMAL
+          default-value: 0.001
+          min: 0.000001
+          max: 0.5
+        - name: coolingRate
+          description: >-
+            Factor geometrico de enfriamiento por nivel. Mas cerca de 1 enfria mas despacio:
+            ciclos mas largos y menos ciclos por presupuesto
+          type: DECIMAL
+          default-value: 0.96
+          min: 0.5
+          max: 0.9999
+        - name: movesPerTemperatureFactor
+          description: >-
+            Movimientos por nivel y por cliente: un nivel son este valor por el numero de
+            clientes. Proporcional al tamano para que el equilibrio a cada temperatura no
+            dependa de la instancia
+          type: INTEGER
+          default-value: 12
+          min: 1
+          max: 1000
+        - name: interDepotMoveProbability
+          description: >-
+            Fraccion de movimientos que cambian un cliente de deposito (reubicacion o
+            intercambio). Son los unicos que alteran el reparto entre depositos, del que
+            depende la calidad en instancias con depositos proximos
+          type: DECIMAL
+          default-value: 0.25
+          min: 0
+          max: 1
+        - name: depotCandidateRatio
+          description: >-
+            Cuanto mas lejos que el deposito mas cercano puede estar un deposito destino para
+            proponerlo. Mover un cliente al otro extremo del mapa no lo acepta ningun criterio
+            y solo gasta iteraciones
+          type: DECIMAL
+          default-value: 1.3
+          min: 1
+          max: 100
+        - name: localSearchFrequency
+          description: >-
+            Cada cuantos niveles se aplica 2-opt y relocate a nivel de ruta sobre la solucion
+            actual. Con 0 solo se aplica en el pulido final y el motor es recocido puro: es la
+            ablacion que separa lo que aporta Metropolis de lo que aporta la busqueda local
+          type: INTEGER
+          default-value: 8
+          min: 0
+          max: 10000
+        - name: rebalanceFrequency
+          description: >-
+            Cada cuantos niveles se reequilibra entre depositos (reparacion de flota y mejora),
+            ademas de al arrancar y al terminar. Con 0 solo en esos dos momentos
+          type: INTEGER
+          default-value: 20
+          min: 0
+          max: 10000
+        - name: seed
+          description: >-
+            Semilla del generador aleatorio. Con la misma instancia, los mismos parametros, la
+            misma semilla y maxLevels fijado la solucion es identica; con parada por tiempo no,
+            porque el numero de movimientos depende de la maquina. Si no se envia, el motor
+            sortea una y la devuelve en el campo seed de la respuesta. El tope es 2^48-1 porque
+            java.util.Random se queda con 48 bits
+          type: INTEGER
+          min: 0
+          max: 281474976710655
+
 springdoc:
   api-docs:
     path: /api-docs
