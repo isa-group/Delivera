@@ -50,8 +50,8 @@ services:
 
   genetic-engine:
     build:
-      context: ./engines/genetic-engine
-      dockerfile: Dockerfile
+      context: ./engines
+      dockerfile: genetic-engine/Dockerfile
     container_name: genetic-engine
     ports:
       - "8093:8093"

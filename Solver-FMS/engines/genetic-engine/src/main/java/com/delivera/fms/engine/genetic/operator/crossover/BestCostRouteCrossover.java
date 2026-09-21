@@ -1,8 +1,8 @@
 package com.delivera.fms.engine.genetic.operator.crossover;
 
-import com.delivera.fms.engine.genetic.dto.DepotDto;
+import com.delivera.fms.engine.core.model.Depot;
+import com.delivera.fms.engine.core.split.RouteSplitter;
 import com.delivera.fms.engine.genetic.scheduler.PermutationCodec;
-import com.delivera.fms.engine.genetic.scheduler.RouteSplitter;
 import org.uma.jmetal.operator.crossover.CrossoverOperator;
 import org.uma.jmetal.solution.permutationsolution.PermutationSolution;
 import org.uma.jmetal.solution.permutationsolution.impl.IntegerPermutationSolution;
@@ -27,11 +27,11 @@ public class BestCostRouteCrossover implements CrossoverOperator<PermutationSolu
 
     private final double probability;
     private final PseudoRandomGenerator random;
-    private final List<DepotDto> depots;
+    private final List<Depot> depots;
     private final RouteSplitter splitter;
 
     public BestCostRouteCrossover(double probability,
-                                   List<DepotDto> depots,
+                                   List<Depot> depots,
                                    RouteSplitter splitter,
                                    PseudoRandomGenerator random) {
         this.probability = probability;
@@ -83,16 +83,16 @@ public class BestCostRouteCrossover implements CrossoverOperator<PermutationSolu
             return child;
         }
 
-        Map<Integer, DepotDto> childDepotMap = PermutationCodec.depotMap(child);
+        Map<Integer, Depot> childDepotMap = PermutationCodec.depotMap(child);
         Set<Integer> removed = new HashSet<>(extracted);
 
-        Map<DepotDto, List<Integer>> depotOrder = PermutationCodec.depotOrder(child, depots, childDepotMap);
+        Map<Depot, List<Integer>> depotOrder = PermutationCodec.depotOrder(child, depots, childDepotMap);
         for (List<Integer> order : depotOrder.values()) {
             order.removeIf(removed::contains);
         }
 
         for (int customer : extracted) {
-            DepotDto depot = childDepotMap.get(customer);
+            Depot depot = childDepotMap.get(customer);
             if (depot == null) {
                 continue;
             }
@@ -106,13 +106,13 @@ public class BestCostRouteCrossover implements CrossoverOperator<PermutationSolu
 
     /** Una ruta real del donante, no todos los clientes de un deposito. */
     private List<Integer> extractRandomRoute(PermutationSolution<Integer> donor) {
-        Map<Integer, DepotDto> donorDepotMap = PermutationCodec.depotMap(donor);
+        Map<Integer, Depot> donorDepotMap = PermutationCodec.depotMap(donor);
         if (donorDepotMap == null) {
             return List.of();
         }
 
-        Map<DepotDto, List<Integer>> depotOrder = PermutationCodec.depotOrder(donor, depots, donorDepotMap);
-        List<DepotDto> nonEmpty = depotOrder.entrySet().stream()
+        Map<Depot, List<Integer>> depotOrder = PermutationCodec.depotOrder(donor, depots, donorDepotMap);
+        List<Depot> nonEmpty = depotOrder.entrySet().stream()
                 .filter(entry -> !entry.getValue().isEmpty())
                 .map(Map.Entry::getKey)
                 .toList();
@@ -120,7 +120,7 @@ public class BestCostRouteCrossover implements CrossoverOperator<PermutationSolu
             return List.of();
         }
 
-        DepotDto depot = nonEmpty.get(random.nextInt(0, nonEmpty.size() - 1));
+        Depot depot = nonEmpty.get(random.nextInt(0, nonEmpty.size() - 1));
         List<List<Integer>> routes = splitter.split(depot, depotOrder.get(depot));
         if (routes.isEmpty()) {
             return List.of();
@@ -139,7 +139,7 @@ public class BestCostRouteCrossover implements CrossoverOperator<PermutationSolu
             copy.objectives()[i] = source.objectives()[i];
         }
 
-        Map<Integer, DepotDto> sourceMap = PermutationCodec.depotMap(source);
+        Map<Integer, Depot> sourceMap = PermutationCodec.depotMap(source);
         if (sourceMap != null) {
             copy.attributes().put(PermutationCodec.DEPOT_MAP, new HashMap<>(sourceMap));
         }

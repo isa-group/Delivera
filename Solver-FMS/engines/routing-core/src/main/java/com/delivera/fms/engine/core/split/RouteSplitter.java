@@ -1,21 +1,22 @@
-package com.delivera.fms.engine.genetic.scheduler;
+package com.delivera.fms.engine.core.split;
 
-import com.delivera.fms.engine.genetic.dto.CustomerDto;
-import com.delivera.fms.engine.genetic.dto.DepotDto;
+import com.delivera.fms.engine.core.model.Customer;
+import com.delivera.fms.engine.core.model.Depot;
+import com.delivera.fms.engine.core.model.Route;
+import com.delivera.fms.engine.core.model.RoutingProblem;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Trocea la secuencia de clientes de un deposito en rutas respetando capacidad, duracion maxima y
  * numero de vehiculos disponibles.
  *
  * Usa la programacion dinamica de Prins: para un orden dado devuelve el corte de coste minimo, no
- * el primero que cabe. Es el unico punto donde se convierte un cromosoma en rutas, de forma que la
- * funcion objetivo del algoritmo y la respuesta que se devuelve al cliente son el mismo calculo.
+ * el primero que cabe. Es el unico punto donde una secuencia se convierte en rutas, de forma que
+ * la funcion objetivo de cualquier motor y la respuesta que devuelve son el mismo calculo.
  *
  * Ofrece ademas los deltas de insercion y eliminacion sobre esas secuencias, que todos los
  * operadores deben usar para no valorar aristas entre clientes de depositos distintos.
@@ -33,37 +34,26 @@ public class RouteSplitter {
     /** Penalizacion por una ruta que excede la duracion maxima y no se puede partir mas. */
     private static final double DURATION_PENALTY = 1000.0;
 
-    private final List<CustomerDto> customers;
+    private final RoutingProblem problem;
     private final double[][] distanceMatrix;
-    private final Map<DepotDto, Integer> capacityByDepot;
-    private final Map<DepotDto, Integer> fleetByDepot;
 
-    public RouteSplitter(List<CustomerDto> customers,
-                         double[][] distanceMatrix,
-                         Map<DepotDto, Integer> capacityByDepot,
-                         Map<DepotDto, Integer> fleetByDepot) {
-        this.customers = customers;
-        this.distanceMatrix = distanceMatrix;
-        this.capacityByDepot = capacityByDepot;
-        this.fleetByDepot = fleetByDepot;
+    public RouteSplitter(RoutingProblem problem) {
+        this.problem = problem;
+        this.distanceMatrix = problem.distanceMatrix();
     }
 
-    public int capacity(DepotDto depot) {
-        return capacityByDepot.getOrDefault(depot, Integer.MAX_VALUE);
-    }
-
-    public int fleet(DepotDto depot) {
-        return fleetByDepot.getOrDefault(depot, Integer.MAX_VALUE);
+    public RoutingProblem problem() {
+        return problem;
     }
 
     public static double fleetPenalty(int routeCount, int fleet) {
-        return (fleet != Integer.MAX_VALUE && routeCount > fleet)
+        return (fleet != Depot.UNLIMITED && routeCount > fleet)
                 ? (routeCount - fleet) * FLEET_PENALTY
                 : 0.0;
     }
 
-    // Coste y numero de rutas del mejor troceado, sin materializarlo. 
-    public Split evaluate(DepotDto depot, List<Integer> order) {
+    // Coste y numero de rutas del mejor troceado, sin materializarlo.
+    public Split evaluate(Depot depot, List<Integer> order) {
         if (order.isEmpty()) {
             return new Split(0.0, 0);
         }
@@ -71,7 +61,16 @@ public class RouteSplitter {
         return new Split(state.cost[order.size()], state.routeCount[order.size()]);
     }
 
-    public List<List<Integer>> split(DepotDto depot, List<Integer> order) {
+    /**
+     * Coste del deposito tal y como lo ve la funcion objetivo: el del mejor troceado mas la
+     * penalizacion por las rutas que excedan la flota.
+     */
+    public double penalizedCost(Depot depot, List<Integer> order) {
+        Split split = evaluate(depot, order);
+        return split.cost() + fleetPenalty(split.routeCount(), depot.fleet());
+    }
+
+    public List<List<Integer>> split(Depot depot, List<Integer> order) {
         List<List<Integer>> routes = new ArrayList<>();
         if (order.isEmpty()) {
             return routes;
@@ -88,6 +87,51 @@ public class RouteSplitter {
         return routes;
     }
 
+    /** Las rutas del mejor troceado, con su distancia, carga y servicio ya calculados. */
+    public List<Route> routes(Depot depot, List<Integer> order) {
+        List<Route> routes = new ArrayList<>();
+        for (List<Integer> customers : split(depot, order)) {
+            routes.add(materialize(depot, customers));
+        }
+        return routes;
+    }
+
+    /**
+     * Si el mejor troceado cumple de verdad capacidad, duracion y flota.
+     *
+     * La penalizacion orienta la busqueda pero no sirve como criterio de aceptacion: una solucion
+     * infactible barata puede quedar por debajo de una factible cara. Esto es lo que hay que
+     * comprobar antes de devolver un resultado.
+     */
+    public boolean isFeasible(Depot depot, List<Integer> order) {
+        List<Route> routes = routes(depot, order);
+        if (depot.hasFleetLimit() && routes.size() > depot.fleet()) {
+            return false;
+        }
+        for (Route route : routes) {
+            if (route.load() > depot.capacity() || route.duration() > depot.durationLimit()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private Route materialize(Depot depot, List<Integer> customers) {
+        double distance = 0.0;
+        int load = 0;
+        double service = 0.0;
+        int current = depot.matrixIndex();
+        for (int index : customers) {
+            Customer customer = problem.customer(index);
+            distance += distanceMatrix[current][customer.matrixIndex()];
+            load += customer.demand();
+            service += customer.service();
+            current = customer.matrixIndex();
+        }
+        distance += distanceMatrix[current][depot.matrixIndex()];
+        return new Route(depot, List.copyOf(customers), distance, load, service);
+    }
+
     /**
      * Trocea al minimo coste y, si eso necesita mas vehiculos de los que hay, reintenta acotando el
      * numero de rutas.
@@ -96,15 +140,15 @@ public class RouteSplitter {
      * penalizacion de flota se aplicaria fuera, cuando el corte ya esta decidido, y cualquier
      * re-troceado posterior desharia la reparacion que hubiera hecho la busqueda inter-deposito.
      */
-    private State solve(DepotDto depot, List<Integer> order) {
+    private State solve(Depot depot, List<Integer> order) {
         // Los tramos de ruta se calculan una sola vez: el DP acotado los recorre una vez por cada
         // numero de vehiculos, y recalcularlos ahi multiplicaba el coste del troceado.
         double[][] segments = buildSegments(depot, order);
 
         State unlimited = solveUnlimited(segments, order.size());
-        int fleet = fleet(depot);
+        int fleet = depot.fleet();
 
-        if (fleet == Integer.MAX_VALUE || unlimited.routeCount[order.size()] <= fleet) {
+        if (!depot.hasFleetLimit() || unlimited.routeCount[order.size()] <= fleet) {
             return unlimited;
         }
 
@@ -116,7 +160,7 @@ public class RouteSplitter {
      * {@code segments[i][k]} es el coste de la ruta que sirve las posiciones {@code i..i+k}, o
      * {@link Double#MAX_VALUE} si esa ruta no cumple duracion.
      */
-    private double[][] buildSegments(DepotDto depot, List<Integer> order) {
+    private double[][] buildSegments(Depot depot, List<Integer> order) {
         int n = order.size();
         double[][] segments = new double[n][];
         double[] buffer = new double[n];
@@ -242,11 +286,11 @@ public class RouteSplitter {
         private int previous;
         private double routeCost;
 
-        RouteScan(DepotDto depot, List<Integer> order, int from) {
+        RouteScan(Depot depot, List<Integer> order, int from) {
             this.order = order;
             this.from = from;
             this.depotIndex = depot.matrixIndex();
-            this.capacity = capacity(depot);
+            this.capacity = depot.capacity();
             this.durationLimit = depot.durationLimit();
             this.position = from - 1;
             this.previous = depotIndex;
@@ -254,7 +298,7 @@ public class RouteSplitter {
 
         boolean next() {
             while (++position < order.size()) {
-                CustomerDto customer = customers.get(order.get(position));
+                Customer customer = problem.customer(order.get(position));
                 if (load > 0 && load + customer.demand() > capacity) {
                     return false;
                 }
@@ -296,7 +340,7 @@ public class RouteSplitter {
     }
 
     // Coste de insertar el cliente en la posicion dada, con el deposito como extremo de secuencia.
-    public double insertionCost(DepotDto depot, List<Integer> order, int position, int customer) {
+    public double insertionCost(Depot depot, List<Integer> order, int position, int customer) {
         int depotIndex = depot.matrixIndex();
         int previous = (position > 0) ? matrixIndex(order.get(position - 1)) : depotIndex;
         int next = (position < order.size()) ? matrixIndex(order.get(position)) : depotIndex;
@@ -307,7 +351,7 @@ public class RouteSplitter {
     }
 
     // Ahorro de sacar de la secuencia el cliente que ocupa la posicion dada.
-    public double removalGain(DepotDto depot, List<Integer> order, int position) {
+    public double removalGain(Depot depot, List<Integer> order, int position) {
         int depotIndex = depot.matrixIndex();
         int previous = (position > 0) ? matrixIndex(order.get(position - 1)) : depotIndex;
         int next = (position < order.size() - 1) ? matrixIndex(order.get(position + 1)) : depotIndex;
@@ -316,8 +360,8 @@ public class RouteSplitter {
         return distanceMatrix[previous][current] + distanceMatrix[current][next]
                 - distanceMatrix[previous][next];
     }
-    
-    public int bestPosition(DepotDto depot, List<Integer> order, int customer) {
+
+    public int bestPosition(Depot depot, List<Integer> order, int customer) {
         double bestCost = Double.MAX_VALUE;
         int bestPosition = 0;
 
@@ -333,7 +377,7 @@ public class RouteSplitter {
     }
 
     private int matrixIndex(int customer) {
-        return customers.get(customer).matrixIndex();
+        return problem.customer(customer).matrixIndex();
     }
 
     public record Split(double cost, int routeCount) {
