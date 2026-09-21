@@ -1,283 +1,282 @@
 # annealing-engine
 
-**Puerto 8094** · `com.delivera.fms.engine.annealing` · clase principal
+**Port 8094** · `com.delivera.fms.engine.annealing` · main class
 [`AnnealingRouteSolver`](../../engines/annealing-engine/src/main/java/com/delivera/fms/engine/annealing/service/AnnealingRouteSolver.java)
-· algoritmo
+· algorithm
 [`SimulatedAnnealing`](../../engines/annealing-engine/src/main/java/com/delivera/fms/engine/annealing/algorithm/SimulatedAnnealing.java)
 
-Recocido simulado: metaheurística de **solución única** que parte de una solución y la va
-modificando con movimientos aleatorios, aceptando siempre los que mejoran y, con probabilidad
-`exp(-Δ/T)`, también los que empeoran. La temperatura `T` baja con el tiempo, así que la búsqueda
-pasa de explorar a afinar. Es el criterio de Metropolis de **Kirkpatrick, Gelatt y Vecchi (1983)**;
-los vecindarios son la adaptación a multi-depósito del *λ-interchange* de **Osman (1993)**.
+Simulated annealing: a **single-solution** metaheuristic that starts from one solution and keeps
+modifying it with random moves, always accepting those that improve and, with probability
+`exp(-Δ/T)`, also those that worsen. The temperature `T` drops over time, so the search goes from
+exploring to refining. It is the Metropolis criterion of **Kirkpatrick, Gelatt and Vecchi (1983)**;
+the neighbourhoods are the multi-depot adaptation of **Osman's (1993)** *λ-interchange*.
 
-Está montado sobre la plantilla `AbstractLocalSearch` de jMetal 6.6: un paso de la plantilla es un
-nivel de temperatura. jMetal aporta la plantilla y el generador aleatorio; el criterio de
-aceptación, el enfriamiento y los vecindarios están escritos a mano.
+It is built on jMetal 6.6's `AbstractLocalSearch` template: one step of the template is one
+temperature level. jMetal provides the template and the random generator; the acceptance criterion,
+the cooling and the neighbourhoods are hand-written.
 
-Comparte con el motor genético el núcleo [`routing-core`](../arquitectura.md#el-núcleo-compartido):
-el troceado óptimo, la búsqueda local a nivel de ruta y el reequilibrado entre depósitos. **Eso no
-es reutilización, es control experimental**: los dos motores miden el coste con exactamente el mismo
-código, así que una diferencia entre ellos es atribuible a la estrategia de búsqueda y no a que
-midan cosas distintas.
+It shares with the genetic engine the [`routing-core`](../architecture.md#the-shared-core): the
+optimal split, the route-level local search and the inter-depot rebalancing. **That is not reuse,
+it is experimental control**: both engines measure cost with exactly the same code, so a difference
+between them is attributable to the search strategy and not to measuring different things.
 
-## Qué lo distingue de los otros motores
+## What sets it apart from the other engines
 
 | | genetic-engine | annealing-engine |
 |---|---|---|
-| Población | 150 individuos | 1 solución |
-| Criterio de parada | estancamiento y reinicios | **presupuesto de tiempo** |
-| Reproducible | sí, con `seed` | solo con `seed` **y** `maxLevels` |
-| Curva anytime | no | **sí**, en el campo `trace` |
+| Population | 150 individuals | 1 solution |
+| Stopping criterion | stagnation and restarts | **time budget** |
+| Reproducible | yes, with `seed` | only with `seed` **and** `maxLevels` |
+| Anytime curve | no | **yes**, in the `trace` field |
 
-El presupuesto de tiempo es la diferencia que importa. El genético termina cuando se estanca, tarde
-lo que tarde; al recocido se le dice cuánto tiempo tiene y lo usa entero. Eso es lo que permite
-preguntarle *"¿qué coste das con 500 ms?"* y comparar motores por su **frontera coste/tiempo** en
-lugar de solo por el coste final.
+The time budget is the difference that matters. The genetic engine ends when it stagnates, however
+long that takes; the annealing one is told how much time it has and uses all of it. That is what
+allows asking it *"what cost do you give with 500 ms?"* and comparing engines by their
+**cost/time frontier** rather than by final cost alone.
 
-## Mapa de clases
+## Class map
 
 ```
 service/
-  AnnealingRouteSolver     entrada: parámetros, solución inicial, pulido final, decodificación
-  AnnealingParameters      configuración de una ejecución
-  ProblemMapper            DTO del contrato → modelo del núcleo
+  AnnealingRouteSolver     entry point: parameters, initial solution, final polish, decoding
+  AnnealingParameters      configuration of one run
+  ProblemMapper            contract DTOs → core model
 
 algorithm/
-  SimulatedAnnealing       el recocido, sobre AbstractLocalSearch<AnnealingSolution> de jMetal
+  SimulatedAnnealing       the annealing, on jMetal's AbstractLocalSearch<AnnealingSolution>
 
 solution/
-  AnnealingSolution        secuencias por depósito + asignación + costes cacheados
-  Neighborhood             genera el vecino, guarda lo necesario para deshacerlo
+  AnnealingSolution        per-depot sequences + assignment + cached costs
+  Neighborhood             generates the neighbour, keeps what is needed to undo it
 ```
 
-Todo lo demás -`RouteSplitter`, `RouteOptimizer`, `DepotRebalancer`- viene de `routing-core`.
+Everything else — `RouteSplitter`, `RouteOptimizer`, `DepotRebalancer` — comes from `routing-core`.
 
-## Representación
+## Representation
 
-La misma que el genético -orden por depósito más asignación cliente-depósito- pero **sin la
-permutación global**, que allí existe solo por la representación de jMetal. Aquí la secuencia por
-depósito es la forma canónica y la asignación se deriva de ella.
+The same as the genetic engine's — order per depot plus customer-depot assignment — but **without
+the global permutation**, which there exists only because of jMetal's representation. Here the
+per-depot sequence is the canonical form and the assignment is derived from it.
 
 ```
-secuencia D1  [ 7, 2, 9, 8, 6 ]
-secuencia D2  [ 4, 1, 5, 3 ]
+sequence D1   [ 7, 2, 9, 8, 6 ]
+sequence D2   [ 4, 1, 5, 3 ]
 depotOf       7→0  2→0  9→0  8→0  6→0  4→1  1→1  5→1  3→1
 ```
 
-Las rutas no se guardan: se derivan troceando cada secuencia con `RouteSplitter`. Que ambos motores
-recorran **el mismo espacio de soluciones** es deliberado: aísla lo que se quiere comparar.
+Routes are not stored: they are derived by splitting each sequence with `RouteSplitter`. That both
+engines walk **the same solution space** is deliberate: it isolates what is meant to be compared.
 
-## La función objetivo es exacta, y por qué es asequible
+## The objective function is exact, and why that is affordable
 
-Cada movimiento se evalúa con el troceado óptimo real, no con un delta sobre la secuencia. Un delta
-sería mucho más barato pero **no ve dónde va a caer el corte en rutas**, que es de donde sale el
-coste; optimizar la secuencia y trocear después no es equivalente a optimizar el resultado del
-troceado.
+Every move is evaluated with the real optimal split, not with a delta over the sequence. A delta
+would be much cheaper but **does not see where the cut into routes will fall**, which is where the
+cost comes from; optimising the sequence and splitting afterwards is not equivalent to optimising
+the split's result.
 
-Que evaluar de verdad sea asequible depende de una sola idea: **un movimiento toca uno o dos
-depósitos**, así que solo esos se vuelven a trocear y los demás conservan su coste cacheado.
+That evaluating for real is affordable depends on a single idea: **a move touches one or two
+depots**, so only those are re-split and the rest keep their cached cost.
 
 ```
 AnnealingSolution
-  depotCost[d]   coste penalizado de cada depósito
-  totalCost      suma, mantenida por diferencias
+  depotCost[d]   penalised cost of each depot
+  totalCost      the sum, maintained by differences
 ```
 
-`Neighborhood` guarda una copia (`DepotBackup`) de cada depósito **justo antes** de tocarlo. Esa
-copia hace dos cosas: dice qué recalcular, y permite deshacer si el movimiento se rechaza. Medido:
-un movimiento completo -proponer, evaluar, deshacer- cuesta 0,9 µs en `p01` (13 clientes por
-depósito), 4 µs en `p22` (40) y 9 µs en `pr06` (60-90). El troceado es el 70 % de eso.
+`Neighborhood` keeps a copy (`DepotBackup`) of each depot **right before** touching it. That copy
+does two things: it says what to recompute, and it allows undoing if the move is rejected. Measured:
+a complete move — propose, evaluate, undo — costs 0.9 µs on `p01` (13 customers per depot), 4 µs on
+`p22` (40) and 9 µs on `pr06` (60-90). The split is 70 % of that.
 
-Un test de invariantes
+An invariant test
 ([`NeighborhoodInvariantTest`](../../engines/annealing-engine/src/test/java/com/delivera/fms/engine/annealing/solution/NeighborhoodInvariantTest.java))
-comprueba tras miles de movimientos y deshechos que cada cliente está en exactamente un depósito,
-que la asignación cacheada coincide con las secuencias, que el coste mantenido por diferencias es
-el recalculado desde cero y que deshacer devuelve exactamente al estado anterior.
+checks, after thousands of moves and undos, that every customer is in exactly one depot, that the
+cached assignment matches the sequences, that the cost maintained by differences equals the one
+recomputed from scratch, and that undoing returns exactly to the previous state.
 
-## Vecindarios
+## Neighbourhoods
 
-Un movimiento elige un cliente al azar -lo que pondera los depósitos por su tamaño- y aplica:
+A move picks a customer at random — which weights depots by their size — and applies:
 
-**Intra-depósito** (reordenan una secuencia; el troceado decide dónde caen los cortes):
+**Intra-depot** (reorder a sequence; the split decides where the cuts fall):
 
-- **relocate** — mueve el cliente a otra posición.
-- **swap** — lo intercambia con otro.
-- **reverse** — invierte el tramo entre ambos.
+- **relocate** — moves the customer to another position.
+- **swap** — exchanges it with another one.
+- **reverse** — reverses the segment between the two.
 
-**Inter-depósito** (los únicos que cambian el reparto, donde se juega la calidad en MD-CVRP):
+**Inter-depot** (the only ones that change the distribution, which is where quality is won in
+MD-CVRP):
 
-- **relocate** — lo saca de su depósito y lo mete en otro, en su posición más barata.
-- **swap** — intercambia el depósito de dos clientes. No altera cuántos clientes tiene cada
-  depósito, así que sigue sirviendo cuando el reparto ya está ajustado a la flota.
+- **relocate** — takes it out of its depot and puts it in another, in its cheapest position.
+- **swap** — exchanges the depot of two customers. It does not change how many customers each depot
+  has, so it keeps working once the distribution is already fitted to the fleet.
 
-Su proporción la fija `interDepotMoveProbability`. El depósito destino se elige entre los
-**cercanos** al cliente: los que no están a más de `depotCandidateRatio` veces la distancia del más
-cercano. Mover un cliente al otro extremo del mapa es un movimiento que ningún criterio de
-aceptación va a admitir, y proponerlo solo gasta iteraciones. La lista se precalcula una vez porque
-depende de la geometría, no de la asignación.
+Their proportion is set by `interDepotMoveProbability`. The destination depot is chosen among the
+ones **near** the customer: those no farther than `depotCandidateRatio` times the distance of the
+nearest one. Moving a customer to the other end of the map is a move no acceptance criterion will
+admit, and proposing it only wastes iterations. The list is precomputed once because it depends on
+the geometry, not on the assignment.
 
-El vecindario es bueno por sí solo: una **bajada pura** con estos movimientos (aceptar solo mejoras)
-lleva `p22` de la solución inicial a 5974 en 0,85 s, ya por debajo del genético. Lo que el recocido
-añade es la capacidad de salir de ese valle.
+The neighbourhood is good on its own: a **pure descent** with these moves (accepting improvements
+only) takes `p22` from the initial solution to 5974 in 0.85 s, already below the genetic engine.
+What annealing adds is the ability to leave that valley.
 
-## Temperatura
+## Temperature
 
-### Inicial: calibrada, no fijada
+### Initial: calibrated, not fixed
 
-Se sondean `WARMUP_SAMPLES = 1000` movimientos desde la solución de partida (todos deshechos) y se
-toma un **cuantil bajo** de los que empeoran, `calibrationQuantile` (5 % por defecto): un
-empeoramiento *pequeño*, de los que la búsqueda necesita aceptar para salir de un óptimo local. La
-temperatura inicial es la que acepta un empeoramiento así con `initialAcceptanceRate`:
+`WARMUP_SAMPLES = 1000` moves are sampled from the starting solution (all undone) and a **low
+quantile** of the worsening ones is taken, `calibrationQuantile` (5 % by default): a *small*
+worsening, the kind the search really needs to accept to leave a local optimum. The initial
+temperature is the one that accepts such a worsening with `initialAcceptanceRate`:
 `T0 = -Δ / ln(p0)`.
 
-Un valor absoluto no sería transferible: el coste de un movimiento depende de la escala de las
-coordenadas y del tamaño de la instancia, así que una temperatura buena para `p01` sería absurda
-para `p22`.
+An absolute value would not be transferable: the cost of a move depends on the coordinate scale and
+the instance size, so a temperature good for `p01` would be absurd for `p22`.
 
-**Un cuantil bajo y no la mediana, y esto cambia el resultado más que ningún otro parámetro.** Desde
-un óptimo local casi todos los movimientos aleatorios empeoran mucho (reubicar un cliente en una
-posición al azar es casi siempre terrible), así que la mediana es una escala enorme. A esa
-temperatura la cadena se asienta en un coste de equilibrio muy por encima del punto de partida
--en `p22`, ~8600 con `T = 68` frente a un inicial de 6595- y, como la temperatura final se deriva
-de la inicial, **nunca baja lo bastante para intensificar**. El resultado era que el mejor no
-mejoraba nunca desde la solución inicial. Medido en `p22`: 12 % de *gap* con la mediana, 2,5 % con
-el cuantil del 5 %.
+**A low quantile and not the median, and this changes the result more than any other parameter.**
+From a local optimum almost every random move worsens a lot (relocating a customer to a random
+position is almost always terrible), so the median is a huge scale. At that temperature the chain
+settles at an equilibrium cost far above the starting point — on `p22`, ~8600 at `T = 68` against
+an initial 6595 — and, since the final temperature is derived from the initial one, **it never gets
+low enough to intensify**. The result was that the best never improved on the initial solution.
+Measured on `p22`: 12 % gap with the median, 2.5 % with the 5 % quantile.
 
-Solo cuentan los empeoramientos de **distancia** (por debajo de media penalización de flota). Los
-que arrastran una penalización son mil veces mayores que un movimiento normal y, en una instancia
-cuya solución inicial no cabe en la flota (`p22` parte con 9-13 rutas por depósito para una flota
-de 5), son además mayoría: contarlos disparaba la temperatura a ~1000 y el recocido aceptaba todo.
+Only **distance** worsenings count (below half a fleet penalty). Those carrying a penalty are a
+thousand times larger than a normal move and, on an instance whose initial solution does not fit the
+fleet (`p22` starts with 9-13 routes per depot for a fleet of 5), they are also the majority:
+counting them pushed the temperature to ~1000 and the annealing accepted everything.
 
-### Enfriamiento y recalentamiento
+### Cooling and reheating
 
-Geométrico: al terminar cada nivel, `T ← coolingRate × T`. Un nivel son
-`movesPerTemperatureFactor × clientes` movimientos, proporcional al tamaño a propósito.
+Geometric: at the end of each level, `T ← coolingRate × T`. A level is
+`movesPerTemperatureFactor × customers` moves, proportional to the size on purpose.
 
-La temperatura mínima también se deriva: es la que acepta ese mismo empeoramiento pequeño con
-`finalAcceptanceRate`. Con los valores por defecto, `T_min = 0,13 × T0` y un ciclo de enfriamiento
-dura ~49 niveles. Al llegar ahí se **recalienta** a la mitad de la inicial y la búsqueda parte del
-mejor conocido.
+The minimum temperature is also derived: it is the one that accepts that same small worsening with
+`finalAcceptanceRate`. With the defaults, `T_min = 0.13 × T0` and a cooling cycle lasts ~49 levels.
+On reaching it the search **reheats** to half the initial temperature and restarts from the best
+known solution.
 
-**No hay recalentamiento por estancamiento.** Se probó (recalentar tras 25 niveles sin mejorar el
-mejor) y era contraproducente: saltaba *antes* de que un ciclo llegara a la temperatura mínima, así
-que la búsqueda nunca se enfriaba y no intensificaba. Medido en `p01`: 36 % de aceptación global con
-él, frente al 6 % esperable.
+**There is no reheating on stagnation.** It was tried (reheat after 25 levels without improving the
+best) and it was counterproductive: it fired *before* a cycle reached the minimum temperature, so
+the search never cooled down and did not intensify. Measured on `p01`: 36 % overall acceptance with
+it, against the expected 6 %.
 
-No hay tope de recalentamientos: el único criterio de parada es el tiempo (o `maxLevels`).
+There is no cap on reheats: the only stopping criterion is time (or `maxLevels`).
 
-## Factibilidad
+## Feasibility
 
-Aquí hay dos mecanismos y conviene no confundirlos.
+There are two mechanisms here and they should not be confused.
 
-### La penalización orienta, no decide
+### The penalty guides, it does not decide
 
-`RouteSplitter` **tolera** dos cosas cobrando 1000 de penalización: una ruta de un solo cliente que
-no cabe en la duración, y más rutas que vehículos. Esa penalización es el gradiente que empuja la
-búsqueda hacia lo factible, y el recocido lo sigue bien cuando el exceso de rutas es un problema de
-**orden**: en `p22` pasa de 9-13 rutas por depósito a las 5 de la flota en el primer segundo,
-porque cada reordenación que empaqueta mejor elimina una ruta y se acepta al instante.
+`RouteSplitter` **tolerates** two things by charging 1000 of penalty: a single-customer route that
+does not fit the duration, and more routes than vehicles. That penalty is the gradient that pushes
+the search towards feasibility, and annealing follows it well when the excess of routes is a matter
+of **order**: on `p22` it goes from 9-13 routes per depot to the fleet's 5 within the first second,
+because every reordering that packs better removes a route and is accepted at once.
 
-Pero **no vale como criterio para aceptar un resultado**: con una penalización de 1000 sobre un coste
-total de 6000, una solución infactible barata puede quedar por debajo de una factible cara y ganar la
-comparación. Por eso el motor guarda aparte la **mejor solución factible vista** -verificada con
-`RouteSplitter.isFeasible`, que materializa las rutas y comprueba capacidad, duración y flota- y es
-esa la que devuelve. Solo si en toda la ejecución no apareció ninguna, repara la mejor que tenga
-antes de rendirse.
+But **it is not valid as a criterion for accepting a result**: with a penalty of 1000 on a total
+cost of 6000, a cheap infeasible solution can end up below an expensive feasible one and win the
+comparison. That is why the engine keeps separately the **best feasible solution seen** — verified
+with `RouteSplitter.isFeasible`, which materialises the routes and checks capacity, duration and
+fleet — and that is the one it returns. Only if none appeared during the whole run does it repair
+the best it has before giving up.
 
-La comprobación se hace una vez por nivel, no en cada mejora: el mejor histórico solo mejora, así que
-mirarlo ahí recoge el mismo estado sin trocear todos los depósitos miles de veces.
+The check is done once per level, not on every improvement: the best-so-far only improves, so
+looking at it there captures the same state without splitting every depot thousands of times.
 
-### El reequilibrado repara lo que el recocido no puede
+### Rebalancing repairs what annealing cannot
 
-Hay instancias -`p07`, `p11`, `pr06`- en las que el exceso de rutas es de **asignación**: un depósito
-tiene más clientes de los que su flota puede servir se ordenen como se ordenen, y salir de ahí exige
-una **cadena** de reubicaciones a otros depósitos en la que solo la última elimina una ruta. El
-criterio de Metropolis valora los movimientos de uno en uno, así que la probabilidad de recorrer la
-cadena entera es el producto de las individuales: se queda atrapado salvo por casualidad.
+There are instances — `p07`, `p11`, `pr06` — where the excess of routes is a matter of
+**assignment**: a depot has more customers than its fleet can serve however they are ordered, and
+getting out of that requires a **chain** of relocations to other depots in which only the last one
+removes a route. The Metropolis criterion values moves one at a time, so the probability of walking
+the whole chain is the product of the individual ones: it stays trapped except by chance.
 
-Por eso se llama a `DepotRebalancer` -el mismo que usa el genético- sobre la solución de partida y
-cada `rebalanceFrequency` niveles. Con una diferencia: el genético confirma con troceado **todas**
-las posiciones de inserción del destino, que es exacto pero cuadrático (en `pr06` una pasada costaba
-de 2 a 8 s, más que el presupuesto entero); el recocido confirma solo las **tres más baratas por
-distancia** (`REPAIR_INSERTION_CANDIDATES`). Pierde la garantía de encontrar la que menos rutas
-añade, pero el orden fino lo afina después el propio recocido, y `pr06` pasa de ser infactible a los
-13 s a serlo al primer segundo.
+That is why `DepotRebalancer` — the same one the genetic engine uses — is called on the starting
+solution and every `rebalanceFrequency` levels. With one difference: the genetic engine confirms
+with a split **every** insertion position of the destination, which is exact but quadratic (on
+`pr06` one pass cost 2 to 8 s, more than the whole budget); the annealing engine confirms only the
+**three cheapest by distance** (`REPAIR_INSERTION_CANDIDATES`). It loses the guarantee of finding
+the one that adds the fewest routes, but the fine ordering is refined afterwards by the annealing
+itself, and `pr06` goes from being infeasible at 13 s to being feasible within the first second.
 
-Las fases auxiliares tienen plazo: la reparación inicial no puede consumir más de un cuarto del
-presupuesto y el reequilibrado periódico se corta al agotarse, devolviendo lo hecho hasta entonces.
+The auxiliary phases have a deadline: the initial repair cannot consume more than a quarter of the
+budget, and the periodic rebalancing is cut off when it runs out, returning what was done so far.
 
-## Bucle principal
+## Main loop
 
 ```
-solución inicial: cliente al depósito más cercano + vecino más cercano aleatorizado
-reequilibrar y pulir, hasta 5 pasadas o un cuarto del presupuesto
-calibrar la temperatura inicial y la mínima
+initial solution: customer to nearest depot + randomised nearest neighbour
+rebalance and polish, up to 5 passes or a quarter of the budget
+calibrate the initial and minimum temperatures
 
-mientras quede tiempo (o niveles):
+while time (or levels) remain:
 
-    nivel: para cada uno de factor × clientes movimientos
-        proponer un vecino, guardando copia de los depósitos que toca
-        recalcular solo esos depósitos
-        aceptar si mejora, o con probabilidad exp(-Δ/T); si no, deshacer
-        anotar el mejor
+    level: for each of factor × customers moves
+        propose a neighbour, keeping a copy of the depots it touches
+        recompute only those depots
+        accept if it improves, or with probability exp(-Δ/T); otherwise undo
+        record the best
 
     T ← coolingRate × T
-    si el mejor es factible y mejor que el mejor factible: anotarlo y añadir punto a la traza
-    cada rebalanceFrequency niveles:   reequilibrar entre depósitos
-    cada localSearchFrequency niveles: 2-opt y reubicación entre rutas
-    si T < T_min: recalentar a T0/2 y volver al mejor conocido
+    if the best is feasible and better than the best feasible: record it and add a trace point
+    every rebalanceFrequency levels:   rebalance between depots
+    every localSearchFrequency levels: 2-opt and relocate between routes
+    if T < T_min: reheat to T0/2 and return to the best known solution
 
-pulido final del resultado (reequilibrado + búsqueda local); si nunca hubo factible, reparar
-devolver la mejor solución FACTIBLE vista
+final polish of the result (rebalancing + local search); if there never was a feasible one, repair
+return the best FEASIBLE solution seen
 ```
 
-## Parámetros
+## Parameters
 
-Configurables por petición, en el mapa `parameters`. Los valores por defecto son los de
+Configurable per request, in the `parameters` map. The defaults are those of
 [`AnnealingParameters.DEFAULTS`](../../engines/annealing-engine/src/main/java/com/delivera/fms/engine/annealing/service/AnnealingParameters.java)
-y están declarados también en los metadatos del solver. **Si cambias uno, cámbialo en los dos
-sitios**: el descriptor estaría anunciando una ejecución que no es la que ocurre.
+and are also declared in the solver's metadata. **If you change one, change it in both places**:
+the descriptor would be announcing a run that is not the one that happens.
 
-| Parámetro | Defecto | Rango | Significado |
+| Parameter | Default | Range | Meaning |
 |---|---|---|---|
-| `timeLimitMs` | 5000 | 100–300000 | Presupuesto de tiempo. Criterio de parada principal |
-| `maxLevels` | 0 | 0–10⁶ | Tope de niveles; 0 = solo manda el tiempo. Lo que hace la ejecución reproducible |
-| `calibrationQuantile` | 0,05 | 0,01–0,5 | Qué cuantil de los empeoramientos sondeados es el "empeoramiento pequeño" |
-| `initialAcceptanceRate` | 0,4 | 0,01–0,99 | Con qué probabilidad se acepta ese empeoramiento al arrancar |
-| `finalAcceptanceRate` | 0,001 | 10⁻⁶–0,5 | Por debajo de esa probabilidad el sistema está frío y se recalienta |
-| `coolingRate` | 0,96 | 0,5–0,9999 | Factor de enfriamiento por nivel |
-| `movesPerTemperatureFactor` | 12 | 1–1000 | Movimientos por nivel **y por cliente** |
-| `interDepotMoveProbability` | 0,25 | 0–1 | Fracción de movimientos que cambian un cliente de depósito |
-| `depotCandidateRatio` | 1,3 | 1–100 | Cuánto más lejos que el más cercano puede estar un depósito destino |
-| `localSearchFrequency` | 8 | 0–10000 | Cada cuántos niveles se aplica 2-opt y relocate; 0 = solo al final |
-| `rebalanceFrequency` | 20 | 0–10000 | Cada cuántos niveles se reequilibra entre depósitos; 0 = solo al inicio y al final |
-| `seed` | - | 0 – 2⁴⁸−1 | Semilla. Sin ella el motor sortea una y la devuelve |
+| `timeLimitMs` | 5000 | 100–300000 | Time budget. Main stopping criterion |
+| `maxLevels` | 0 | 0–10⁶ | Level cap; 0 = time alone rules. What makes a run reproducible |
+| `calibrationQuantile` | 0.05 | 0.01–0.5 | Which quantile of the sampled worsenings is the "small worsening" |
+| `initialAcceptanceRate` | 0.4 | 0.01–0.99 | With what probability that worsening is accepted at the start |
+| `finalAcceptanceRate` | 0.001 | 10⁻⁶–0.5 | Below that probability the system is cold and reheats |
+| `coolingRate` | 0.96 | 0.5–0.9999 | Cooling factor per level |
+| `movesPerTemperatureFactor` | 12 | 1–1000 | Moves per level **and per customer** |
+| `interDepotMoveProbability` | 0.25 | 0–1 | Fraction of moves that change a customer's depot |
+| `depotCandidateRatio` | 1.3 | 1–100 | How much farther than the nearest a destination depot may be |
+| `localSearchFrequency` | 8 | 0–10000 | Every how many levels 2-opt and relocate are applied; 0 = only at the end |
+| `rebalanceFrequency` | 20 | 0–10000 | Every how many levels rebalancing between depots runs; 0 = only at start and end |
+| `seed` | - | 0 – 2⁴⁸−1 | Seed. Without it the engine draws one and returns it |
 
-Constantes sin recorrido experimental medido, en `SimulatedAnnealing` y `AnnealingRouteSolver`:
+Constants without a measured experimental range, in `SimulatedAnnealing` and
+`AnnealingRouteSolver`:
 
-| Constante | Valor | Significado |
+| Constant | Value | Meaning |
 |---|---|---|
-| `WARMUP_SAMPLES` | 1000 | Movimientos de sondeo para calibrar la temperatura |
-| `REHEAT_FACTOR` | 0,5 | Fracción de la temperatura inicial a la que se recalienta (0,5, 1 y 2 dan lo mismo dentro del ruido) |
-| `CLOCK_CHECK_INTERVAL` | 512 | Cada cuántos movimientos se mira el reloj dentro de un nivel |
-| `INITIAL_REPAIR_PASSES` / `_SHARE` | 5 / 4 | Pasadas de reparación inicial y fracción (1/4) del presupuesto que pueden gastar |
-| `SEED_CANDIDATE_LIST` | 3 | Candidatos del vecino más cercano aleatorizado |
-| `REPAIR_INSERTION_CANDIDATES` | 3 | Posiciones de inserción que confirma el reequilibrador |
-| `FINAL_REPAIR_PASSES` | 5 | Pasadas de reparación del último recurso |
+| `WARMUP_SAMPLES` | 1000 | Sampling moves for temperature calibration |
+| `REHEAT_FACTOR` | 0.5 | Fraction of the initial temperature to reheat to (0.5, 1 and 2 give the same within noise) |
+| `CLOCK_CHECK_INTERVAL` | 512 | Every how many moves the clock is checked within a level |
+| `INITIAL_REPAIR_PASSES` / `_SHARE` | 5 / 4 | Initial repair passes and fraction (1/4) of the budget they may spend |
+| `SEED_CANDIDATE_LIST` | 3 | Candidates of the randomised nearest neighbour |
+| `REPAIR_INSERTION_CANDIDATES` | 3 | Insertion positions the rebalancer confirms |
+| `FINAL_REPAIR_PASSES` | 5 | Last-resort repair passes |
 
-### `localSearchFrequency = 0` y `rebalanceFrequency = 0` son la ablación
+### `localSearchFrequency = 0` and `rebalanceFrequency = 0` are the ablation
 
-Con ambos a cero el motor es **recocido puro** (las dos fases solo actúan al arrancar y al terminar).
-Es lo que separa lo que aporta el criterio de Metropolis de lo que aporta la búsqueda local, que es
-la comparación que hay que hacer antes de atribuirle el resultado a ninguno de los dos. Una primera
-medida con una sola semilla: en `p22` el recocido puro da 1,9 % y el híbrido 3,3 %; en `p01` los dos
-dan 2,4 %. Con la temperatura bien calibrada, la búsqueda local periódica aporta poco o nada en
-esas dos instancias. **Hace falta repetir con varias semillas antes de concluirlo.**
+With both at zero the engine is **pure annealing** (the two phases only act at start and end). It
+is what separates what the Metropolis criterion contributes from what local search contributes,
+which is the comparison to make before crediting the result to either. A first measurement with a
+single seed: on `p22` pure annealing gives 1.9 % and the hybrid 3.3 %; on `p01` both give 2.4 %.
+With the temperature properly calibrated, periodic local search contributes little or nothing on
+those two instances. **It must be repeated with several seeds before concluding it.**
 
-## La curva anytime
+## The anytime curve
 
-La respuesta incluye un campo `trace`: los instantes en los que mejoró la mejor solución factible.
+The response includes a `trace` field: the instants at which the best feasible solution improved.
 
 ```json
 "trace": [
@@ -288,63 +287,62 @@ La respuesta incluye un campo `trace`: los instantes en los que mejoró la mejor
 ]
 ```
 
-Permite responder *qué coste habría dado el motor con un presupuesto menor* **sin volver a
-ejecutarlo**, que es lo que hace falta para comparar motores por su frontera coste/tiempo. La
-pasarela lo deja pasar sin transformarlo; los motores que no buscan de forma incremental lo devuelven
-como `null`.
+It allows answering *what cost the engine would have given with a smaller budget* **without
+running it again**, which is what is needed to compare engines by their cost/time frontier. The
+gateway lets it through untouched; engines that do not search incrementally return it as `null`.
 
-## Resultados
+## Results
 
-Con el presupuesto por defecto de 5 s y semilla `20260914`, contra el BKS. En la última columna, el
-genético con esa misma semilla (de su test de regresión) donde se ha medido:
+With the default 5 s budget and seed `20260914`, against the BKS. In the last column, the genetic
+engine with that same seed (from its regression test) where measured:
 
-| Instancia | Coste | BKS | *Gap* | Factible | GENETIC |
+| Instance | Cost | BKS | *Gap* | Feasible | GENETIC |
 |---|---:|---:|---:|---|---:|
-| `p01` | 590,45 | 576,87 | 2,4 % | sí | 609,87 (5,7 %) |
-| `p03` | 647,36 | 641,19 | **1,0 %** | sí | |
-| `p07` | 904,42 | 885,80 | 2,1 % | sí | 941,56 (6,3 %) |
-| `p11` | 3759,94 | 3554,18 | 5,8 % | sí | |
-| `p15` | 2596,05 | 2505,42 | 3,6 % | sí | |
-| `p22` | 5887,84 | 5702,16 | 3,3 % | sí | 6030,19 (5,8 %) |
-| `pr06` | 3328,26 | 2676,30 | 24,4 % | sí | |
+| `p01` | 590.45 | 576.87 | 2.4 % | yes | 609.87 (5.7 %) |
+| `p03` | 647.36 | 641.19 | **1.0 %** | yes | |
+| `p07` | 904.42 | 885.80 | 2.1 % | yes | 941.56 (6.3 %) |
+| `p11` | 3759.94 | 3554.18 | 5.8 % | yes | |
+| `p15` | 2596.05 | 2505.42 | 3.6 % | yes | |
+| `p22` | 5887.84 | 5702.16 | 3.3 % | yes | 6030.19 (5.8 %) |
+| `pr06` | 3328.26 | 2676.30 | 24.4 % | yes | |
 
-> Estas cifras son de **una ejecución por instancia** con una semilla fija. Para comparar
-> configuraciones hay que repetir con varias semillas y mirar medias, o fijar `maxLevels` y comparar
-> sin ruido de reloj.
+> These figures are from **one run per instance** with a fixed seed. To compare configurations,
+> repeat with several seeds and look at means, or fix `maxLevels` and compare without clock noise.
 
-**La dispersión entre semillas no es despreciable.** Tres semillas en `p22`: 1,8 %, 4,2 % y 2,3 %;
-en `p11`: 6,6 %, 4,7 % y 7,4 %. En `p01`, una semilla alcanza el BKS exacto (576,87) y otras se
-quedan en 585,00 o 590,45, tres óptimos locales muy estables. Una diferencia de dos puntos entre dos
-configuraciones puede ser azar; de hecho, barrer `movesPerTemperatureFactor` (4, 6, 12) y
-`coolingRate` (0,92, 0,96) no dio ninguna diferencia fuera del ruido.
+**The spread between seeds is not negligible.** Three seeds on `p22`: 1.8 %, 4.2 % and 2.3 %; on
+`p11`: 6.6 %, 4.7 % and 7.4 %. On `p01`, one seed reaches the exact BKS (576.87) and others stay at
+585.00 or 590.45, three very stable local optima. A two-point difference between two configurations
+may be chance; in fact, sweeping `movesPerTemperatureFactor` (4, 6, 12) and `coolingRate`
+(0.92, 0.96) gave no difference outside the noise.
 
-## Limitaciones conocidas
+## Known limitations
 
-- **No es reproducible con parada por tiempo.** Dos ejecuciones con la misma semilla hacen distinto
-  número de movimientos según la carga de la máquina. Con `maxLevels` fijo sí lo es, y es lo que usa
-  [`AnnealingRegressionTest`](../../engines/annealing-engine/src/test/java/com/delivera/fms/engine/annealing/benchmark/AnnealingRegressionTest.java).
-- **Puede pasarse del presupuesto** unas decenas de milisegundos: las fases auxiliares tienen
-  plazo, pero el pulido final no. Si en toda la ejecución no apareció ninguna solución factible, la
-  reparación final puede tardar más; en el banco de 33 instancias no ha ocurrido.
-- **`pr06` y las instancias con tiempos de servicio quedan lejos.** Con flota saturada (6/6 en los
-  cuatro depósitos) casi cualquier cambio estructural añade una ruta. Con 20 s el *gap* baja del
-  24 % al 11,5 %, así que ahí falta presupuesto, no algoritmo.
-- **Es secuencial**: no aprovecha más de un núcleo. Un recocido admite ejecuciones paralelas
-  independientes con semillas distintas quedándose con la mejor, que es la vía más directa si hiciera
-  falta.
-- **No soporta ventanas de tiempo.**
-- **Flota heterogénea**: hereda del núcleo la capacidad del mayor vehículo de cada depósito.
+- **It is not reproducible with time-based stopping.** Two runs with the same seed make a different
+  number of moves depending on the machine load. With a fixed `maxLevels` it is, and that is what
+  [`AnnealingRegressionTest`](../../engines/annealing-engine/src/test/java/com/delivera/fms/engine/annealing/benchmark/AnnealingRegressionTest.java)
+  uses.
+- **It may overrun the budget** by a few tens of milliseconds: the auxiliary phases have a deadline,
+  but the final polish does not. If no feasible solution appeared during the whole run, the final
+  repair may take longer; on the 33-instance bench it has not happened.
+- **`pr06` and the instances with service times stay far off.** With a saturated fleet (6/6 in all
+  four depots) almost any structural change adds a route. With 20 s the *gap* drops from 24 % to
+  11.5 %, so what is missing there is budget, not algorithm.
+- **It is sequential**: it does not use more than one core. Annealing admits independent parallel
+  runs with different seeds keeping the best, which is the most direct route if it were needed.
+- **It does not support time windows.**
+- **Heterogeneous fleet**: it inherits from the core the capacity of the largest vehicle of each
+  depot.
 
-## Cómo calibrar
+## How to calibrate
 
 [`AnnealingCalibrationTest`](../../engines/annealing-engine/src/test/java/com/delivera/fms/engine/annealing/benchmark/AnnealingCalibrationTest.java)
-ejecuta el motor en local sobre instancias Cordeau e imprime coste, *gap*, factibilidad y traza. No
-afirma nada; solo corre a petición. Cualquier parámetro se puede pasar como propiedad:
+runs the engine locally on Cordeau instances and prints cost, *gap*, feasibility and trace. It
+asserts nothing; it only runs on demand. Any parameter can be passed as a property:
 
 ```bash
 mvn test -Dtest=AnnealingCalibrationTest -Dcalibration=true -Dinstances=p01,p22 -Dseed=1 -DcalibrationQuantile=0.1
 ```
 
-Con `-Dannealing.log=TRACE` imprime por nivel la temperatura, el coste actual y el mejor: es lo que
-permite ver si la cadena se asienta por debajo del mejor al enfriar, que es la comprobación que
-destapó el problema de la mediana.
+With `-Dannealing.log=TRACE` it prints per level the temperature, the current cost and the best:
+that is what lets you see whether the chain settles below the best when cooling, which is the check
+that uncovered the median problem.

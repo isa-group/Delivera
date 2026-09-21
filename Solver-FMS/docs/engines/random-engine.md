@@ -1,72 +1,71 @@
 # random-engine
 
-**Puerto 8092** · `com.delivera.fms.engine.random` · clase principal
+**Port 8092** · `com.delivera.fms.engine.random` · main class
 [`RandomRouteSolver`](../../engines/random-engine/src/main/java/com/delivera/fms/engine/random/service/RandomRouteSolver.java)
 
-## Para qué sirve
+## What it is for
 
-Es la **línea base**. Produce una solución válida en cuanto a capacidad sin ningún criterio de
-optimización, de modo que cualquier otro motor debe batirla claramente. Si un algoritmo nuevo no
-mejora sensiblemente al aleatorio, algo va mal en él.
+It is the **baseline**. It produces a solution that is valid with respect to capacity, with no
+optimisation criterion whatsoever, so that any other engine must beat it clearly. If a new algorithm
+does not noticeably improve on the random one, something is wrong with it.
 
-No está pensado para producción.
+It is not meant for production.
 
-## Algoritmo
+## Algorithm
 
 ```
-1. Barajar la lista de clientes                    Collections.shuffle
-2. Agrupar cada cliente con su depósito más cercano
-3. Por cada vehículo:
-      recorrer los clientes de su depósito en el orden barajado
-      ir acumulando en la ruta hasta que no quepa uno más por capacidad
-      cerrar la ruta, volver al depósito y abrir otra
-4. Los clientes que hayan quedado sin servir van a una ruta de respaldo
+1. Shuffle the customer list                       Collections.shuffle
+2. Group each customer with its nearest depot
+3. For each vehicle:
+      walk its depot's customers in the shuffled order
+      accumulate into the route until one more does not fit by capacity
+      close the route, return to the depot and open another
+4. Customers left unserved go to a fallback route
 ```
 
-El orden de visita dentro de una ruta es el orden barajado: no se hace ningún intento de acercar
-clientes próximos entre sí. De ahí que el coste sea alto.
+The visiting order within a route is the shuffled order: no attempt is made to bring nearby
+customers together. Hence the high cost.
 
-## Detalles de implementación
+## Implementation details
 
-**Agrupación por depósito más cercano** (`groupByNearestDepot`): cada cliente va al depósito con
-menor `distanceMatrix[depósito][cliente]`. Es la misma heurística que usan greedy y la población
-inicial del genético.
+**Grouping by nearest depot** (`groupByNearestDepot`): each customer goes to the depot with the
+lowest `distanceMatrix[depot][customer]`. It is the same heuristic used by greedy and by the genetic
+engine's initial population.
 
-**Multi-viaje** (`buildMultiTripRoutes`): un mismo vehículo puede aparecer en varias rutas. Al
-llenarse, se cierra la ruta y se abre otra con el mismo `vehicleId`. Por eso **el motor no respeta el
-número de vehículos por depósito**: no lo necesita, porque asume que un vehículo puede hacer tantos
-viajes como haga falta.
+**Multi-trip** (`buildMultiTripRoutes`): the same vehicle may appear in several routes. When it
+fills up, the route is closed and another is opened with the same `vehicleId`. That is why **the
+engine does not honour the number of vehicles per depot**: it does not need to, because it assumes a
+vehicle can make as many trips as necessary.
 
-**Ruta de respaldo**: si algún cliente queda sin servir porque su depósito no tenía vehículos
-asignados, se crea una ruta con `vehicleId = "V-FALLBACK-<depósito>"` y **capacidad ilimitada**. Esa
-ruta puede violar la capacidad. Es un mecanismo para no perder clientes, no una solución válida.
+**Fallback route**: if a customer is left unserved because its depot had no assigned vehicles, a
+route with `vehicleId = "V-FALLBACK-<depot>"` and **unlimited capacity** is created. That route may
+violate capacity. It is a mechanism for not losing customers, not a valid solution.
 
-**Sin vehículos declarados**: si `vehicles` viene vacío o nulo, se crea una ruta por depósito con
-`vehicleId = "V-<depósito>"` y capacidad ilimitada.
+**No declared vehicles**: if `vehicles` is empty or null, one route per depot is created with
+`vehicleId = "V-<depot>"` and unlimited capacity.
 
-## Parámetros
+## Parameters
 
-| Parámetro | Defecto | Rango | Significado |
+| Parameter | Default | Range | Meaning |
 |---|---|---|---|
-| `seed` | - |  0 - 2^(48) - 1| Semilla del barajado. Sin ella el motor sortea una y la devuelve |
+| `seed` | - | 0 - 2^(48) - 1 | Shuffle seed. Without it the engine draws one and returns it |
 
-El barajado es la única fuente de azar del motor, así que la semilla determina la solución por
-completo: misma instancia y misma semilla dan siempre el mismo resultado. Si no se envía, el motor
-sortea una dentro de ese rango y la devuelve en el campo `seed` de la respuesta, de modo que
-cualquier ejecución se puede repetir después reenviándola.
+The shuffle is the engine's only source of randomness, so the seed fully determines the solution:
+same instance and same seed always give the same result. If not sent, the engine draws one within
+that range and returns it in the response's `seed` field, so any run can be repeated afterwards by
+sending it back.
 
-El tope sale de que `java.util.Random` se queda con **48 bits** de la semilla: `[0, 2⁴⁸)` recorre
-todos los flujos posibles exactamente una vez, y por encima dos semillas distintas darían la misma
-secuencia.
+The upper bound comes from `java.util.Random` keeping **48 bits** of the seed: `[0, 2⁴⁸)` covers
+every possible stream exactly once, and above it two different seeds would give the same sequence.
 
-## Limitaciones
+## Limitations
 
-- Ignora el número de vehículos: usa multi-viaje sin límite.
-- La ruta de respaldo puede exceder la capacidad.
-- Como línea base conviene tomar la media de varias ejecuciones y no una suelta: sin semilla fija,
-  dos llamadas con la misma entrada dan resultados distintos por diseño.
+- Ignores the number of vehicles: uses unbounded multi-trip.
+- The fallback route may exceed capacity.
+- As a baseline it is better to take the mean of several runs and not a single one: without a fixed
+  seed, two calls with the same input give different results by design.
 
-## Coste computacional
+## Computational cost
 
-Lineal en el número de clientes, más el barajado. Responde en milisegundos incluso en las instancias
-grandes.
+Linear in the number of customers, plus the shuffle. Answers in milliseconds even on the large
+instances.
