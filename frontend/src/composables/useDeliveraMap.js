@@ -72,7 +72,7 @@ function _divIcon(bg, piClass, size = 32) {
 
 function _divIconStop(bg, stop, size = 32) {
   return L.divIcon({
-    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center"><p style="color:#fff;font-size:${Math.round(size * 0.5)}px">${stop}</p></div>`,
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center"><span style="color:#fff;font-size:${Math.round(size * 0.5)}px">${stop}</span></div>`,
     className: 'delivera-marker',
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
@@ -205,6 +205,10 @@ export function addlayer(layerOverlay, layer, name) {
 }
 
 
+
+
+
+
 export function initSolverLayer(solver, layersBySolverRef) {
   layersBySolverRef.value = { 
     ...layersBySolverRef.value, 
@@ -267,7 +271,7 @@ export function drawGradientRoute({
   const chunkSize = Math.max(
     5,
     Math.min(
-        100,
+        50,
         Math.floor(latLngs.length / 50)
     )
   );

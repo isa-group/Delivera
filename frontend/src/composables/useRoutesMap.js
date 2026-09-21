@@ -1,7 +1,6 @@
 import {
     createMap, addMarker, addRoute, clusterOptions, fitBounds,addFmsRoute,
     attachRouteVisibilityHandler, currentLocationOf, isActiveOrder, hasOriginCoords,
-    initSolverLayer,
     routesOverlays,
     initOverlays,
     addlayer,
@@ -11,6 +10,7 @@ import {
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM_REGION } from '@/constants/map'
 import L from 'leaflet'
 import { onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 export function useRoutesMap() {
 
@@ -18,7 +18,9 @@ export function useRoutesMap() {
     const realCostBySolver = ref({})
     const markersByReference = ref({})
     const layersBySolver = ref({})
+    const layersBySlot = ref({})
    
+    const { t } = useI18n() 
    
 
     const colorBySolver = {
@@ -31,6 +33,68 @@ export function useRoutesMap() {
         "GENETIC":"#026901"
     }
 
+
+
+    function addSolutionLayer({slotId, routeId, solverType, layer}) {
+        if (!layersBySlot.value[slotId]) {
+            layersBySlot.value = {
+                ...layersBySlot.value, 
+                [slotId] : {}
+            }
+        }
+        const slotEntry = layersBySlot.value[slotId]
+        if (!slotEntry[solverType]) {
+            slotEntry[solverType] = {
+                root: initLayer(),
+                routes: []
+            }
+        }
+        layer.addTo(slotEntry[solverType].root)
+        slotEntry[solverType].routes.push({id: routeId, layer: layer})
+        
+        layersBySlot.value = {
+            ...layersBySlot.value, 
+            [slotId] : slotEntry
+        }
+    }
+
+    function getRootAndSolverBySlotList() {
+        return Object.entries(layersBySlot.value).map(([k,v]) => {
+            return {
+                slotId: k, 
+                solutions: Object.entries(v).map(([k,v]) => {
+                    return { solverType: k, root: v.root}
+                }) 
+            }
+        })
+    }
+
+
+    function addRootSolutionToMap({map, layerOverlay}) {
+        if (map == null || layerOverlay == null) return;
+
+        const RootAndSolverBySlot =  getRootAndSolverBySlotList()
+
+        RootAndSolverBySlot.forEach( ({slotId, solutions}) => {
+            solutions.forEach( ({solverType, root}) => {
+                root.addTo(map)
+                addlayer(
+                    layerOverlay, 
+                    root,
+                    `${t(`routes.layers.${solverType}`)}-${t(`routes.tables.slot`)} ${slotId}`)
+            })
+        })
+    }
+
+    function unmountRootLayer({layerOverlay}) {
+        getRootAndSolverBySlotList()
+            .forEach(({slotId, solutions}) => {
+                solutions.forEach(({solverType, root}) => {
+                    root.remove()
+                    layerOverlay.removeLayer(root)
+                })
+            }) 
+    }
 
 
     /*
@@ -165,8 +229,14 @@ export function useRoutesMap() {
 
    
 
-
-    async function drawRoutes(routes, customers, depots, solverType) {
+    // TODO: RE-DO
+    async function drawRoutes({
+        routes, 
+        customers, 
+        depots, 
+        solverType,
+        slotId
+    }) {
         const customersById = getCoordinatesByElemetId(customers)
         const depotsById = getCoordinatesByElemetId(depots)
         const addRoutesPromises = []
@@ -212,11 +282,12 @@ export function useRoutesMap() {
                         }
                     )
                 )
-                layer.addTo(layersBySolver.value[solverType].root)
-                layersBySolver.value[solverType]?.routes?.push({
+                //layer.addTo(layersBySolver.value[solverType].root)
+                addSolutionLayer({slotId, routeId: routeIndx, solverType, layer})
+                /*layersBySolver.value[solverType]?.routes?.push({
                     id: routeIndx,
                     layer
-                })
+                })*/
                 routeIndx++
             }
         }
@@ -235,9 +306,12 @@ export function useRoutesMap() {
         realCostBySolver,
         markersByReference,
         layersBySolver,
+        layersBySlot,
         addCustomers,
         addDepots, 
         drawRoutes,
-        unmountMap
+        unmountMap,
+        addRootSolutionToMap,
+        unmountRootLayer
     }
 }

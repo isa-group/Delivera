@@ -32,6 +32,9 @@ export function useRoutesSolver(
     const {post} = useLoad()
     const dataApi = useServices('data-service')
     const routesBySolver = ref({})
+
+    const routesByCluster =ref({})
+
     const routesErrorBySolver = ref({})
     const showCatalog = ref(false)
 
@@ -88,28 +91,84 @@ export function useRoutesSolver(
         return routesBySolver.value[solverType]
     }
 
+    async function executeSlots({data,layersBySolver , drawFunction = () => {}}) {
+        const promises = []
+        getSolverNames().forEach(name => initSolverLayer(name, layersBySolver) )
+        
+        for (const slotRow of slotRows.value) {
+            const solversSelected = []
+            const instance = slotRow.instance
+            const payload = {
+                customers: Array.from(instance.customers),
+                depots: Array.from(instance.depots)
+            };
+            
+            getSolverNames().forEach(name => {
+                if (slotRow[name]) {
+                    promises.push(promiseExecuteSolver(slotRow.id, payload, name))
+                }
+            })
+        }
 
+        await Promise.all(promises)
+        const {
+            customers,
+            depots
+        } = data.value
+        const drawPromises = []
+        console.log(routesByCluster.value)
+        for (const slotRow of slotRows.value) {
+            const slotResult = routesByCluster.value[slotRow.id]
+            if (slotResult) {
+                console.log(":)")
+                for (const {solver, solution} of slotResult) {
+                    drawPromises.push(
+                        drawFunction({
+                            routes: solution.routes,
+                            customers: customers,
+                            depots: depots, 
+                            solverType: solver, 
+                            slotId: slotRow.id
+                        })
+                    )
+                }
+               
+            }
+        }
+        await Promise.all(drawPromises)
+    }
     
 
     
 
-    async function  promiseExecuteSolver(instance, solverType) {
+    async function  promiseExecuteSolver(slotId, instance, solverType) {
         if (translateSolver[solverType] && !isSolved(solverType)) {
             return post(
                 dataApi,
                 "/fms/routing/solve/cluster?solverType="+translateSolver[solverType],
                 instance,
-                routesBySolver,
+                routesByCluster,
                 routesErrorBySolver,
                 null,
                 (data) => {
+
+                    const  newRoutes =  { ...routesByCluster.value}
+                    if (!newRoutes[slotId]) {
+                        newRoutes[slotId] = []
+                    }
+                    newRoutes[slotId].push({solver: solverType, solution: data})
+                    
+                    return newRoutes
+                    /*
                     return {
+
                         ...routesBySolver.value,
                         [solverType]: data
-                    }
+                    }*/
                 }
             )
         }else {
+            // TODO: HANDLE ERRORS
             routesErrorBySolver.value = {
                 ...routesErrorBySolver.value,
                 [solverType]: "NO SOLVER TYPE AVAILABLE"
@@ -236,6 +295,7 @@ export function useRoutesSolver(
         executeAllSelected,
         toggleCatalog,
         getSolverNames,
-        disableSelection
+        disableSelection,
+        executeSlots
     }
 }

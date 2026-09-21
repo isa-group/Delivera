@@ -62,10 +62,14 @@ export function useRoutes() {
     const {
         realCostBySolver,
         layersBySolver,
+        layersBySlot,
         addCustomers,
         addDepots, 
         drawRoutes,
-        unmountMap
+        unmountMap,
+        addRootSolutionToMap,
+        unmountRootLayer
+        
     } = mapUtils
     const modesUtils = useRoutesModes(wizard)
     const dataUtils = useRoutesData(wizard)
@@ -80,7 +84,7 @@ export function useRoutes() {
         groupsRows
     } = groupingUtils
     const solverUtils = useRoutesSolver(wizard,modesUtils, groupingUtils)
-    const {executeAllSelected, routesBySolver} = solverUtils
+    const {executeAllSelected,executeSlots, routesBySolver} = solverUtils
     const { t } = useI18n() 
     let initialCustomerLayer = null
     let initalDepotLayer = null
@@ -168,7 +172,7 @@ export function useRoutes() {
         initialCustomerLayer = null
         initalDepotLayer = null
         finalDepotLayer = null
-
+        unmountRootLayer({layerOverlay})
         unmountMap(map,layersBySolver,layerOverlay)
     })
 
@@ -205,15 +209,20 @@ export function useRoutes() {
     }
 
     async function  run() {
+        /*
         executeAllSelected({
             data,
             layersBySolver,
             drawFunction: drawRoutes
         })
-        Object.entries(layersBySolver.value).map(([solverType,layer]) =>{
+        
+        */
+        executeSlots({data, layersBySolver, drawFunction: drawRoutes }).then(() => addRootSolutionToMap({map, layerOverlay}))
+        /*Object.entries(layersBySolver.value).map(([solverType,layer]) =>{
             layer.root.addTo(map)
             addlayer(layerOverlay,layer.root,t(`routes.layers.${solverType}`))
-        })
+        })*/
+        
     }
 
     // TODO: DELETE
