@@ -712,6 +712,11 @@ routes:
     density: Density
     radius: Radius (Km)
     area: Area (Km^2)
+    type: Type
+    solverDistance: Estimated distance (Km)
+    aproxDistance: Ideal distance (Km)
+    aproxDuration: Ideal duration (h)
+
   solvers:
     GREEDY:
       name: Greedy
@@ -729,5 +734,5 @@ routes:
   execute: Execute
   show: Show
   hide: Hide
-  ExtraMetrics: extra metrics
+  extraMetrics: extra metrics
   catalog: Catalog

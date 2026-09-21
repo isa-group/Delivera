@@ -21,12 +21,12 @@ const {
         solvers,
         selectedSolversId,
         selectedDataModeId,
-        realCostBySolver,
         groupingParamsDisabled,
         groupsRows,
         slotRows,
         groupsRowsMetadata,
         showExtraMetrics,
+        computedMetricsBySlot,
         selectPhase,
         showGroupDatatable,
         canGoToPhase,
@@ -51,7 +51,6 @@ const {
     } = useRoutes()
 
 
-console.log(realCostBySolver)
 </script>
 
 <template>
@@ -176,24 +175,24 @@ console.log(realCostBySolver)
 
                             <Column field="cohesion" :header="t('routes.tables.cohesion')">
                                 <template #body="{ data }">
-                                    {{ data.cohesion.toFixed(1) }}%
+                                    {{ data.cohesion }}%
                                 </template>
                             </Column>
 
                             <Column field="density" :header="t('routes.tables.density')">
                                 <template #body="{ data }">
-                                    {{ data.density.toFixed(4) }}
+                                    {{ data.density }}
                                 </template>
                             </Column>
 
                             <Column field="radius" :header="t('routes.tables.radius')">
                                 <template #body="{ data }">
-                                    {{ data.radius.toFixed(2) }}
+                                    {{ data.radius }}
                                 </template>
                             </Column>
                             <Column field="area" :header="t('routes.tables.area')">
                                 <template #body="{ data }">
-                                    {{ data.area.toFixed(2) }}
+                                    {{ data.area }}
                                 </template>
                             </Column>
                         </DataTable>
@@ -202,9 +201,9 @@ console.log(realCostBySolver)
                         >
                             <PButton
                                 v-if="showGroupDatatable()"
-                                :label="`${(!showExtraMetrics? t('routes.show') : t('routes.hide'))} ${t('routes.ExtraMetrics')}`"
+                                :label="`${(!showExtraMetrics? t('routes.show') : t('routes.hide'))} ${t('routes.extraMetrics')}`"
                                 icon="pi pi-eye"
-                                :aria-label=" `${(!showExtraMetrics? t('routes.show') : t('routes.hide'))} ${t('routes.ExtraMetrics')}`"
+                                :aria-label=" `${(!showExtraMetrics? t('routes.show') : t('routes.hide'))} ${t('routes.extraMetrics')}`"
                                 @click="toggleShowExtraMetrics()"
                             />
                             <div class="slot-info-box">
@@ -288,10 +287,26 @@ console.log(realCostBySolver)
                         @click="run()"
                     />
                     
-                   
-                    <div :key="tuple[0]" v-for="tuple in realCostBySolver">
-                        <p>{{tuple[0]}} - {{ tuple[1].distance/1000 }} km - {{ tuple[1].duration /3600}} h</p>
-                    </div>
+                    <DataTable
+                            class="groups-table"
+                            v-if="showSolverSelector()"
+                            :value="computedMetricsBySlot"
+                            stripedRows
+                            rowHover
+                            scrollable
+                            scrollHeight="300px"
+                        >
+                            <Column field="id" :header="t('routes.tables.slot')"/>
+
+                            <Column field="solverType" :header="t('routes.tables.type')"/>
+
+                            <Column field="solverDistance" :header="t('routes.tables.solverDistance')"/>
+
+                            <Column field="aproxDistance" :header="t('routes.tables.aproxDistance')"/>
+
+                            <Column field="aproxDuration" :header="t('routes.tables.aproxDuration')"/>
+
+                        </DataTable>
                 </div>
               
                 
@@ -302,7 +317,7 @@ console.log(realCostBySolver)
         </div>
         
 
-        <div v-if="true">
+        <div v-if="false">
             <PButton
                 :label="t('pricing.nexts')"
                 icon="pi pi-check-circle"

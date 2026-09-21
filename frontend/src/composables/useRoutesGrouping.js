@@ -2,6 +2,7 @@ import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { useServices } from "./useServices"
 import { useLoad } from "./useLoad"
+import { useNumberFormat } from "./useNumberFormat"
 
 export function useRoutesGrouping({
     disabledNextPhases,
@@ -12,6 +13,7 @@ export function useRoutesGrouping({
     const { t } = useI18n() 
     const dataApi = useServices("data-service")
     const {post} = useLoad()
+    const { numberI18n} = useNumberFormat()
 
     const groups = ref({})
 
@@ -114,10 +116,10 @@ export function useRoutesGrouping({
                     ...groupsRowsMetadata.value,
                     {
                         id: cluster.id,
-                        cohesion: cluster.metadata?.cohesion * 100,
-                        density: cluster.metadata?.density,
-                        radius: cluster.metadata?.coverageRadiusKm,
-                        area: cluster.metadata?.area
+                        cohesion: numberI18n({value: cluster.metadata?.cohesion * 100,minFractionDigits: 1, maxFractionDigits: 1}),
+                        density: numberI18n({value: cluster.metadata?.density, maxFractionDigits: 4}),
+                        radius: numberI18n({value: cluster.metadata?.coverageRadiusKm}),
+                        area: numberI18n({value: cluster.metadata?.area})
                     }
                 ]
 

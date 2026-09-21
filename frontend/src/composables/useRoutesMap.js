@@ -9,16 +9,19 @@ import {
   
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM_REGION } from '@/constants/map'
 import L from 'leaflet'
-import { onUnmounted, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 export function useRoutesMap() {
 
   
-    const realCostBySolver = ref({})
+    const realCostBySlot = ref({})
     const markersByReference = ref({})
     const layersBySolver = ref({})
     const layersBySlot = ref({})
+
+
+   
    
     const { t } = useI18n() 
    
@@ -62,8 +65,8 @@ export function useRoutesMap() {
         return Object.entries(layersBySlot.value).map(([k,v]) => {
             return {
                 slotId: k, 
-                solutions: Object.entries(v).map(([k,v]) => {
-                    return { solverType: k, root: v.root}
+                solutions: Object.entries(v).map(([k1,v1]) => {
+                    return { solverType: k1, root: v1.root}
                 }) 
             }
         })
@@ -227,9 +230,31 @@ export function useRoutesMap() {
         }
     }
 
-   
+    function accumulateRealCostBySlotAndSolver({
+        slotId, 
+        solverType,
+        routeMetrics
+    }) {
+        if (!realCostBySlot.value[slotId]) {
+            realCostBySlot.value = {
+                ...realCostBySlot.value,
+                [slotId]: {}
+            }
+        }
+        const slotEntry = realCostBySlot.value[slotId]
+        slotEntry[solverType] = routeMetrics
 
-    // TODO: RE-DO
+        realCostBySlot.value = {
+            ...realCostBySlot.value,
+            [slotId]: slotEntry
+        }
+
+        
+
+    }
+
+
+    // TODO: REFACTOR
     async function drawRoutes({
         routes, 
         customers, 
@@ -241,14 +266,14 @@ export function useRoutesMap() {
         const depotsById = getCoordinatesByElemetId(depots)
         const addRoutesPromises = []
         let routeIndx = 0
-        const osrmRoutes = []
+        //const osrmRoutes = []
         const routeMetrics = {
             distance: 0,
             duration: 0
         }        
         for (const route of routes) {
             const useDataFunction = (data) => {
-                osrmRoutes.push(data)
+                //osrmRoutes.push(data)
                 const route = data.routes?.[0]
                 if (!route) {
                     return
@@ -282,28 +307,21 @@ export function useRoutesMap() {
                         }
                     )
                 )
-                //layer.addTo(layersBySolver.value[solverType].root)
                 addSolutionLayer({slotId, routeId: routeIndx, solverType, layer})
-                /*layersBySolver.value[solverType]?.routes?.push({
-                    id: routeIndx,
-                    layer
-                })*/
+
                 routeIndx++
             }
         }
         
         await Promise.all(addRoutesPromises)
-        realCostBySolver.value = {
-            ...realCostBySolver.value,
-            [solverType]: routeMetrics
-        }
+        accumulateRealCostBySlotAndSolver({slotId, solverType, routeMetrics})
     }
 
 
 
 
     return  {
-        realCostBySolver,
+        realCostBySlot,
         markersByReference,
         layersBySolver,
         layersBySlot,

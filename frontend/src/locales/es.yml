@@ -698,12 +698,16 @@ routes:
     density: Densidad
     radius: Radio (Km)
     area: Área (Km^2)
-  
+    type: Tipo
+    solverDistance: Distancia estimada (Km)
+    aproxDistance: Distancia ideal (Km)
+    aproxDuration: Duración ideal (h)
+
   solvers:
-    greedy:
+    GREEDY:
       name: Voraz
       description: "..."
-    genetic:
+    GENETIC:
       name: Genético
       description: "..."
   slot:

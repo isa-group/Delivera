@@ -21,6 +21,7 @@ import { useRoutesModes } from "./useRoutesMode"
 import {  useRoutesData } from "./useRoutesData"
 import { useRoutesSolver } from "./useRoutesSolver"
 import { useRoutesGrouping } from "./useRoutesGrouping"
+import { useNumberFormat } from "./useNumberFormat"
 
 
 
@@ -53,6 +54,7 @@ export function useRoutes() {
     // =====================================
     // [START] UTILS
     // =====================================
+    const {numberI18n} = useNumberFormat()
 
     const maxPerExecution = ref(20)
 
@@ -62,7 +64,7 @@ export function useRoutes() {
     const {
         realCostBySolver,
         layersBySolver,
-        layersBySlot,
+        realCostBySlot,
         addCustomers,
         addDepots, 
         drawRoutes,
@@ -79,20 +81,38 @@ export function useRoutes() {
     } = dataUtils
     const groupingUtils = useRoutesGrouping(wizard, mapUtils,{maxPerExecution})
     const {
-        groups,
+        groups,        
         executeGrouping,
         groupsRows
     } = groupingUtils
     const solverUtils = useRoutesSolver(wizard,modesUtils, groupingUtils)
-    const {executeAllSelected,executeSlots, routesBySolver} = solverUtils
+    const {executeAllSelected,executeSlots, getSolverDistance, routesBySolver} = solverUtils
     const { t } = useI18n() 
     let initialCustomerLayer = null
     let initalDepotLayer = null
     let finalDepotLayer = null
     const groupLayers = ref([])
     const selectedClusterId = ref(null)
+
+    const computedMetricsBySlot = computed(() => {
+        const result = []
+        Object.entries(realCostBySlot.value)
+        .forEach(([slotId,v]) => {
+            Object.entries(v).forEach(([solverType,metrics]) => {
+                const solverDistance = getSolverDistance({slotId, solverType})
+                result.push({
+                    id: slotId, 
+                    solverType: t(`routes.solvers.${solverType}.name`), 
+                    solverDistance:  `${
+                        solverDistance? numberI18n({value: solverDistance, maxFractionDigits: 3}) :  "-"
+                    }`, 
+                    aproxDistance: `${numberI18n({value: metrics.distance/1000, maxFractionDigits: 3})} `, 
+                    aproxDuration: `${numberI18n({value: metrics.duration/3600})}`})
+            })
+        })
+        return result
+    })
    
-    let intervalId = null;
 
     
     onMounted(async () => {
@@ -244,7 +264,7 @@ export function useRoutes() {
         ...modesUtils,
         ...solverUtils,
         mapEl,
-        realCostBySolver: computed(() => Object.entries(realCostBySolver.value)),
+        computedMetricsBySlot,
         run,
         runGrouping,
         showExecutions,

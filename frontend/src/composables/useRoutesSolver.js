@@ -252,6 +252,22 @@ export function useRoutesSolver(
 
         return newSlotRows
     }
+
+    function getSolverDistance({slotId, solverType}) {
+        let distance = undefined
+        const slotEntry = routesByCluster.value[slotId]
+        if (slotEntry) {
+            const solverSolution = slotEntry.find( 
+                solution => solution.solver === solverType
+            )
+            console.log("solution", solverSolution)
+            if (solverSolution) {
+                distance = solverSolution.solution.totalCost
+            }
+        }
+        return distance
+
+    }
     
     function toggleCatalog() {
         showCatalog.value = !showCatalog.value
@@ -289,6 +305,7 @@ export function useRoutesSolver(
         routesBySolver,
         routesErrorBySolver,
         slotRows,
+        routesByCluster,
         selectSolver,
         showSolverSelector,
         promiseExecuteSolver,
@@ -296,6 +313,7 @@ export function useRoutesSolver(
         toggleCatalog,
         getSolverNames,
         disableSelection,
-        executeSlots
+        executeSlots,
+        getSolverDistance
     }
 }
