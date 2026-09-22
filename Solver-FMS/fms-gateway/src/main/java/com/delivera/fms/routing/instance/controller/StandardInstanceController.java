@@ -61,7 +61,12 @@ public class StandardInstanceController {
                                             value = "{\"populationSize\": 300, \"maxEvaluations\": 150000}"),
                                     @ExampleObject(name = "Genetico: busqueda mas larga",
                                             description = "maxRestarts es el parametro con mas recorrido para bajar el coste",
-                                            value = "{\"maxRestarts\": 10, \"restartStagnantGenerations\": 30}")})))
+                                            value = "{\"maxRestarts\": 10, \"restartStagnantGenerations\": 30}"),
+                                    @ExampleObject(name = "Ejecucion reproducible",
+                                            description = "Con la misma instancia, los mismos parametros y la misma semilla "
+                                                    + "la solucion es identica. La respuesta devuelve siempre la semilla usada, "
+                                                    + "tambien cuando no se envia",
+                                            value = "{\"populationSize\": 300, \"seed\": 1234}")})))
     @ApiResponse(responseCode = "200", description = "Instancia resuelta correctamente",
             content = @Content(
                     mediaType = "application/json",

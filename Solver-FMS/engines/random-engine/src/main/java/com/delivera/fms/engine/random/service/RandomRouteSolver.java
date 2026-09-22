@@ -17,7 +17,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class RandomRouteSolver {
@@ -25,26 +27,46 @@ public class RandomRouteSolver {
     private static final Logger log = LoggerFactory.getLogger(RandomRouteSolver.class);
     private static final String SOLVER_TYPE = "RANDOM";
 
+    // Rango de [0, 2^48) dado a que a partir de 2^48 las semillas dejan de ser distintas
+    private static final long MAX_SEED = (1L << 48) - 1;
+
     public RoutingResponse solve(RoutingRequest request) {
-        log.info("Solving problem '{}' with solver: {}", request.problemId(), SOLVER_TYPE);
+        long seed = resolveSeed(request.parameters());
+        log.info("Solving problem '{}' with solver: {} and seed: {}",
+                request.problemId(), SOLVER_TYPE, seed);
         long startTime = System.currentTimeMillis();
 
-        List<RouteDto> routes = performRouting(request);
+        List<RouteDto> routes = performRouting(request, new Random(seed));
         double totalCost = routes.stream().mapToDouble(RouteDto::totalDistance).sum();
         long computationTime = System.currentTimeMillis() - startTime;
 
-        log.info("Problem '{}' solved. Routes: {}, Total cost: {}, Time: {}ms",
-                request.problemId(), routes.size(), totalCost, computationTime);
+        log.info("Problem '{}' solved. Routes: {}, Total cost: {}, Time: {}ms, Seed: {}",
+                request.problemId(), routes.size(), totalCost, computationTime, seed);
 
         return new RoutingResponse(
                 request.problemId(), "COMPLETED", SOLVER_TYPE,
-                totalCost, computationTime, routes
+                totalCost, computationTime, seed, routes
         );
     }
 
-    private List<RouteDto> performRouting(RoutingRequest request) {
+    /**
+     * Semilla recibida o, en su defecto, una sorteada.
+     *
+     * La sorteada se mantiene dentro del rango que la pasarela admite para el
+     * parametro: una semilla que se devuelve al cliente pero que este no puede
+     * reenviar no serviria para reproducir nada.
+     */
+    private static long resolveSeed(Map<String, Object> parameters) {
+        Object raw = (parameters != null) ? parameters.get("seed") : null;
+        if (raw instanceof Number number) {
+            return number.longValue();
+        }
+        return ThreadLocalRandom.current().nextLong(MAX_SEED + 1);
+    }
+
+    private List<RouteDto> performRouting(RoutingRequest request, Random random) {
         List<CustomerDto> customers = new ArrayList<>(request.customers());
-        Collections.shuffle(customers);
+        Collections.shuffle(customers, random);
 
         List<DepotDto> depots = request.depots();
         double[][] dist = request.distanceMatrix();

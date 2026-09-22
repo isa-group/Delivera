@@ -22,7 +22,6 @@ import argparse
 import csv
 import json
 import math
-import re
 import statistics
 import sys
 import time
@@ -33,22 +32,15 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 INSTANCES_DIR = BASE_DIR / "instances-MD-CVRP-JSON"
 
-# Los BKS se leen del test del motor genetico en vez de copiarlos: son 33 numeros
-# que ya estan documentados como no verificados del todo, y tenerlos dos veces
-# garantiza que algun dia dejen de coincidir.
-BKS_SOURCE = (BASE_DIR / "engines/genetic-engine/src/test/java/com/delivera/fms/"
-                         "engine/genetic/CordeauBenchmarkTest.java")
+# Los BKS viven en un fichero de datos que comparten este script y el test de
+# benchmark. Tenerlos dos veces garantiza que algun dia dejen de coincidir.
+BKS_SOURCE = BASE_DIR / "best-known.json"
 
 
 def load_best_known():
     if not BKS_SOURCE.exists():
         return {}
-    text = BKS_SOURCE.read_text(encoding="utf-8")
-    block = re.search(r"BEST_KNOWN\s*=\s*Map\.ofEntries\((.*?)\);", text, re.S)
-    if not block:
-        return {}
-    return {name: float(value)
-            for name, value in re.findall(r'Map\.entry\("(\w+)",\s*([\d.]+)\)', block.group(1))}
+    return json.loads(BKS_SOURCE.read_text(encoding="utf-8"))
 
 
 def load_instance(name):

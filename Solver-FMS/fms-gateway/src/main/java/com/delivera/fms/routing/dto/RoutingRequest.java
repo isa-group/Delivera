@@ -40,13 +40,15 @@ public record RoutingRequest(
 
         @Schema(description = "Parametros de invocacion del solver, por nombre. Los que no se envien " +
                 "toman su valor por defecto. Cada solver publica los que admite, con su significado, " +
-                "rango y valor por defecto, en GET /api/v1/fms/solvers/{type}: RANDOM y GREEDY no " +
-                "admiten ninguno y GENETIC admite trece (populationSize, maxEvaluations, minGenerations, " +
-                "crossoverProbability, intraDepotMutationProbability, interDepotMutationProbability, " +
-                "elitismCount, tournamentSize, localSearchFrequency, interDepotFrequency, " +
-                "restartStagnantGenerations, maxRestarts y heuristicSeedRatio). " +
+                "rango y valor por defecto, en GET /api/v1/fms/solvers/{type}: GREEDY no admite " +
+                "ninguno, RANDOM admite solo 'seed' y GENETIC admite catorce (populationSize, " +
+                "maxEvaluations, minGenerations, crossoverProbability, intraDepotMutationProbability, " +
+                "interDepotMutationProbability, elitismCount, tournamentSize, localSearchFrequency, " +
+                "interDepotFrequency, restartStagnantGenerations, maxRestarts, heuristicSeedRatio y seed). " +
+                "'seed' fija el generador aleatorio y hace la ejecucion reproducible; si no se envia, " +
+                "el motor sortea una y la devuelve en el campo 'seed' de la respuesta. " +
                 "Un parametro no declarado se ignora con un aviso; uno fuera de rango rechaza la peticion",
-                example = "{\"populationSize\": 200, \"maxEvaluations\": 120000}")
+                example = "{\"populationSize\": 200, \"maxEvaluations\": 120000, \"seed\": 1234}")
         Map<String, Object> parameters
 ) {
 

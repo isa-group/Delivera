@@ -4,7 +4,7 @@ import com.delivera.fms.engine.genetic.dto.DepotDto;
 import com.delivera.fms.engine.genetic.scheduler.PermutationCodec;
 import org.uma.jmetal.operator.mutation.MutationOperator;
 import org.uma.jmetal.solution.permutationsolution.PermutationSolution;
-import org.uma.jmetal.util.pseudorandom.JMetalRandom;
+import org.uma.jmetal.util.pseudorandom.PseudoRandomGenerator;
 
 import java.util.List;
 import java.util.Map;
@@ -18,12 +18,12 @@ import java.util.Map;
 public class IntraDepotMutation implements MutationOperator<PermutationSolution<Integer>> {
 
     private final double probability;
-    private final JMetalRandom random;
+    private final PseudoRandomGenerator random;
     private final List<DepotDto> depots;
 
-    public IntraDepotMutation(double probability, List<DepotDto> depots) {
+    public IntraDepotMutation(double probability, List<DepotDto> depots, PseudoRandomGenerator random) {
         this.probability = probability;
-        this.random = JMetalRandom.getInstance();
+        this.random = random;
         this.depots = depots;
     }
 

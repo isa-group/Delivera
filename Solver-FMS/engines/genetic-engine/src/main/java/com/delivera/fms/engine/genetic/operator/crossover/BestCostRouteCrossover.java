@@ -6,7 +6,7 @@ import com.delivera.fms.engine.genetic.scheduler.RouteSplitter;
 import org.uma.jmetal.operator.crossover.CrossoverOperator;
 import org.uma.jmetal.solution.permutationsolution.PermutationSolution;
 import org.uma.jmetal.solution.permutationsolution.impl.IntegerPermutationSolution;
-import org.uma.jmetal.util.pseudorandom.JMetalRandom;
+import org.uma.jmetal.util.pseudorandom.PseudoRandomGenerator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,15 +26,16 @@ import java.util.Set;
 public class BestCostRouteCrossover implements CrossoverOperator<PermutationSolution<Integer>> {
 
     private final double probability;
-    private final JMetalRandom random;
+    private final PseudoRandomGenerator random;
     private final List<DepotDto> depots;
     private final RouteSplitter splitter;
 
     public BestCostRouteCrossover(double probability,
                                    List<DepotDto> depots,
-                                   RouteSplitter splitter) {
+                                   RouteSplitter splitter,
+                                   PseudoRandomGenerator random) {
         this.probability = probability;
-        this.random = JMetalRandom.getInstance();
+        this.random = random;
         this.depots = depots;
         this.splitter = splitter;
     }

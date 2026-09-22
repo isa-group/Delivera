@@ -32,7 +32,17 @@ fms:
       version: 1.0.0
       deterministic: false
       order: 10
-      parameters: []
+      parameters:
+        - name: seed
+          description: >-
+            Semilla del generador aleatorio. Con la misma instancia y la misma semilla la
+            solucion es identica. Si no se envia, el motor sortea una y la devuelve en el
+            campo seed de la respuesta, de modo que cualquier ejecucion es repetible a posteriori.
+            El tope es 2^48-1 porque java.util.Random se queda con 48 bits: por encima de ahi
+            dos semillas distintas darian la misma secuencia
+          type: INTEGER
+          min: 0
+          max: 281474976710655
     greedy:
       url: http://greedy-engine:8091
       display-name: Voraz
@@ -159,6 +169,16 @@ fms:
           default-value: 0.2
           min: 0
           max: 1
+        - name: seed
+          description: >-
+            Semilla del generador aleatorio. Con la misma instancia, los mismos parametros y
+            la misma semilla la solucion es identica. Si no se envia, el motor sortea una y la
+            devuelve en el campo seed de la respuesta, de modo que cualquier ejecucion es
+            repetible a posteriori. El tope es 2^48-1 porque java.util.Random se queda con
+            48 bits: por encima de ahi dos semillas distintas darian la misma secuencia
+          type: INTEGER
+          min: 0
+          max: 281474976710655
 
 springdoc:
   api-docs:
