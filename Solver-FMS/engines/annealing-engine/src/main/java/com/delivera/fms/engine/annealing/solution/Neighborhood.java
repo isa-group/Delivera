@@ -15,14 +15,14 @@ import java.util.List;
  * Un movimiento elige un cliente al azar -lo que pondera los depositos por su tamano- y aplica uno
  * de estos cambios:
  *
- * <ul>
- *   <li><b>Intra-deposito</b>, reordenan una secuencia y el troceado decide donde caen los cortes:
- *       reubicar un cliente, intercambiar dos o invertir un tramo.</li>
- *   <li><b>Inter-deposito</b>, los unicos que cambian el reparto: llevar un cliente a otro
+ * 
+ * Intra-deposito, reordenan una secuencia y el troceado decide donde caen los cortes:
+ *       reubicar un cliente, intercambiar dos o invertir un tramo.
+ * Inter-deposito, los unicos que cambian el reparto: llevar un cliente a otro
  *       deposito en su posicion mas barata, o intercambiar el deposito de dos clientes. El
  *       intercambio no altera cuantos clientes tiene cada deposito, asi que sigue sirviendo cuando
- *       el reparto ya esta ajustado a la flota.</li>
- * </ul>
+ *       el reparto ya esta ajustado a la flota.
+ * 
  *
  * El deposito destino se elige entre los cercanos al cliente. Mover un cliente al otro extremo del
  * mapa es un movimiento que ningun criterio de aceptacion va a admitir, y proponerlo solo gasta

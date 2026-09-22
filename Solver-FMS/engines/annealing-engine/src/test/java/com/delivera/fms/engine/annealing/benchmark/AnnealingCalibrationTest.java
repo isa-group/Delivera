@@ -19,9 +19,8 @@ import java.util.Map;
  * Banco de calibracion: ejecuta el motor sobre instancias Cordeau e imprime coste, gap frente al
  * BKS, factibilidad y curva anytime. No afirma nada, es para mirar; por eso solo corre a peticion.
  *
- * <pre>
  * mvn test -Dtest=AnnealingCalibrationTest -Dcalibration=true -Dinstances=p01,p22 -DtimeLimitMs=5000 -Dseed=1
- * </pre>
+ * 
  */
 @EnabledIfSystemProperty(named = "calibration", matches = "true")
 class AnnealingCalibrationTest {

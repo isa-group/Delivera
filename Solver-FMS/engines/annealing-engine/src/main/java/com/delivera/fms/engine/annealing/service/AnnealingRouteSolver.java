@@ -202,6 +202,7 @@ public class AnnealingRouteSolver {
                 if (route.customers().isEmpty()) {
                     continue;
                 }
+                // En el caso de que el depot no tenga vehículos asignados
                 String vehicleId = depotVehicles.isEmpty()
                         ? "V-SA-" + depot.id() + "-" + (index + 1)
                         : depotVehicles.get(index % depotVehicles.size()).id();

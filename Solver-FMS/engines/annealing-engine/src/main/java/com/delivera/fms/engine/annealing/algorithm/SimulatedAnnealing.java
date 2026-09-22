@@ -19,13 +19,13 @@ import java.util.List;
 /**
  * Recocido simulado sobre la plantilla {@link AbstractLocalSearch} de jMetal.
  *
- * Un paso de la plantilla ({@link #updateCurrentSolution}) es un <b>nivel de temperatura</b>: una
+ * Un paso de la plantilla ({@link #updateCurrentSolution}) es un nivel de temperatura: una
  * tanda de movimientos aceptados con el criterio de Metropolis -siempre si mejoran, con
  * probabilidad {@code exp(-delta / T)} si empeoran-. Entre niveles ({@link #updateProgress}) se
  * enfria, se anota el mejor factible, se aplican las fases periodicas y se decide si recalentar.
  *
- * <h2>Temperatura calibrada, no fijada</h2>
- * Antes de arrancar se sondean {@value #WARMUP_SAMPLES} movimientos y se toma un <b>cuantil bajo</b>
+ * Temperatura calibrada, no fijada
+ * Antes de arrancar se sondean {@value #WARMUP_SAMPLES} movimientos y se toma un cuantil bajo
  * ({@code calibrationQuantile}) de los que empeoran: un empeoramiento pequeno, de los que la
  * busqueda necesita aceptar para salir de un optimo local. La temperatura inicial es la que acepta
  * un empeoramiento asi con la probabilidad pedida: {@code -delta / ln(p0)}.
@@ -40,13 +40,13 @@ import java.util.List;
  * veces mayores que un movimiento normal y, en una instancia cuya solucion inicial no cabe en la
  * flota, son ademas mayoria.
  *
- * <h2>Enfriamiento y recalentamiento</h2>
+ * Enfriamiento y recalentamiento
  * Geometrico por nivel. Cuando la temperatura baja de la que acepta un empeoramiento tipico con
  * {@code finalAcceptanceRate}, el sistema esta frio: se recalienta a la mitad de la inicial y se
  * reanuda desde el mejor conocido. No hay recalentamiento por estancamiento: dispararlo antes de
  * que un ciclo llegue a enfriarse le quitaba justo la fase en la que intensifica.
  *
- * <h2>Lo que el recocido no puede hacer solo</h2>
+ * Lo que el recocido no puede hacer solo
  * Hay instancias en las que la asignacion inicial no cabe en la flota y salir exige una cadena de
  * movimientos de la que solo el ultimo elimina una ruta. Metropolis los valora de uno en uno, asi
  * que se queda atrapado salvo por casualidad. Por eso se llama periodicamente al
@@ -54,9 +54,9 @@ import java.util.List;
  * nivel de ruta. Con {@code localSearchFrequency = 0} el motor es recocido puro; esa es la
  * ablacion que separa lo que aporta Metropolis de lo que aporta la busqueda local.
  *
- * <h2>Que se devuelve</h2>
+ * Que se devuelve
  * La penalizacion orienta pero no decide: una solucion infactible barata puede quedar por debajo
- * de una factible cara. El resultado es la mejor solucion <b>factible</b> vista, comprobada una vez
+ * de una factible cara. El resultado es la mejor solucion factible vista, comprobada una vez
  * por nivel; solo si nunca aparecio ninguna se devuelve la mejor penalizada.
  */
 public class SimulatedAnnealing extends AbstractLocalSearch<AnnealingSolution> {
