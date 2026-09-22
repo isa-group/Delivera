@@ -67,6 +67,8 @@ provocará un `ArrayIndexOutOfBoundsException`, no un error 400.
 |---|---|---|
 | `POST` | `/api/v1/fms/routing/solve` | Resuelve un problema enviado en el cuerpo de la petición |
 | `POST` | `/api/v1/fms/instances/send?fileName=p01&solverType=GREEDY` | Carga una instancia del disco, la mapea y la resuelve |
+| `GET` | `/api/v1/fms/instances` | Catálogo de instancias estándar con las propiedades de cada una |
+| `GET` | `/api/v1/fms/instances/{name}` | Una instancia concreta con sus depósitos, clientes y vehículos |
 | `GET` | `/api/v1/fms/solvers` | Catálogo de solvers con sus metadatos |
 | `GET` | `/api/v1/fms/solvers/{type}` | Metadatos de un solver concreto |
 | `GET` | `/api-docs` | Especificación OpenAPI |
@@ -77,8 +79,14 @@ provocará un `ArrayIndexOutOfBoundsException`, no un error 400.
 > **no** está en la ruta por defecto `/v3/api-docs`. Cualquier cliente que descubra el contrato
 > automáticamente debe apuntar a `/api-docs`.
 
-`sendInstance` normaliza la ruta del fichero y comprueba que quede dentro del directorio de
-instancias, para que un `fileName` con `../` no permita leer ficheros arbitrarios.
+`StandardInstanceRegistry` es el único punto que traduce un nombre de instancia a una ruta de
+fichero: normaliza la ruta y comprueba que quede dentro del directorio de instancias, para que
+un nombre con `../` no permita leer ficheros arbitrarios. Un nombre que no existe da 404, tanto
+al consultarlo como al enviarlo a resolver.
+
+El catálogo de instancias no se declara en ninguna parte: se deriva del contenido del directorio,
+igual que el de solvers se deriva de `fms.engines`. Dejar un fichero nuevo en el volumen basta
+para que aparezca listado.
 
 ### Motores (8091, 8092, 8093)
 

@@ -24,3 +24,7 @@ logs/
 
 # Env/Secrets
 *.env
+
+# Python
+__pycache__/
+results/
