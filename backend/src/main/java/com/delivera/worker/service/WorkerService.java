@@ -2,12 +2,15 @@ package com.delivera.worker.service;
 
 import com.delivera.auth.service.AuthClient;
 import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.client.transaction.annotation.Compensable;
+import com.delivera.client.transaction.compensation.Compensations;
 import com.delivera.exception.*;
 import com.delivera.model.*;
 import com.delivera.org.model.Company;
 import com.delivera.org.repository.CompanyRepository;
 import com.delivera.repository.*;
 import com.delivera.service.SubscriptionService;
+import com.delivera.space.service.SpaceWorkers;
 import com.delivera.worker.dto.ChangeRoleRequest;
 import com.delivera.worker.dto.WorkerInviteRequest;
 import com.delivera.worker.dto.WorkerResponse;
@@ -36,6 +39,7 @@ public class WorkerService {
     private final SubscriptionService subscriptionService;
     private final AuthClient authClient;
     private final UnitWorkerClient unitWorkerClient;
+    private final SpaceWorkers spaceWorkers;
 
    
 
@@ -61,10 +65,11 @@ public class WorkerService {
         .toList();
     }
 
+    @Compensable
     @Transactional
     public WorkerResponse invite(WorkerInviteRequest req) {
         UUID companyId = securityUtils.getCurrentCompanyId();
-        subscriptionService.checkWorkerLimit(companyId);
+        String orgId = securityUtils.getCurrentOrgId().toString();
 
         String email = req.email().toLowerCase().trim();
         WorkerRole role = req.role();
@@ -92,12 +97,14 @@ public class WorkerService {
             savedUser = userRepository.save(user);
          
         }
-
         Worker worker = new Worker();
         worker.setUser(user);
         worker.setCompany(company);
         worker.setRole(role);
         worker = workerRepository.save(worker);
+        
+        spaceWorkers.addWithRollBack(orgId);
+
         if (savedUser != null) {
             authClient.register(savedUser.getId(), email, null, tempPassword).block();
         }
@@ -121,9 +128,11 @@ public class WorkerService {
         return WorkerResponse.from(workerRepository.save(worker));
     }
 
+    @Compensable
     @Transactional
     public void remove(UUID workerId) {
         UUID companyId = securityUtils.getCurrentCompanyId();
+        String orgId = securityUtils.getCurrentOrgId().toString();
         Worker worker = workerRepository.findByIdAndCompanyId(workerId, companyId)
                 .orElseThrow(WorkerNotFoundException::new);
 
@@ -135,6 +144,8 @@ public class WorkerService {
                 && workerRepository.countByCompanyIdAndRole(companyId, WorkerRole.COMPANY_ADMIN) <= 1) {
             throw new LastAdminException();
         }
+
+        spaceWorkers.deleteWithRollBack(orgId);
 
         User user = worker.getUser();
         workerRepository.delete(worker);

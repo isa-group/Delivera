@@ -64,7 +64,7 @@ public class SecurityConfig {
                 // internal
                 auth.requestMatchers(HttpMethod.GET, api+"/internal/vehicles/companies/*").permitAll();
                 auth.requestMatchers(HttpMethod.POST, api+"/internal/orders/B2C").permitAll();
-                auth.requestMatchers(HttpMethod.DELETE, api + "/internal/settings/organization").permitAll();
+                auth.requestMatchers(HttpMethod.DELETE, api + "/internal/settings/organization/*").permitAll();
                 auth.requestMatchers(HttpMethod.DELETE, api+"/internal/settings/*").permitAll();
                 auth.requestMatchers(HttpMethod.POST, api + "/internal/settings").permitAll();
                 auth.requestMatchers(HttpMethod.DELETE, api + "/internal/units/unassign/*").permitAll();

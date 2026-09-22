@@ -65,7 +65,7 @@ cd auth-service
 mvn spring-boot:run -D spring-boot.run.profiles=dev
 ```
 
-**54 Data service**
+**4 Data service**
 
 ```bash
 cd data-service

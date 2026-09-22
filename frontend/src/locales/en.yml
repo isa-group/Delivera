@@ -373,6 +373,7 @@ nav:
   activity: Activity
   workers: Team
   admin: Administration
+  pricing: Pricing
 
 admin:
   title: Administration panel
@@ -499,6 +500,7 @@ error:
   SUBSCRIPTION_LIMIT_ORDERS: You exceeded the monthly order limit of the target plan
   SUBSCRIPTION_LIMIT_LOYAL_USERS: You have more loyal users than the target plan allows
   SUBSCRIPTION_LIMIT_COMPANIES: You have more companies than the target plan allows
+  SUBSCRIPTION_LIMIT_VEHICLES: You already have the vehicles limit.
   WORKER_ALREADY_EXISTS: This worker already belongs to the company
   LOYAL_USER_CANNOT_BE_WORKER: This email belongs to a loyal user and cannot be invited as a worker
   WORKER_CANNOT_BE_LOYAL_USER: This email belongs to a worker and cannot be used as a B2C recipient
@@ -506,6 +508,7 @@ error:
   LAST_ADMIN: You cannot change the role of the only company administrator
   VEHICLE_NOT_FOUND: Vehicle not found
   VEHICLE_PLATE_CONFLICT: A vehicle with this plate already exists in your company
+  CONTRACT_UPDATE: Unable to update the contract subscription
   SERVICE_UNAVAILABLE: Service unavailable
 
 orgSelect:
@@ -612,3 +615,28 @@ apiKeys:
   revoked: Revoked
   revoke: Revoke
   revokeConfirm: Revoke this API key? Any integrations using it will stop working.
+
+
+pricing:
+  confirmation: Confirmation
+  resume: Resume
+  concept: Concept
+  before: Before
+  after: After
+  changed: Changed
+  changes: Plan changes
+  price: Price changes
+  cancel: Cancel
+  confirm: Confirm
+  previous: Back
+  next: Next
+  BillingInformation: Billing Information
+  startDate: Current month starts at
+  endDate: Current month ends at
+  autoRenew: Auto renew
+  renewalPeriod: Renewal Period
+  days: days
+  usedPercentage: Elapsed time of the current month
+  activateRenew: Activate auto renew
+  desactivateRenew: Desactivate auto renew
+

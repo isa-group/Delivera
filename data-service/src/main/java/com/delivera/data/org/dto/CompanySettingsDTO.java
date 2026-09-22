@@ -14,6 +14,8 @@ public class CompanySettingsDTO {
 
     private UUID companyId;
 
+    private UUID orgId;
+
     private OrderPriority defaultPriority;
 
     private boolean defaultPriorityLocked = false;

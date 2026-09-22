@@ -192,10 +192,6 @@ const newActivityType = ref(null)
 const addSaving = ref(false)
 const addError = ref('')
 
-// Plan change
-const pendingPlanCode = ref(null)
-const planChanging = ref(false)
-const planChangeError = ref('')
 
 const activityOptions = computed(() =>
   activityTypes.value.map(a => ({ label: a.label, value: a.value }))
@@ -205,55 +201,9 @@ function activityLabel(code) {
   return activityTypes.value.find(a => a.value === code)?.label ?? code
 }
 
-const PLANS = [
-  { code: 'FREE',  name: 'Free',  price: 'Gratis',  units: 3,  workers: 5,  ordersThisMonth: 50,  loyalUsers: 20,  companies: 1,  color: 'free' },
-  { code: 'BASIC', name: 'Basic', price: '29€/mes', units: 10, workers: 15, ordersThisMonth: 200, loyalUsers: 100, companies: 5,  color: 'basic' },
-  { code: 'PRO',   name: 'Pro',   price: '99€/mes', units: -1, workers: -1, ordersThisMonth: -1,  loyalUsers: -1,  companies: -1, color: 'pro' },
-]
 
-const planOrder = { FREE: 0, BASIC: 1, PRO: 2 }
 
-const downgradeRisks = computed(() => {
-  if (!pendingPlanCode.value || !subscription.value) return []
-  const plan = PLANS.find(p => p.code === pendingPlanCode.value)
-  if (!plan) return []
-  return ['units', 'workers', 'loyalUsers', 'companies']
-    .filter(k => plan[k] !== -1 && subscription.value[k]?.current > plan[k])
-    .map(k => ({ key: k, current: subscription.value[k].current, max: plan[k] }))
-})
 
-function isDowngrade(targetCode) {
-  if (!subscription.value) return false
-  return planOrder[targetCode] < planOrder[subscription.value.planCode]
-}
-
-function requestPlanChange(planCode) {
-  planChangeError.value = ''
-  pendingPlanCode.value = planCode
-}
-
-async function selectPlan(planCode, force = false) {
-  planChangeError.value = ''
-  planChanging.value = true
-  try {
-    const res = await api.patch('/settings/subscription/plan', { planCode, force })
-    if (res.ok) {
-      subscription.value = await res.json()
-      pendingPlanCode.value = null
-      // Refrescar lista de empresas: el downgrade puede haber eliminado excedentes
-      const compRes = await api.get('/settings/companies')
-      if (compRes.ok) allCompanies.value = await compRes.json()
-      auth.loadCompanies()
-    } else {
-      const data = await res.json()
-      planChangeError.value = api.translateError(data, 'error.saveFailed')
-    }
-  } catch {
-    planChangeError.value = t('error.connection')
-  } finally {
-    planChanging.value = false
-  }
-}
 
 async function reloadSubscription() {
   const res = await api.get('/settings/subscription')
@@ -558,9 +508,8 @@ async function copyHandle() {
         <PTabList>
           <PTab :value="0">{{ t('settings.orgSection') }}</PTab>
           <PTab :value="1">{{ t('settings.companySection') }}</PTab>
-          <PTab :value="2">{{ t('settings.subscriptionSection') }}</PTab>
-          <PTab :value="3">{{ t('settings.apiKeysSection') }}</PTab>
-          <PTab :value="4">{{ t('settings.devices.name') }}</PTab>
+          <PTab :value="2">{{ t('settings.apiKeysSection') }}</PTab>
+          <PTab :value="3">{{ t('settings.devices.name') }}</PTab>
         </PTabList>
 
         <PTabPanels>
@@ -755,75 +704,11 @@ async function copyHandle() {
               </Transition>
             </div>
           </PTabPanel>
-
-          <!-- === Suscripción === -->
-          <PTabPanel :value="2">
-            <div v-if="subscription" class="settings-section">
-              <div class="plans-grid">
-                <div v-for="plan in PLANS" :key="plan.code"
-                  :class="['plan-card', 'plan-card--' + plan.color, { 'plan-card--current': subscription?.planCode === plan.code, 'plan-card--pending': pendingPlanCode === plan.code }]">
-                  <div class="plan-card-top">
-                    <span :class="['plan-badge', 'plan-badge--' + plan.color]">{{ plan.name }}</span>
-                    <span v-if="subscription?.planCode === plan.code" class="plan-current-label">{{ t('settings.currentPlan') }}</span>
-                  </div>
-                  <span class="plan-card-price">{{ plan.price }}</span>
-                  <ul class="plan-features">
-                    <li v-for="key in ['units','workers','ordersThisMonth','loyalUsers','companies']" :key="key">
-                      <i :class="['pi', plan[key] === -1 ? 'pi-check-circle' : 'pi-circle']" />
-                      <span>{{ t('settings.resource.' + key) }}</span>
-                      <strong>{{ plan[key] === -1 ? '∞' : plan[key] }}</strong>
-                    </li>
-                  </ul>
-
-                  <!-- Confirmación inline al cambiar de plan -->
-                  <Transition name="plan-confirm">
-                    <div v-if="pendingPlanCode === plan.code" class="plan-confirm">
-                      <div v-if="downgradeRisks.length" class="plan-confirm-risks">
-                        <p class="plan-confirm-risks-title">{{ t('settings.downgradeRisksTitle') }}</p>
-                        <ul>
-                          <li v-for="risk in downgradeRisks" :key="risk.key">
-                            <i class="pi pi-exclamation-triangle" />
-                            {{ t('settings.resource.' + risk.key) }}: {{ t('settings.downgradeRiskDelete', { count: risk.current - risk.max }) }}
-                          </li>
-                        </ul>
-                      </div>
-                      <PMessage v-if="planChangeError && pendingPlanCode === plan.code" severity="error" :closable="false" class="plan-confirm-error">{{ planChangeError }}</PMessage>
-                      <div class="plan-confirm-actions">
-                        <PButton :label="t('common.cancel')" severity="secondary" text size="small" @click="pendingPlanCode = null; planChangeError = ''" />
-                        <PButton
-                          :label="planChanging ? t('common.loading') : t('settings.confirmDowngrade')"
-                          :severity="downgradeRisks.length ? 'danger' : (isDowngrade(plan.code) ? 'danger' : 'primary')"
-                          size="small"
-                          :loading="planChanging"
-                          @click="selectPlan(plan.code, downgradeRisks.length > 0)"
-                        />
-                      </div>
-                    </div>
-                  </Transition>
-
-                  <template v-if="pendingPlanCode !== plan.code">
-                    <PButton
-                      v-if="subscription?.planCode !== plan.code"
-                      :label="isDowngrade(plan.code) ? t('settings.downgradePlan') : t('settings.selectPlan')"
-                      :severity="isDowngrade(plan.code) ? 'secondary' : 'primary'"
-                      size="small"
-                      class="plan-select-btn"
-                      @click="requestPlanChange(plan.code)"
-                    />
-                    <div v-else class="plan-active-indicator">
-                      <i class="pi pi-check" /> {{ t('settings.currentPlan') }}
-                    </div>
-                  </template>
-                </div>
-              </div>
-            </div>
-          </PTabPanel>
-
           <!-- === API Keys === -->
-          <PTabPanel :value="3">
+          <PTabPanel :value="2">
             <ApiKeysSection />
           </PTabPanel>
-          <PTabPanel :value="4">
+          <PTabPanel :value="3">
             <DeviceSecction/>
           </PTabPanel>
         </PTabPanels>

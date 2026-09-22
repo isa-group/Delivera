@@ -7,7 +7,6 @@ import { useApi } from '@/composables/useApi'
 import { useServices } from '@/composables/useServices'
 import { useAppConfig } from '@/composables/useAppConfig'
 import { WORKER_ROLES } from '@/constants/roles'
-import { stopAuthRefresh } from '@/composables/useRefreshToken'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -38,6 +37,7 @@ const navItems = [
   { path: '/workers', icon: 'pi-id-card', labelKey: 'nav.workers', roles: WORKER_ROLES },
   { path: '/my-orders', icon: 'pi-inbox', labelKey: 'nav.myOrders', noRole: true },
   { path: '/settings', icon: 'pi-cog', labelKey: 'nav.settings', roles: ['COMPANY_ADMIN'] },
+  { path: '/pricing', icon: 'pi-tag', labelKey: 'nav.pricing', roles: ['COMPANY_ADMIN'] },
   { path: '/admin', icon: 'pi-shield', labelKey: 'nav.admin', roles: ['GLOBAL_ADMIN'] },
 ]
 
@@ -80,7 +80,6 @@ function handleLogout() {
     } catch(e) { /* empty */ }
   profileOpen.value = false
   locale.value = navigator.language?.startsWith('en') ? 'en' : 'es'
-  stopAuthRefresh()
   auth.logout()
   router.push('/')
 }
@@ -134,13 +133,7 @@ async function loadUserProfile() {
   } catch { /* silencioso */ }
 }
 
-async function loadSubscriptionIfNeeded() {
-  if (auth.planCode) return
-  try {
-    const subRes = await api.get('/settings/subscription')
-    if (subRes.ok) { const sub = await subRes.json(); auth.setPlanCode(sub.planCode) }
-  } catch { /* silencioso */ }
-}
+
 
 onMounted(async () => {
   document.addEventListener('click', onDocumentClick)
@@ -155,7 +148,6 @@ onMounted(async () => {
   //if (auth.isWorker && auth.isCompanyAdmin) {
   if (auth.isWorker) {
     auth.loadCompanies()
-    await loadSubscriptionIfNeeded()
   }
 })
 
@@ -254,7 +246,6 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
           <PAvatar v-else :label="initials" shape="circle" class="sidebar-avatar" />
           <div class="sidebar-profile-info">
             <span class="sidebar-profile-name">{{ displayName }}</span>
-            <span v-if="auth.planCode" :class="['sidebar-plan-badge', 'plan-badge--' + auth.planCode.toLowerCase()]">{{ auth.planCode }}</span>
           </div>
           <i :class="['pi', profileOpen ? 'pi-angle-up' : 'pi-angle-down', 'sidebar-profile-chevron']" />
         </button>

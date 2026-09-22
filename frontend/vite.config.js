@@ -9,7 +9,14 @@ import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    vue(),
+    vue({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) =>
+            tag === 'pricing-renderer'
+        }
+      }
+    }),
     ...(process.env.NODE_ENV !== 'production' ? [vueDevTools()] : []),
     VueI18nPlugin({
       include: resolve(dirname(fileURLToPath(import.meta.url)), './src/locales/**'),

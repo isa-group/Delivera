@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { WORKER_ROLES } from '@/constants/roles'
+import Pricing from '@/views/pricing/PricingView.vue'
 
 // Rutas con import() dinámico para generar un chunk por vista
 // y evitar que Leaflet/Chart.js entren en el bundle inicial.
@@ -51,6 +52,7 @@ const router = createRouter({
       component: AppLayout,
       children: [
         { path: 'home', component: HomeView, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN', 'ANALYST', 'OPERATOR'] } },
+        { path: '/pricing', component: Pricing, meta: { requiresAuth: true, roles: ['COMPANY_ADMIN']} }, 
         { path: 'profile', component: ProfileView, meta: { requiresAuth: true } },
         { path: 'my-orders', component: MyOrdersView, meta: { requiresAuth: true } },
         { path: 'my-orders/detail', component: MyOrderDetailView, meta: { requiresAuth: true } },

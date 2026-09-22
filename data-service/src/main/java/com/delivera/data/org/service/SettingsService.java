@@ -7,6 +7,10 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.client.space.service.AbstractSpaceFeature;
+import com.delivera.client.transaction.annotation.Compensable;
+import com.delivera.client.transaction.compensation.Compensations;
 import com.delivera.data.depot.repository.OperationalUnitRepository;
 import com.delivera.data.depot.repository.WorkerRepository;
 import com.delivera.data.exception.CompanyHasActiveOrdersException;
@@ -19,6 +23,8 @@ import com.delivera.data.order.repository.OrderRepository;
 import com.delivera.data.org.dto.CompanySettingsDTO;
 import com.delivera.data.org.model.CompanySettings;
 import com.delivera.data.org.repository.SettingsRepository;
+import com.delivera.data.space.service.SpaceUnits;
+import com.delivera.data.space.service.SpaceVehicles;
 import com.delivera.data.vehicle.repository.VehicleRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -35,9 +41,18 @@ public class SettingsService {
     private final OrderEventRepository orderEventRepository;
     private final OrderMessageRepository orderMessageRepository;
 
+    private final SpaceUnits spaceUnits;
+    private final SpaceVehicles spaceVehicles;
 
+    private final SecurityUtils securityUtils;
+
+    @Compensable
     @Transactional
     public void deleteCompany(UUID companyId, Boolean confirmation) {
+        //String orgId = securityUtils.getCurrentOrgId().toString();
+        CompanySettings settings = get(companyId);
+        String orgId = settings.getOrgId().toString();
+
         Boolean pendingOrders = orderRepository.existsByCompanyIdAndStatusIn(
             companyId,
             List.of(OrderStatus.PENDING, OrderStatus.IN_TRANSIT)
@@ -46,28 +61,37 @@ public class SettingsService {
             throw new CompanyHasActiveOrdersException(companyId);
         }
 
-        vehicleRepository.deleteByCompanyId(companyId);
+        Integer numVehicles = vehicleRepository.deleteByCompanyId(companyId);
+        spaceDelete(spaceVehicles, orgId, numVehicles);
+
         orderEventRepository.deleteByCompanyId(companyId);
         orderMessageRepository.deleteByCompanyId(companyId);
         orderRepository.deleteByCompanyId(companyId);
         orderRepository.nullifyDestinationByCompanyId(companyId);
         workerRepository.deleteByCompanyId(companyId);
-        unitRepository.deleteByCompanyId(companyId);
+
+        Integer numUnits = unitRepository.deleteByCompanyId(companyId);
+        spaceDelete(spaceUnits,orgId,numUnits);
+        
         repository.deleteById(companyId);
     }
 
-
+    @Compensable
     @Transactional
-    public void deleteOrganization(Set<UUID> companyIds) {
-        
+    public void deleteOrganization(String orgId ,Set<UUID> companyIds) {
 
-        vehicleRepository.deleteByCompanyIds(companyIds);
+        Integer numVehicles = vehicleRepository.deleteByCompanyIds(companyIds);
+        spaceDelete(spaceVehicles, orgId, numVehicles);
+
         orderEventRepository.deleteByCompanyIds(companyIds);
         orderMessageRepository.deleteByCompanyIds(companyIds);
         orderRepository.deleteByCompanyIds(companyIds);
         orderRepository.nullifyDestinationByCompanyIds(companyIds);
         workerRepository.deleteByCompanyIds(companyIds);
-        unitRepository.deleteByCompanyIds(companyIds);
+        
+        Integer numUnits = unitRepository.deleteByCompanyIds(companyIds);
+        spaceDelete(spaceUnits, orgId, numUnits);
+
         repository.deleteByCompanyIds(companyIds);
     }
 
@@ -131,7 +155,20 @@ public class SettingsService {
     ) {
         CompanySettings settings = new CompanySettings();
         settings.setId(request.getCompanyId());
+        settings.setOrgId(request.getOrgId());
         return map(settings,request);
     }
+
+
+    private void spaceDelete(
+        AbstractSpaceFeature feature,
+        String orgId, 
+        Integer quantity
+    ){
+        if (quantity > 0) {
+            feature.deleteAllWithRollBack(orgId, quantity);
+        }
+    }
+
 
 }

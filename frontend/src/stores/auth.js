@@ -79,6 +79,17 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  
+  function isJwtExpired(token, threshold = 0) {
+    const payload = parseJwt(token)
+    if (!payload) return true;
+
+    const expiresAt = payload?.exp * 1000
+    const now = Date.now()
+
+    return (expiresAt - now) < threshold
+  }
+
   function obtainOrgIdFromJwt(token) {
     const data = parseJwt(token)
     if (data == null) return;
@@ -147,6 +158,6 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated, isCompanyAdmin, isWorker, canCreateOrders,orgId,
     setToken, setUser, setOrganization, setOrgName, setCompanyName,
     setRole, setCompanyId, setPlanCode, applyLoginData,
-    logout, loadCompanies,
+    logout, loadCompanies, isJwtExpired
   }
 })

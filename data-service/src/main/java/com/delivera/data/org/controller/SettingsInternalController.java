@@ -54,11 +54,13 @@ public class SettingsInternalController {
         return ResponseEntity.status(204).build();
     }
 
-    @DeleteMapping("/organization")
+    @DeleteMapping("/organization/{orgId}")
     public ResponseEntity<Void> deleteOrganization(
-        @RequestBody Set<UUID> companyIds
+        @RequestBody Set<UUID> companyIds,
+        @PathVariable(name = "orgId") UUID orgId
+
     ) {
-        settingsService.deleteOrganization(companyIds);
+        settingsService.deleteOrganization(orgId.toString(), companyIds);
         return ResponseEntity.status(204).build();
     }
 

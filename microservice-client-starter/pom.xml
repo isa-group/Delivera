@@ -6,7 +6,7 @@
 
     <groupId>com.delivera</groupId>
     <artifactId>microservice-client-starter</artifactId>
-    <version>1.1.2</version>
+    <version>1.2.0</version>
 
 
     
@@ -21,6 +21,7 @@
 
     <properties>
         <java.version>21</java.version>
+        <space.version>0.4.0</space.version>
     </properties>
 
     <dependencies>
@@ -58,6 +59,19 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!--AOP-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
+         <!-- SPACE -->
+        <dependency>
+            <groupId>io.github.isa-group</groupId>
+            <artifactId>space-java-client</artifactId>
+            <version>${space.version}</version>
         </dependency>
 
 

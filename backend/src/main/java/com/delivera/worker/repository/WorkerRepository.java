@@ -130,5 +130,5 @@ public interface WorkerRepository extends JpaRepository<Worker, UUID> {
     Set<UUID> findAccountsToDelete(
         @Param("orgId") UUID orgId, 
         @Param("companyId") UUID companyId 
-    );
+    );        
 }

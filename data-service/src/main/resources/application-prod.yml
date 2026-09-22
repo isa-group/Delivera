@@ -68,7 +68,7 @@ delivera:
           - /internal/orders/*/seed/events
           - /internal/settings
           - /internal/settings/*
-          - /internal/settings/organization
+          - /internal/settings/organization/*
           - /internal/units/unassign/*
           - /internal/admin/data-service/*
       data-service: 
@@ -105,8 +105,17 @@ server:
     key-store-type: ${delivera.mtls.key-store-type}
     client-auth: none
 
+space:
+  client:
+    url: ${SPACE_URL}
+    api-key: ${DATA_SPACE_API_KEY}
+    timeout: ${SPACE_TIMEOUT:10000}
+
+
 
 app:
+  space:
+    service: ${SPACE_SERVICE}
   tracking-url-base: ${TRACKING_URL_BASE:https://delivera.app/track/}
   gateway: 
     enabled: false

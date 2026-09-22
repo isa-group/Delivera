@@ -6,7 +6,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useServices } from '@/composables/useServices'
 import { useValidation } from '@/composables/useValidation'
 import BaseLayout from '@/components/BaseLayout.vue'
-import { startAuthRefresh } from '@/composables/useRefreshToken'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -32,7 +31,6 @@ async function handleLogin() {
     if (res.ok) {
       const data = await res.json()
       auth.applyLoginData(data)
-      startAuthRefresh()
       router.push(auth.isWorker ? '/home' : '/profile')
     } else {
       const data = await res.json()

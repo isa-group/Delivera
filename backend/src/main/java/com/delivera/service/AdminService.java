@@ -228,7 +228,7 @@ public class AdminService {
         organizationRepository.deleteById(orgId);
         userRepository.deleteByUserIds(userIds);
 
-        settingsClient.deleteOrganization(companyIds);
+        settingsClient.deleteOrganization(orgId,companyIds);
         authClient.deleteUsers(userIds);
     }
 

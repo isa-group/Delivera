@@ -4,3 +4,5 @@ com.delivera.client.config.MtlsServerAutoConfig
 com.delivera.client.config.DeliveraClientAutoConfig
 com.delivera.client.config.SecurityAutoConfig
 com.delivera.client.config.JwtAutoConfig
+com.delivera.client.transaction.config.CompensationConfiguration
+com.delivera.client.space.config.SpaceAutoConfiguration

@@ -1,6 +1,8 @@
 package com.delivera.data.depot.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.client.transaction.annotation.Compensable;
+import com.delivera.client.transaction.compensation.Compensations;
 import com.delivera.data.common.dto.IdNameProjection;
 import com.delivera.data.depot.dto.AssignRequest;
 import com.delivera.data.depot.dto.B2BUnitResponse;
@@ -17,6 +19,7 @@ import com.delivera.data.exception.UnitNameConflictException;
 import com.delivera.data.exception.UnitNotFoundException;
 import com.delivera.data.org.dto.OrgCheckRequest;
 import com.delivera.data.org.service.OrgClient;
+import com.delivera.data.space.service.SpaceUnits;
 
 import lombok.RequiredArgsConstructor;
 
@@ -38,15 +41,18 @@ public class UnitService {
     private final OrgClient orgClient;
     private final WorkerRepository workerRepository;
     private final SecurityUtils securityUtils;
-    //private final SubscriptionService subscriptionService;
+    private final SpaceUnits spaceUnits;
 
   
 
+    @Compensable
     @Transactional
     public UnitResponse createSeed(UnitRequest request, UUID orgId, UUID companyId) {
         if (unitRepository.existsByCompanyIdAndName(companyId, request.getName())) {
             throw new UnitNameConflictException();
         }
+        spaceUnits.addWithRollBack(orgId.toString());
+
         OperationalUnit unit = new OperationalUnit();
         unit.setCompanyId(companyId);
         unit.setOrgId(orgId);
@@ -58,12 +64,11 @@ public class UnitService {
         }
     }
 
-
+    @Compensable
     @Transactional
     public UnitResponse create(UnitRequest request) {
         UUID companyId = securityUtils.getCurrentCompanyId();
         UUID orgId = securityUtils.getCurrentOrgId();
-       //TODO: subscriptionService.checkUnitLimit(companyId);
         if (unitRepository.existsByCompanyIdAndName(companyId, request.getName())) {
             throw new UnitNameConflictException();
         }
@@ -72,6 +77,8 @@ public class UnitService {
         if (!orgCheck) {
             throw new CompanyContextException();
         }
+        spaceUnits.addWithRollBack(orgId.toString());
+    
         OperationalUnit unit = new OperationalUnit();
         unit.setCompanyId(companyId);
         unit.setOrgId(orgId);
@@ -139,19 +146,6 @@ public class UnitService {
             externalCompanyId
         );
     }
-    /* TODO: Esto lo debería hacer el org-service
-    @Transactional(readOnly = true)
-    public List<CompanySummary> getExternalCompanies() {
-        UUID companyId = securityUtils.getCurrentCompanyId();
-        Company company = companyRepository.findById(companyId).orElseThrow(CompanyContextException::new);
-        return companyRepository.findByOrganizationId(company.getOrganization().getId())
-                .stream()
-                .filter(c -> !c.getId().equals(companyId))
-                .map(c -> new CompanySummary(c.getId(), c.getName(), c.getActivityType().getCode(), c.getLogoData(), c.getDefaultPriority(), c.isDefaultPriorityLocked()))
-                .toList();
-    }*/
-
-
     @Transactional(readOnly = true)
     public UnitDetailResponse getDetail(UUID id) {
         UUID companyId = securityUtils.getCurrentCompanyId();
@@ -212,12 +206,14 @@ public class UnitService {
 
 
 
-    // TODO: MIRAR AUNQUE CREO QUE NO HACE FALTA TOCAR NADA.
+    @Compensable
     @Transactional
     public void delete(UUID id) {
         UUID companyId = securityUtils.getCurrentCompanyId();
         OperationalUnit unit = unitRepository.findByIdAndCompanyId(id, companyId)
                 .orElseThrow(() -> new UnitNotFoundException(id));
+        spaceUnits.deleteWithRollBack(unit.getOrgId().toString());
+        
         unitRepository.delete(unit);
     }
     

@@ -3,6 +3,7 @@ package com.delivera.data.exception;
 import com.delivera.client.exception.ApiException;
 import com.delivera.client.exception.ClientException;
 import com.delivera.client.exception.NetworkException;
+import com.delivera.client.space.exception.SpaceValidationException;
 import com.delivera.data.common.dto.ErrorResponse;
 import com.delivera.data.common.dto.ValidationErrorResponse;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -69,6 +70,13 @@ public class GlobalExceptionHandler {
         Map.entry(ApiKeyNotFoundException.class,          new Mapping(NOT_FOUND,            "API_KEY_NOT_FOUND")),
         Map.entry(FileTooLargeException.class,            new Mapping(PAYLOAD_TOO_LARGE,    "FILE_TOO_LARGE"))
     );
+
+    
+    @ExceptionHandler(SpaceValidationException.class)
+    public ResponseEntity<ErrorResponse> handleSubscriptionLimit(SpaceValidationException ex) {
+        log.warn("Subscription limit reached: {}", ex.getMessage());
+        return ResponseEntity.status(FORBIDDEN).body(new ErrorResponse(ex.getCode()));
+    }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleKnown(RuntimeException ex) {

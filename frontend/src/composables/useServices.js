@@ -2,6 +2,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getDeviceId } from './useRefreshToken'
+import { refreshIfNeeded } from './useRefreshToken'
 
 export function useServices(service) {
   const SERVICE_MAP = {
@@ -33,17 +34,27 @@ export function useServices(service) {
 
 
   async function request( endpoint, options = {}) {
-    const headers = { 'Content-Type': 'application/json' ,'X-Device-Id': getDeviceId(), ...options.headers }
+    const token =   await refreshIfNeeded()
+    //const expiredJwt = auth.isJwtExpired(auth.token)
+    //const noAuthRequired = (!auth.token && endpoint.startsWith('/auth/'))
+    //if (!expiredJwt || noAuthRequired) {
+      const headers = { 
+        'Content-Type': 'application/json' ,
+        'X-Device-Id': getDeviceId(), 
+        ...options.headers 
+      }
 
-    if (auth.token) {
-      headers.Authorization = `Bearer ${auth.token}`
-    }
+      if (token) {
+        headers.Authorization = `Bearer ${token}`
+      }
 
-    const response = await fetch(`${baseUrl}/api/v2${endpoint}`, {
-      ...options,
-      headers,
-      credentials: "include"
-    })
+      const response = await fetch(`${baseUrl}/api/v2${endpoint}`, {
+        ...options,
+        headers,
+        credentials: "include"
+      })
+      return response
+    //}
 
     // Sólo forzamos logout si el usuario estaba autenticado y la llamada no es de auth.
     // Evita que un 401 sobre un endpoint público cierre sesión al vuelo.
@@ -54,7 +65,7 @@ export function useServices(service) {
       throw new Error('No autorizado')
     }*/
 
-    return response
+    
   }
 
   async function get(endpoint) {
