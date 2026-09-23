@@ -1,0 +1,12 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{0} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <!-- Nivel del motor en tests: -Dannealing.log=TRACE para ver cada nivel de temperatura -->
+    <logger name="com.delivera.fms.engine.annealing" level="${annealing.log:-INFO}"/>
+    <root level="WARN">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>

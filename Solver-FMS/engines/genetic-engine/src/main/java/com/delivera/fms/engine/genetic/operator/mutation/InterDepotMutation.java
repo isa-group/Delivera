@@ -1,9 +1,9 @@
 package com.delivera.fms.engine.genetic.operator.mutation;
 
-import com.delivera.fms.engine.genetic.dto.CustomerDto;
-import com.delivera.fms.engine.genetic.dto.DepotDto;
+import com.delivera.fms.engine.core.model.Customer;
+import com.delivera.fms.engine.core.model.Depot;
+import com.delivera.fms.engine.core.split.RouteSplitter;
 import com.delivera.fms.engine.genetic.scheduler.PermutationCodec;
-import com.delivera.fms.engine.genetic.scheduler.RouteSplitter;
 import org.uma.jmetal.solution.permutationsolution.PermutationSolution;
 import org.uma.jmetal.util.pseudorandom.PseudoRandomGenerator;
 
@@ -25,14 +25,14 @@ public class InterDepotMutation {
 
     private final double probability;
     private final PseudoRandomGenerator random;
-    private final List<CustomerDto> customers;
-    private final List<DepotDto> depots;
+    private final List<Customer> customers;
+    private final List<Depot> depots;
     private final double[][] distanceMatrix;
     private final RouteSplitter splitter;
 
     public InterDepotMutation(double probability,
-                               List<CustomerDto> customers,
-                               List<DepotDto> depots,
+                               List<Customer> customers,
+                               List<Depot> depots,
                                double[][] distanceMatrix,
                                RouteSplitter splitter,
                                PseudoRandomGenerator random) {
@@ -49,12 +49,12 @@ public class InterDepotMutation {
             return solution;
         }
 
-        Map<Integer, DepotDto> depotMap = PermutationCodec.depotMap(solution);
+        Map<Integer, Depot> depotMap = PermutationCodec.depotMap(solution);
         if (depotMap == null) {
             return solution;
         }
 
-        Map<DepotDto, List<Integer>> depotOrder = PermutationCodec.depotOrder(solution, depots, depotMap);
+        Map<Depot, List<Integer>> depotOrder = PermutationCodec.depotOrder(solution, depots, depotMap);
 
         List<Integer> border = findBorderCustomers(solution, depotMap);
         if (border.isEmpty()) {
@@ -62,8 +62,8 @@ public class InterDepotMutation {
         }
 
         int customer = border.get(random.nextInt(0, border.size() - 1));
-        DepotDto currentDepot = depotMap.get(customer);
-        DepotDto targetDepot = pickNearbyDepot(customer, currentDepot);
+        Depot currentDepot = depotMap.get(customer);
+        Depot targetDepot = pickNearbyDepot(customer, currentDepot);
         if (targetDepot == null || !fits(depotOrder.get(targetDepot), targetDepot, customer)) {
             return solution;
         }
@@ -78,12 +78,12 @@ public class InterDepotMutation {
     }
 
     private List<Integer> findBorderCustomers(PermutationSolution<Integer> solution,
-                                               Map<Integer, DepotDto> depotMap) {
+                                               Map<Integer, Depot> depotMap) {
         List<Integer> border = new ArrayList<>();
 
         for (int i = 0; i < solution.variables().size(); i++) {
             int customer = solution.variables().get(i);
-            DepotDto assigned = depotMap.get(customer);
+            Depot assigned = depotMap.get(customer);
             if (assigned == null) {
                 continue;
             }
@@ -97,14 +97,14 @@ public class InterDepotMutation {
     }
 
     // Deposito destino aleatorio entre los que estan a distancia comparable del cliente.
-    private DepotDto pickNearbyDepot(int customer, DepotDto currentDepot) {
+    private Depot pickNearbyDepot(int customer, Depot currentDepot) {
         double nearest = nearestOtherDistance(customer, currentDepot);
         if (nearest == Double.MAX_VALUE) {
             return null;
         }
 
-        List<DepotDto> candidates = new ArrayList<>();
-        for (DepotDto depot : depots) {
+        List<Depot> candidates = new ArrayList<>();
+        for (Depot depot : depots) {
             if (depot.equals(currentDepot)) {
                 continue;
             }
@@ -117,10 +117,10 @@ public class InterDepotMutation {
     }
 
     // El deposito destino debe poder servir la demanda con los vehiculos de los que dispone.
-    private boolean fits(List<Integer> targetOrder, DepotDto depot, int customer) {
-        int capacity = splitter.capacity(depot);
-        int fleet = splitter.fleet(depot);
-        if (fleet == Integer.MAX_VALUE || capacity == Integer.MAX_VALUE) {
+    private boolean fits(List<Integer> targetOrder, Depot depot, int customer) {
+        int capacity = depot.capacity();
+        int fleet = depot.fleet();
+        if (fleet == Depot.UNLIMITED || capacity == Depot.UNLIMITED) {
             return true;
         }
 
@@ -131,9 +131,9 @@ public class InterDepotMutation {
         return load <= (long) capacity * fleet;
     }
 
-    private double nearestOtherDistance(int customer, DepotDto excluded) {
+    private double nearestOtherDistance(int customer, Depot excluded) {
         double nearest = Double.MAX_VALUE;
-        for (DepotDto depot : depots) {
+        for (Depot depot : depots) {
             if (depot.equals(excluded)) {
                 continue;
             }
