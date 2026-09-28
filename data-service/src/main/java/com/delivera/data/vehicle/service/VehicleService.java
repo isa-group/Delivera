@@ -2,7 +2,6 @@ package com.delivera.data.vehicle.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.client.transaction.annotation.Compensable;
-import com.delivera.client.transaction.compensation.Compensations;
 import com.delivera.data.depot.model.OperationalUnit;
 import com.delivera.data.depot.repository.OperationalUnitRepository;
 import com.delivera.data.exception.UnitNotFoundException;
