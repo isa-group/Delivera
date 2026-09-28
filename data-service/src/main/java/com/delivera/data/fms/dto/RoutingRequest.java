@@ -27,7 +27,7 @@ public record RoutingRequest(
 
         @ArraySchema(schema = @Schema(description = "Lista de vehiculos disponibles (opcional)"))
         @Valid
-        List<VehicleDto> vehicles,
+        List<VehicleProjection> vehicles,
 
         @Schema(description = "Matriz de distancias entre todos los nodos (depositos + clientes)")
         @NotNull

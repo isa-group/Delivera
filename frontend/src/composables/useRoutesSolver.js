@@ -45,22 +45,29 @@ export function useRoutesSolver(
     const solvers = [
         {
             id:1,
-            name: t("routes.solvers.greedy.name"),
-            description: t("routes.solvers.greedy.description"),
+            name: t("routes.solvers.GREEDY.name"),
+            description: t("routes.solvers.GREEDY.description"),
             icon: "pi pi-bolt",
             type: "GREEDY"
         },{
             id:2,
-            name: t("routes.solvers.genetic.name"),
-            description: t("routes.solvers.genetic.description"),
+            name: t("routes.solvers.GENETIC.name"),
+            description: t("routes.solvers.GENETIC.description"),
             icon: "pi pi-share-alt",
             type: "GENETIC"
-        }
+        }, {
+            id:3,
+            name: t("routes.solvers.ANNEALING.name"),
+            description: t("routes.solvers.ANNEALING.description"),
+            icon: "pi pi-sparkles",
+            type: "ANNEALING"
+        } 
     ]
 
     const translateSolver = {
         "GREEDY":"GREEDY",
-        "GENETIC":"GENETIC"
+        "GENETIC":"GENETIC",
+        "ANNEALING": "ANNEALING",
     }
     
     function getSolverNames() {

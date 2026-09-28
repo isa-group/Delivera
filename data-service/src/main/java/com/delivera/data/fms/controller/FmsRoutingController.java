@@ -3,6 +3,8 @@ package com.delivera.data.fms.controller;
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.data.fms.dto.ClusterConfig;
 import com.delivera.data.fms.dto.DbscanResult;
+import com.delivera.data.fms.dto.InstanceCatalog;
+import com.delivera.data.fms.dto.InstanceSummary;
 import com.delivera.data.fms.dto.RoutingRequest;
 import com.delivera.data.fms.dto.RoutingResponse;
 import com.delivera.data.fms.dto.SolveClusterRequest;
@@ -12,15 +14,18 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -60,6 +65,24 @@ public class FmsRoutingController {
             @RequestParam(defaultValue = "GREEDY") TypeSolver solverType) {
         UUID companyId = securityUtils.getCurrentCompanyId();
         RoutingRequest response = fmsRoutingService.getRoutingRequestForCompany(companyId, solverType, true);
+        return ResponseEntity.ok(response);
+    }
+
+    
+    @Operation(summary = "Get MD-CVRP benchmarks ",
+            description = "Obtain all standard instances in the MD-CVRP")
+    @GetMapping("/data/benchmarks")
+    public ResponseEntity<InstanceCatalog> benchmarks() {
+       
+        InstanceCatalog response = fmsRoutingService.getInstanceSummaries();
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Get MD-CVRP benchmarks ",
+    description = "Obtain all standard instances in the MD-CVRP")
+    @GetMapping("/data/benchmarks/{name}")
+    public ResponseEntity<RoutingRequest> benchmarkInstace(@Valid @PathVariable(name = "name") String name) {
+        RoutingRequest response = fmsRoutingService.getInstance(name);
         return ResponseEntity.ok(response);
     }
 

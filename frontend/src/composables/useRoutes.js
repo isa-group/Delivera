@@ -107,9 +107,37 @@ export function useRoutes() {
                         solverDistance? numberI18n({value: solverDistance, maxFractionDigits: 3}) :  "-"
                     }`, 
                     aproxDistance: `${numberI18n({value: metrics.distance/1000, maxFractionDigits: 3})} `, 
-                    aproxDuration: `${numberI18n({value: metrics.duration/3600})}`})
+                    aproxDuration: `${numberI18n({value: metrics.duration/3600})}`,
+                    rawAproxDistance: metrics.distance/1000
+                })
             })
         })
+        result.sort((e1, e2) => {
+
+            const id1 = e1.id ?? 0
+            const id2 = e2.id ?? 0
+        
+            if (id1 !== id2) {
+                return id1 - id2
+            }
+        
+            const dist1 = e1.rawAproxDistance ?? Number.MAX_VALUE
+            const dist2 = e2.rawAproxDistance ?? Number.MAX_VALUE
+        
+            return dist1 - dist2
+        })
+        const visitedSlot = {}
+        result.map(resultEntry => {
+            if (! visitedSlot[resultEntry.id]) {
+                visitedSlot[resultEntry.id] = resultEntry.rawAproxDistance 
+            }
+            
+            const bestSlotEntry = visitedSlot[resultEntry.id] 
+            resultEntry.best = bestSlotEntry === resultEntry.rawAproxDistance
+            
+            return resultEntry
+        })
+        console.log(result)
         return result
     })
    
@@ -117,8 +145,27 @@ export function useRoutes() {
     
     onMounted(async () => {
         initMap()
-        await loadInitialData()
         layerOverlay = initOverlays(map)
+    })
+
+    async function runInitialData() {
+        removeGroupLayers()
+        if (finalDepotLayer) {
+            finalDepotLayer.remove()
+            layerOverlay.removeLayer(finalDepotLayer)
+            finalDepotLayer = null
+        }
+        await loadInitialData()
+        if (initialCustomerLayer) { 
+            initialCustomerLayer.remove()
+            layerOverlay.removeLayer(initialCustomerLayer)
+            initialCustomerLayer = null
+        }
+        if (initalDepotLayer) { 
+            initalDepotLayer.remove()
+            layerOverlay.removeLayer(initalDepotLayer)
+            initalDepotLayer = null
+        }
         if (data.value) {
             initialCustomerLayer =  initLayer()
             initalDepotLayer = initLayer()
@@ -133,8 +180,7 @@ export function useRoutes() {
             initialCustomerLayer.addTo(map)
             initalDepotLayer.addTo(map)
         }
-        
-    })
+    }
 
    
     
@@ -228,7 +274,7 @@ export function useRoutes() {
         }      
     }
 
-    async function  run() {
+    async function  runSolvers() {
         /*
         executeAllSelected({
             data,
@@ -265,7 +311,8 @@ export function useRoutes() {
         ...solverUtils,
         mapEl,
         computedMetricsBySlot,
-        run,
+        runSolvers,
+        runInitialData,
         runGrouping,
         showExecutions,
         focusOnGroup

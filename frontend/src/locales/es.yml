@@ -272,6 +272,8 @@ orders:
     IN_TRANSIT: En tránsito
     DELIVERED: Entregado
     CANCELLED: Cancelado
+  fromDate: Inicio del período de entrega
+  toDate: Fin del período de entrega
 
 tracking:
   title: Seguimiento de pedido
@@ -661,15 +663,12 @@ routes:
       name: Personalizado
       description: Escoge el algoritmo disponible que prefieras.
   dataModes:
-    auto:
-      name: Agrupación predeterminada
-      description: Utiliza los parámetros de agrupación predeterminados.
     all:
       name: Todos a la vez
       description: Utiliza todos los pedidos disponibles en un mismo grupo. Útil cuando tienes un único área de clientes.
-    custom: 
+    custom:
       name: Personalizado
-      description: Permite configurar manualmente los parámetros de agrupación
+      description: Permite seleccionar manualmente los pedidos que se utilizarán en la planificación según el intervalo temporal elegido.
     benchmarks:
       name: Banco de pruebas
       description: Permite seleccionar entre los distintos datos de prueba disponibles.
@@ -702,14 +701,22 @@ routes:
     solverDistance: Distancia estimada (Km)
     aproxDistance: Distancia ideal (Km)
     aproxDuration: Duración ideal (h)
+    name: Nombre
+    vehiclesPerDepot: Vehículos por unidad
+    vehicleCapacity: Capacidad del vehículo
+    maxDuration: Duración máxima
+    loadRatio: Ratio de carga
 
   solvers:
     GREEDY:
       name: Voraz
-      description: "..."
+      description: "Construye una solución rápida seleccionando en cada paso la opción local más favorable. Ofrece tiempos de cálculo muy bajos y resultados consistentes, aunque no siempre encuentra la ruta globalmente óptima."
     GENETIC:
       name: Genético
-      description: "..."
+      description: "Utiliza una población de soluciones que evoluciona mediante cruces y mutaciones. Requiere más tiempo de cálculo, pero suele encontrar rutas de mayor calidad y explorar mejor el espacio de soluciones."
+    ANNEALING:
+      name: Recocido simulado
+      description: "Parte de una solución inicial y la mejora progresivamente mediante cambios aleatorios controlados. Puede escapar de óptimos locales y encontrar soluciones de alta calidad con un coste computacional moderado."
   slot:
     title: ¿Qué es una ranura de ejecución?
     p1: Una ranura representa una ejecución independiente del resolutor.
@@ -718,6 +725,9 @@ routes:
     p4: Las agrupaciones más compactas suelen producir resultados más eficientes.
   execute: Ejecutar
   show: Mostrar
-  hide: ocultar
+  hide: Ocultar
   extraMetrics: métricas adicionales
   catalog: Catálogo
+  results: Resultados
+  dataConfig: configuración de los datos
+  load: Cargar

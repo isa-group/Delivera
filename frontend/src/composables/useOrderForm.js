@@ -7,6 +7,7 @@ import { useGeolocation } from '@/composables/useGeolocation'
 import { useServices } from './useServices'
 import { useAuthStore } from '@/stores/auth'
 import { useLoad } from './useLoad'
+import { useDateRange } from './useDateRange'
 
 export function useOrderForm() {
   const { t } = useI18n()
@@ -16,6 +17,7 @@ export function useOrderForm() {
   const auth = useAuthStore()
   const dataApi = useServices("data-service")
   const { validate, required, email: emailRule, errors, invalids } = useValidation()
+  const {fromDate, toDate, selectedInstants } = useDateRange()
 
   const organizationCompaniesCache = new Map()
   const companyUnitsCache = new Map()
@@ -231,5 +233,8 @@ export function useOrderForm() {
     recipientAddress, recipientLatitude, recipientLongitude, locating, captureLocation,
     priority, notes, loading, error, errors, invalids,organizations,
     destinationOptions, handleSubmit,
+    fromDate, 
+    toDate, 
+    selectedInstants 
   }
 }

@@ -262,6 +262,8 @@ orders:
   chatEmpty: No messages yet.
   chatPlaceholder: Type a message...
   details: Details
+  fromDate: Delivery period start
+  toDate: Delivery period end
   priority:
     label: Priority
     HIGH: High
@@ -669,17 +671,13 @@ routes:
       description: Select the algorithm you want to use.
 
   dataModes:
-    auto:
-      name: Default grouping
-      description: Uses the default grouping parameters.
-
     all:
       name: All at once
       description: Uses all available orders as a single group. Useful when working with a single customer area.
 
     custom:
       name: Custom
-      description: Allows you to configure grouping parameters manually.
+      description: Allows manual selection of the orders to be included in the planning process based on the selected time range.
 
     benchmarks:
       name: Benchmarks
@@ -716,15 +714,23 @@ routes:
     solverDistance: Estimated distance (Km)
     aproxDistance: Ideal distance (Km)
     aproxDuration: Ideal duration (h)
+    name: Name
+    vehiclesPerDepot: Vehicles per unit
+    vehicleCapacity: Vehicle capacity
+    maxDuration: Maximun duration
+    loadRatio: Load ratio
 
   solvers:
     GREEDY:
       name: Greedy
-      description: "..."
+      description: "Builds a solution quickly by selecting the best local option at each step. It provides very fast execution times and consistent results, although it does not always find the globally optimal route."
     GENETIC:
       name: Genetic
-      description: "..."
+      description: "Uses a population of solutions that evolves through crossover and mutation. It requires more computation time but often discovers higher-quality routes and explores the solution space more effectively."
 
+    ANNEALING:
+      name: Simulated Annealing
+      description: "Starts from an initial solution and gradually improves it through controlled random changes. It can escape local optima and achieve high-quality solutions with a moderate computational cost."
   slot:
     title: What is an execution slot?
     p1: A slot represents an independent solver execution.
@@ -736,3 +742,6 @@ routes:
   hide: Hide
   extraMetrics: extra metrics
   catalog: Catalog
+  results: Results
+  load: Load
+  dataConfig: data configuration

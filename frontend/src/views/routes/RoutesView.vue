@@ -1,12 +1,14 @@
 <script setup>
 import { useRoutes } from '@/composables/useRoutes';
-import { Checkbox, Column, DataTable, Select, Step, StepList, Stepper } from 'primevue';
+import { Checkbox, Column, DataTable, DatePicker, Select, Step, StepList, Stepper } from 'primevue';
 import { useI18n } from 'vue-i18n';
 import OptionsGrid from './OptionsGrid.vue';
+import { getLocaleFormat } from '@/composables/useDateRange.js';
 
 
 
-const { t } = useI18n() 
+
+const { t} = useI18n() 
 const {
         mapEl,
         currentPhase,
@@ -14,6 +16,7 @@ const {
         currentPhaseTitle,
         selectedModesId,
         modes,
+        showConfig,
         showCatalog,
         dataModes,
         groupingParams,
@@ -27,6 +30,11 @@ const {
         groupsRowsMetadata,
         showExtraMetrics,
         computedMetricsBySlot,
+        allBenchmark,
+        possibleBenchmarks,
+        selectedBenchmark,
+        toDate,
+        fromDate,
         selectPhase,
         showGroupDatatable,
         canGoToPhase,
@@ -36,8 +44,13 @@ const {
         disableSelection,
         getSolverNames,
         showSolverSelector,
-        run,
+        runSolvers,
+        runInitialData,
+        toggleConfig,
         showExecutions,
+        showDataConfigButton,
+        showLoadButton,
+        showBenchmarksSection,
         selectDataMode,
         showDataModeSelector,
         showGroupingParams,
@@ -46,11 +59,22 @@ const {
         toggleShowExtraMetrics,
         focusOnGroup,
         getAvailableSlots,
-        toggleCatalog
+        toggleCatalog,
+       
 
     } = useRoutes()
 
+    
 
+    function rowClass(data) {
+        return data.best
+            ? 'best-solver-row'
+            : '';
+    }
+
+   
+
+    
 </script>
 
 <template>
@@ -71,16 +95,96 @@ const {
         </Stepper>
         <div class="cards">
             <div class="left-panel">
-                <h2>
+                <h2 v-if="!showSolverSelector() && !showGroupDatatable()">
                     {{t('routes.'+currentPhaseTitle)}}
                 </h2>
+                
+                
                 <div class="optionsGrid">
-                    <OptionsGrid
-                        v-if="showDataModeSelector()"
-                        :items="dataModes"
-                        :selected-ids="selectedDataModeId"
-                        :on-select="selectDataMode"
-                    />
+                    
+                    <div v-if="showDataModeSelector()">
+                        <OptionsGrid
+                            v-if="!showConfig"
+                            :items="dataModes"
+                            :selected-ids="selectedDataModeId"
+                            :on-select="selectDataMode"
+                        />
+                        <DataTable 
+                            class="groups-table"
+                            v-if="showBenchmarksSection()"
+                            :value="allBenchmark"
+                            stripedRows
+                            rowHover
+                            scrollable
+                            scrollHeight="300px"
+                        >
+                            <Column field="name" :header="t('routes.tables.name')"/>
+
+                            <Column field="problemType" :header="t('routes.tables.type')"/>
+
+                            <Column field="numDepots" :header="t('routes.tables.units')"/>
+
+                            <Column field="numCustomers" :header="t('routes.tables.clients')"/>
+
+                            <Column field="vehiclesPerDepot" :header="t('routes.tables.vehiclesPerDepot')"/>
+
+                            <Column field="vehicleCapacity" :header="t('routes.tables.vehicleCapacity')"/>
+
+                            <Column field="maxDuration" :header="t('routes.tables.maxDuration')"/>
+                            
+                            <Column field="totalDemand" :header="t('routes.tables.demand')"/> 
+                            
+                            <Column field="loadRatio" :header="t('routes.tables.loadRatio')"/>
+                        </DataTable>
+                        <Select
+                            v-if="showBenchmarksSection()"
+                            v-model="selectedBenchmark"
+                            :options="possibleBenchmarks"
+                            optionLabel="label"
+                            optionValue="value"
+                            @click.stop
+                        />
+                        <PButton
+                            v-if="showDataConfigButton()"
+                            class="data-config-box-buttom"
+                            :label="`${(!showConfig? t('routes.show') : t('routes.hide'))} ${t('routes.dataConfig')}`"
+                            icon="pi pi-power-off"
+                            :aria-label=" `${(!showConfig? t('routes.show') : t('routes.hide'))} ${t('routes.dataConfig')}`"
+                            @click="toggleConfig()"
+                        />
+                        <div v-if="false">
+                            <DatePicker
+                                v-model="fromDate"
+                                showTime
+                                showIcon
+                                manualInput
+                                hourFormat="24"
+                                :dateFormat="getLocaleFormat()"
+                                :max-date="toDate"
+                            />
+
+                            <DatePicker
+                                v-model="toDate"
+                                showTime
+                                showIcon
+                                manualInput
+                                hourFormat="24"
+                                :dateFormat="getLocaleFormat()"
+                                :min-date="fromDate"
+                            />
+                        </div>
+                        <div class="execute-panel">
+                            <PButton
+                                v-if="showLoadButton()"
+                                class="execute-button"
+                                severity="success"
+                                :label="t('routes.load')"
+                                icon="pi pi-power-off"
+                                :aria-label="t('routes.load')"
+                                @click="runInitialData()"
+                            />
+                        </div>
+                    </div>
                     <div
                         v-if="showGroupingParams()"
                         class="parameter-box"
@@ -130,7 +234,7 @@ const {
                             />
                         </div>
                     </div>
-                    <div>
+                    <div class="groups-table-box">
                         <DataTable 
                             class="groups-table"
                             v-if="showGroupDatatable() && !showExtraMetrics"
@@ -229,19 +333,32 @@ const {
                         </div>
                        
                     </div>
-                    <OptionsGrid
-                        v-if="showModeSelector()"
-                        :items="modes"
-                        :selected-ids="selectedModesId"
-                        :on-select="selectMode"
-                    />
-                    <div v-if="showSolverSelector()">
+                    <div v-if="showModeSelector() ">   
+                        <OptionsGrid
+                            v-if="!showCatalog"
+                            :items="modes"
+                            :selected-ids="selectedModesId"
+                            :on-select="selectMode"
+                        />
                         <OptionsGrid
                             v-if="showCatalog"
                             :items="solvers"
                             :selected-ids="selectedSolversId"
                             :on-select="()=>{}"
                         />
+                        <div class="groups-table-info">
+                            <PButton
+                            :label="`${(!showCatalog? t('routes.show') : t('routes.hide'))} ${t('routes.catalog')}`"
+                            icon="pi pi-eye"
+                            :aria-label="`${(!showCatalog? t('routes.show') : t('routes.hide'))} ${t('routes.catalog')}`"
+                            @click="toggleCatalog()"
+                        />
+                        </div>
+                    </div>
+                </div>
+
+                <div  v-if="showSolverSelector()" class="solver-selection-panel">
+                    <div class="solver-config-card">
                         <DataTable
                             class="groups-table"
                             v-if="!showCatalog"
@@ -249,7 +366,7 @@ const {
                             stripedRows
                             rowHover
                             scrollable
-                            scrollHeight="300px"
+                            scrollHeight="200px"
                         >
                             <Column field="id" :header="t('routes.tables.slot')"/>
 
@@ -267,34 +384,19 @@ const {
                                 </template>
                             </Column>
                         </DataTable>
-                        <PButton
-                            :label="`${(!showCatalog? t('routes.show') : t('routes.hide'))} ${t('routes.catalog')}`"
-                            icon="pi pi-check-circle"
-                            :aria-label="`${(!showCatalog? t('routes.show') : t('routes.hide'))} ${t('routes.catalog')}`"
-                            @click="toggleCatalog()"
-                        />
                     </div>
-                    <PButton
-                        :label="t('pricing.cancel')"
-                        icon="pi pi-check-circle"
-                        :aria-label="t('pricing.cancel')"
-                        @click="showExecutions()"
-                    />
-                    <PButton
-                        :label="t('pricing.confirm')"
-                        icon="pi pi-check-circle"
-                        :aria-label="t('pricing.confirm')"
-                        @click="run()"
-                    />
                     
-                    <DataTable
+                    <div class="solver-results-card">
+                        <h3>{{t('routes.results')}}</h3>
+                        <DataTable
                             class="groups-table"
-                            v-if="showSolverSelector()"
+                             v-if="!showCatalog"
                             :value="computedMetricsBySlot"
+                            :rowClass="rowClass"
                             stripedRows
                             rowHover
                             scrollable
-                            scrollHeight="300px"
+                            scrollHeight="250px"
                         >
                             <Column field="id" :header="t('routes.tables.slot')"/>
 
@@ -307,6 +409,20 @@ const {
                             <Column field="aproxDuration" :header="t('routes.tables.aproxDuration')"/>
 
                         </DataTable>
+                        <div class="execute-panel">
+                            <PButton
+                                    class="execute-button"
+                                    severity="success"
+                                    :label="t('routes.execute')"
+                                    icon="pi pi-power-off"
+                                    :aria-label="t('routes.execute')"
+                                    @click="runSolvers()"
+                                />
+                        </div>
+                    </div>
+
+                   
+
                 </div>
               
                 
@@ -325,6 +441,13 @@ const {
                 @click="allowNextPhases({maxPhase: 5})"
             />
         </div>
+        <PButton
+            v-if="false"
+            :label="t('pricing.cancel')"
+            icon="pi pi-check-circle"
+            :aria-label="t('pricing.cancel')"
+            @click="runInitialData()"
+        />
     </div>
 </template>
 
