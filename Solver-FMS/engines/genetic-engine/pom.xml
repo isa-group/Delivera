@@ -39,6 +39,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.delivera.fms</groupId>
+            <artifactId>routing-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.uma.jmetal</groupId>
             <artifactId>jmetal-core</artifactId>
             <version>${jmetal.version}</version>

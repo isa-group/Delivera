@@ -1,60 +1,64 @@
-# Árbol de decisión: qué solver conviene
+# Decision tree: which solver suits
 
-Entrena un árbol de decisión sobre los datos que produce [`compare_solvers.py`](benchmark.md) y
-obtiene una regla que elige solver a partir de las propiedades de la instancia: número de
-clientes, depósitos, capacidad, densidad, demanda total y ocho más.
+Trains a decision tree on the data produced by [`compare_solvers.py`](benchmark.md) and obtains a
+rule that chooses a solver from the instance's properties: number of customers, depots, capacity,
+density, total demand and eight more.
 
-Se le pasa el `datos-*.csv` de un experimento y **busca su `instancias-*.csv` al lado**, que es de donde salen esas propiedades. El nivel de observación del árbol es la instancia: una fila, una decisión. Las ejecuciones se agregan hasta ahí -cada solver se queda con su mejor coste y su tiempo medio- y se les pegan las propiedades del problema.
+It is given an experiment's `datos-*.csv` and **looks for its `instancias-*.csv` next to it**,
+which is where those properties come from. The tree's level of observation is the instance: one
+row, one decision. Runs are aggregated up to there — each solver keeps its best cost and its mean
+time — and the problem's properties are attached to them.
 
-Los solvers **se leen de los datos**, no están escritos en el código. El script clasifica sobre
-los que encuentre en el CSV, sean dos o seis.
+The solvers **are read from the data**, they are not written into the code. The script classifies
+over whichever it finds in the CSV, be it two or six.
 
 ```bash
-python decision_tree.py                          # el experimento más reciente de results/
-python decision_tree.py results/datos-*.csv      # varios experimentos juntos
-python decision_tree.py --exclude RANDOM,GREEDY  # solo candidatos de producción
+python decision_tree.py                          # the most recent experiment in results/
+python decision_tree.py results/datos-*.csv      # several experiments together
+python decision_tree.py --exclude RANDOM,GREEDY  # production candidates only
 ```
 
-Desde `Solver-FMS/`. A diferencia del paquete `comparison`, este **necesita dependencias**:
+From `Solver-FMS/`. Unlike the `comparison` package, this one **needs dependencies**:
 
 ```bash
 pip install pandas scikit-learn matplotlib
 ```
 
-Cada ejecución deja dos ficheros bajo `--out`: el informe `tree-<fecha>.md` y la imagen
-`tree-<fecha>.png`.
+Each run leaves two files under `--out`: the report `tree-<date>.md` and the image
+`tree-<date>.png`.
 
-| Parámetro | Por defecto | Significado |
+| Parameter | Default | Meaning |
 |---|---|---|
-| `csv` | el más reciente de `results/` | Uno o varios `datos-*.csv`. Su `instancias-*.csv` hermano se lee solo. Al juntarlos, cada instancia se queda con su mejor coste |
-| `--exclude` | - | Solvers a dejar fuera, separados por coma |
-| `--tolerance` | `1.0` | Margen en % dentro del cual dos solvers se consideran de igual calidad |
-| `--max-depth` | `10` | Profundidad máxima del árbol |
-| `--min-leaf` | `5` | Instancias mínimas por hoja |
-| `--folds` | `10` | Particiones de la validación cruzada |
-| `--permutations` | `2000` | Permutaciones del contraste de significancia |
-| `--seed` | `20260819` | Semilla, para que el árbol sea reproducible |
-| `--out` | `results/` | Directorio de salida |
-| `--skip-selftest` | - | No verificar el algoritmo sobre el problema sintético |
+| `csv` | the most recent in `results/` | One or several `datos-*.csv`. Their sibling `instancias-*.csv` is read automatically. When joined, each instance keeps its best cost |
+| `--exclude` | - | Solvers to leave out, comma-separated |
+| `--tolerance` | `1.0` | Margin in % within which two solvers are considered of equal quality |
+| `--max-depth` | `10` | Maximum tree depth |
+| `--min-leaf` | `5` | Minimum instances per leaf |
+| `--folds` | `10` | Cross-validation folds |
+| `--permutations` | `2000` | Permutations of the significance test |
+| `--seed` | `20260819` | Seed, so the tree is reproducible |
+| `--out` | `results/` | Output directory |
+| `--skip-selftest` | - | Do not verify the algorithm on the synthetic problem |
 
-## Qué significa «conviene»
+## What "suits" means
 
-Es lo que el árbol aprende a predecir, así que define el problema entero.
+It is what the tree learns to predict, so it defines the whole problem.
 
-**Conviene el solver de menor coste factible.** Si otros quedan a menos de `--tolerance` por
-ciento del mejor, todos cuentan como de la misma calidad y **entre ellos gana el más rápido**.
+**The solver with the lowest feasible cost suits.** If others are within `--tolerance` percent of
+the best, they all count as equal quality and **among them the fastest wins**.
 
-Es la decisión real en producción: si dos motores dan prácticamente el mismo coste, el que tarda
-diez veces menos es mejor elección. Y evita que el árbol separe diferencias que vienen de la
-semilla y no del algoritmo: entre dos ejecuciones estocásticas, la distancia entre 5,1 % y 5,2 %
-de gap es ruido.
+It is the real decision in production: if two engines give practically the same cost, the one that
+takes ten times less is the better choice. And it prevents the tree from separating differences that
+come from the seed and not the algorithm: between two stochastic runs, the distance between 5.1 %
+and 5.2 % gap is noise.
 
-La columna `Decidida por` del informe marca cada instancia como `coste` o `tiempo`.
+The `Decidida por` (decided by) column of the report marks each instance as `coste` (cost) or
+`tiempo` (time).
 
-La tolerancia cambia el problema, y conviene verlo medido. Sobre las 33 instancias Cordeau,
-excluyendo el aleatorio:
+The tolerance changes the problem, and it is worth seeing it measured. Over the 33 Cordeau
+instances, excluding the random engine:
 
-| `--tolerance` | Reparto |
+| `--tolerance` | Split |
 |---:|---|
 | 0 % | `GENETIC` 33 |
 | 10 % | `GENETIC` 33 |
@@ -64,72 +68,71 @@ excluyendo el aleatorio:
 | 60 % | `GENETIC` 4 · `GREEDY` 29 |
 | 80 % | `GREEDY` 33 |
 
-El genético gana en coste las 33 instancias, con márgenes sobre el segundo que van del 19,4 % al
-73,6 %. Por debajo de ese 19,4 % ninguna instancia cambia de manos.
+The genetic engine wins on cost in all 33 instances, with margins over the runner-up from 19.4 % to
+73.6 %. Below that 19.4 % no instance changes hands.
 
-Dos detalles del cálculo:
+Two details of the computation:
 
-- El coste es el **mejor** de las N repeticiones; el tiempo es la **media**. Eso favorece
-  ligeramente al estocástico, que pagó N veces ese tiempo para conseguir su mejor vuelta.
-- Si dos solvers empatan **exactamente** en tiempo, decide el orden de aparición en las ejecuciones.
+- The cost is the **best** of the N repetitions; the time is the **mean**. That slightly favours
+  the stochastic solver, which paid N times that time to get its best run.
+- If two solvers tie **exactly** on time, the order of appearance in the runs decides.
 
-## Cómo leer el informe
+## How to read the report
 
-### Lo primero: ¿vale algo el árbol?
+### First of all: is the tree worth anything?
 
-| Medida | Qué dice |
+| Measure | What it says |
 |---|---|
-| Acierto en validación cruzada | Cuánto acierta con instancias que no ha visto |
-| Acierto eligiendo siempre el solver mayoritario | Lo que se consigue **sin árbol** |
-| p del contraste de permutación | Con qué frecuencia el azar iguala ese acierto |
+| Cross-validation accuracy | How often it is right on instances it has not seen |
+| Accuracy always choosing the majority solver | What you get **without a tree** |
+| Permutation test p-value | How often chance matches that accuracy |
 
-**Un árbol que no bate a la regla mayoritaria no sirve, aunque el dibujo tenga ramas.** Es la
-fila que hay que mirar antes que el árbol: un 80 % de acierto suena bien hasta que se ve que
-elegir siempre el mismo solver da un 78 %.
+**A tree that does not beat the majority rule is useless, however many branches the drawing has.**
+It is the row to look at before the tree: 80 % accuracy sounds good until you see that always
+choosing the same solver gives 78 %.
 
-El contraste de permutación reentrena el árbol con las etiquetas barajadas 2000 veces y cuenta
-cuántas igualan el acierto real. Consume el 90 % del tiempo de ejecución —unos 40 s, frente a los
-0,5 ms que cuesta entrenar el árbol— y es lo que distingue un patrón de una casualidad con 33
-instancias.
+The permutation test retrains the tree with shuffled labels 2000 times and counts how many match
+the real accuracy. It consumes 90 % of the run time — some 40 s, against the 0.5 ms training the
+tree costs — and it is what tells a pattern from a coincidence with 33 instances.
 
-### Cuando solo un solver gana todas las instancias
+### When a single solver wins every instance
 
-El informe muestra el árbol, que es un único nodo, y **no publica métricas**. Con una sola clase
-el acierto es del 100 % por construcción: acertar siempre es trivial cuando solo hay una respuesta
-posible, y ese 100 % junto al de un árbol con ramas invitaría a compararlos.
+The report shows the tree, which is a single node, and **publishes no metrics**. With a single class
+the accuracy is 100 % by construction: always being right is trivial when there is only one possible
+answer, and that 100 % next to that of a tree with branches would invite comparing them.
 
-Esa imagen no la dibuja `plot_tree`, sino código propio en `plot.py`. sklearn omite la línea
-`class =` cuando el árbol tiene una sola clase, y produce una caja en blanco con `samples = 33` y
-`value = 1.0` que no menciona qué solver conviene. El nodo propio incluye el nombre del solver y
-el margen sobre el segundo.
+That image is not drawn by `plot_tree` but by custom code in `plot.py`. sklearn omits the `class =`
+line when the tree has a single class, and produces a blank box with `samples = 33` and
+`value = 1.0` that does not mention which solver suits. The custom node includes the solver's name
+and the margin over the runner-up.
 
-### La verificación del algoritmo
+### Verifying the algorithm
 
-Un árbol de un nodo no demuestra que el código funcione: un árbol roto y un árbol correctamente
-trivial se ven igual. Cada ejecución entrena además sobre un problema sintético con la respuesta
-conocida —120 muestras donde la regla verdadera es `señal > 150`, más dos características de puro
-ruido que debe ignorar— y comprueba tres cosas: que corta por la columna correcta, que encuentra
-el umbral (±15) y que acierta por encima del 95 % dejando una fuera.
+A one-node tree does not prove the code works: a broken tree and a correctly trivial one look the
+same. Each run also trains on a synthetic problem with a known answer — 120 samples where the true
+rule is `signal > 150`, plus two pure-noise features it must ignore — and checks three things: that
+it splits on the right column, that it finds the threshold (±15) and that it scores above 95 % on
+leave-one-out.
 
 ```
 Autoverificacion del algoritmo: PASA (umbral 150.2 sobre 150 real, acierto 99.2 %)
 ```
 
-`PASA` significa que el resultado sobre los datos reales es un resultado. `FALLA` significa que
-hay un bug. Se desactiva con `--skip-selftest`.
+`PASA` (pass) means the result on the real data is a result. `FALLA` (fail) means there is a bug. It
+is disabled with `--skip-selftest`.
 
-### Los valores de los nodos
+### The node values
 
-En la imagen, `value = [16.5, 16.5]` **no son instancias**: son recuentos ponderados por
-`class_weight="balanced"`, que compensa que una clase tenga más ejemplos que otra. Con 17 y 16
-instancias, `17 × 0,9706 = 16,5` y `16 × 1,0312 = 16,5`. El recuento real está en la línea
-`samples`.
+In the image, `value = [16.5, 16.5]` **are not instances**: they are counts weighted by
+`class_weight="balanced"`, which compensates for one class having more examples than another. With
+17 and 16 instances, `17 × 0.9706 = 16.5` and `16 × 1.0312 = 16.5`. The real count is in the
+`samples` line.
 
-## Ejemplo: voraz frente a genético
+## Example: greedy versus genetic
 
-El genético gana en coste las 33 instancias, así que por coste puro el árbol es un nodo. La
-pregunta *«aceptando hasta un 40 % más de coste a cambio de velocidad, ¿cuándo basta el voraz?»*
-sí reparte las instancias entre dos clases:
+The genetic engine wins on cost in all 33 instances, so on pure cost the tree is a single node. The
+question *"accepting up to 40 % more cost in exchange for speed, when is the greedy engine
+enough?"* does split the instances into two classes:
 
 ```bash
 python decision_tree.py --exclude RANDOM --tolerance 40 --max-depth 3
@@ -143,60 +146,57 @@ Autoverificacion del algoritmo: PASA (umbral 150.2 sobre 150 real, acierto 99.2 
 Acierto en validacion cruzada: 81.7 % (regla mayoritaria: 55.0 %, p = 0.0035)
 ```
 
-El árbol que sale:
+The resulting tree:
 
 ```
-vehicle_capacity <= 70          -> GENETIC   (12 instancias, puro)
+vehicle_capacity <= 70          -> GENETIC   (12 instances, pure)
 vehicle_capacity > 70
-    customers_per_depot <= 55   -> GREEDY    (16 instancias, puro)
-    customers_per_depot > 55    -> GENETIC   (5 instancias, mezclado)
+    customers_per_depot <= 55   -> GREEDY    (16 instances, pure)
+    customers_per_depot > 55    -> GENETIC   (5 instances, mixed)
 ```
 
-Con vehículos pequeños o depósitos muy cargados compensa pagar el genético; en la zona intermedia
-el voraz llega lo bastante cerca y es unas treinta veces más rápido. Supera en 26,7 puntos a
-elegir siempre el mismo solver, y el azar iguala ese acierto en el 0,35 % de los barajados.
+With small vehicles or heavily loaded depots it pays to run the genetic engine; in the middle zone
+the greedy one gets close enough and is about thirty times faster. It beats always choosing the same
+solver by 26.7 points, and chance matches that accuracy in 0.35 % of the shuffles.
 
-Ese 40 % es un umbral de negocio, no un hallazgo del análisis: lo fija quien decide cuánto coste
-está dispuesto a cambiar por velocidad.
+That 40 % is a business threshold, not a finding of the analysis: it is set by whoever decides how
+much cost they are willing to trade for speed.
 
-## Ajustar el árbol
+## Tuning the tree
 
-- **Subir `--max-depth` casi siempre sube el acierto en entrenamiento y lo baja en validación.**
-  Si al subirlo mejora la validación cruzada, el árbol se quedaba corto; si empeora, está
-  memorizando. Con 33 instancias, un árbol sin frenos las memoriza y da un 100 % que no significa
-  nada.
-- **Una característica con importancia 0,000 que aun así aparece en un corte** marca un corte que
-  no cambia la decisión: sobra profundidad.
-- **`--exclude RANDOM,GREEDY`** cuando la pregunta sea cuál de los motores de producción usar.
-  Incluir las líneas base infla el acierto con instancias que nadie dudaba.
-- **`--folds` afecta a la estabilidad de la estimación.** Con 33 instancias y 10 particiones, cada
-  pliegue tiene 3 instancias y fallar una son 33 puntos: el promedio es sólido, la desviación
-  enorme. Con `--folds 5` sale más estable.
-- **`--permutations` es lineal en tiempo.** Con 200 la ejecución baja a unos 6 s, a cambio de
-  resolución: por debajo de p ≈ 0,005 ya no distingue.
+- **Raising `--max-depth` almost always raises training accuracy and lowers validation accuracy.**
+  If raising it improves cross-validation, the tree was too shallow; if it worsens, it is
+  memorising. With 33 instances, an unrestrained tree memorises them and gives a 100 % that means
+  nothing.
+- **A feature with importance 0.000 that still appears in a split** marks a split that does not
+  change the decision: there is too much depth.
+- **`--exclude RANDOM,GREEDY`** when the question is which of the production engines to use.
+  Including the baselines inflates accuracy with instances nobody doubted.
+- **`--folds` affects the stability of the estimate.** With 33 instances and 10 folds, each fold has
+  3 instances and missing one is 33 points: the average is solid, the deviation huge. With
+  `--folds 5` it comes out more stable.
+- **`--permutations` is linear in time.** With 200 the run drops to about 6 s, in exchange for
+  resolution: below p ≈ 0.005 it no longer distinguishes.
 
-## Dónde está cada cosa
+## Where everything lives
 
-`decision_tree.py` es la línea de comandos y el cableado. El trabajo está en
-`experimentation/tree/`:
+`decision_tree.py` is the command line and the wiring. The work is in `experimentation/tree/`:
 
-| Módulo | Qué sabe |
+| Module | What it knows |
 |---|---|
-| `dataset.py` | Qué significa «conviene»: coste y, a igualdad de coste, tiempo |
-| `model.py` | Entrenar, validar contra la regla mayoritaria y verificar el algoritmo |
-| `plot.py` | El árbol como imagen |
-| `report.py` | El informe en Markdown |
+| `dataset.py` | What "suits" means: cost and, at equal cost, time |
+| `model.py` | Train, validate against the majority rule and verify the algorithm |
+| `plot.py` | The tree as an image |
+| `report.py` | The Markdown report |
 
-## Limitaciones
+## Limitations
 
-- **33 instancias.** Cualquier modelo sobre esa cantidad está al límite. Por eso los valores por
-  defecto son conservadores y el acierto que se reporta es siempre en validación cruzada, nunca
-  sobre los datos de entrenamiento.
-- **Los árboles son inestables con pocos datos:** cambiar una instancia puede cambiar el primer
-  corte. Antes de llevar una regla al código conviene comprobar si sobrevive a repetir el
-  experimento con otra semilla.
-- **Las instancias Cordeau no son datos reales de reparto.** Una regla aprendida aquí vale para
-  elegir motor en el banco de pruebas; extrapolarla a producción es una hipótesis, no un
-  resultado.
-- **El árbol no dice qué algoritmo es mejor, dice cuál conviene según el criterio configurado.**
-  Cambiar `--tolerance` cambia las respuestas, y es correcto que lo haga.
+- **33 instances.** Any model over that amount is at the limit. That is why the defaults are
+  conservative and the reported accuracy is always cross-validated, never on the training data.
+- **Trees are unstable with little data:** changing one instance can change the first split.
+  Before taking a rule into code, check whether it survives repeating the experiment with another
+  seed.
+- **The Cordeau instances are not real delivery data.** A rule learned here is valid for choosing
+  an engine on the test bed; extrapolating it to production is a hypothesis, not a result.
+- **The tree does not say which algorithm is better, it says which suits under the configured
+  criterion.** Changing `--tolerance` changes the answers, and it is right that it does.

@@ -1,6 +1,6 @@
 package com.delivera.fms.engine.genetic.operator.mutation;
 
-import com.delivera.fms.engine.genetic.dto.DepotDto;
+import com.delivera.fms.engine.core.model.Depot;
 import com.delivera.fms.engine.genetic.scheduler.PermutationCodec;
 import org.uma.jmetal.operator.mutation.MutationOperator;
 import org.uma.jmetal.solution.permutationsolution.PermutationSolution;
@@ -19,9 +19,9 @@ public class IntraDepotMutation implements MutationOperator<PermutationSolution<
 
     private final double probability;
     private final PseudoRandomGenerator random;
-    private final List<DepotDto> depots;
+    private final List<Depot> depots;
 
-    public IntraDepotMutation(double probability, List<DepotDto> depots, PseudoRandomGenerator random) {
+    public IntraDepotMutation(double probability, List<Depot> depots, PseudoRandomGenerator random) {
         this.probability = probability;
         this.random = random;
         this.depots = depots;
@@ -38,12 +38,12 @@ public class IntraDepotMutation implements MutationOperator<PermutationSolution<
             return solution;
         }
 
-        Map<Integer, DepotDto> depotMap = PermutationCodec.depotMap(solution);
+        Map<Integer, Depot> depotMap = PermutationCodec.depotMap(solution);
         if (depotMap == null) {
             return solution;
         }
 
-        Map<DepotDto, List<Integer>> depotOrder = PermutationCodec.depotOrder(solution, depots, depotMap);
+        Map<Depot, List<Integer>> depotOrder = PermutationCodec.depotOrder(solution, depots, depotMap);
 
         for (List<Integer> order : depotOrder.values()) {
             if (order.size() < 2) {
