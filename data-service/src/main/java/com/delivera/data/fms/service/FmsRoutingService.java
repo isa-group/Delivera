@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.delivera.data.fms.dto.ClusterConfig;
 import com.delivera.data.fms.dto.DbscanResult;
+import com.delivera.data.fms.dto.DeliveryWindow;
 import com.delivera.data.fms.dto.InstanceCatalog;
 import com.delivera.data.fms.dto.RoutingRequest;
 import com.delivera.data.fms.dto.RoutingResponse;
@@ -23,6 +24,12 @@ public interface FmsRoutingService {
 
     RoutingRequest getInstance(String name);
     
+    RoutingRequest coreCreateRequest( 
+        UUID companyId, 
+        TypeSolver solverType,
+        DeliveryWindow window, 
+        Boolean showAllDepots
+    );
 
     RoutingRequest getRoutingRequestForCompany(UUID companyId, TypeSolver solverType, Boolean showAllDepots );
 

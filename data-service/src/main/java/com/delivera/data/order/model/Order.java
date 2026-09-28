@@ -98,6 +98,13 @@ public class Order {
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
+    @Column(name = "from_date")
+    private Instant fromDate;
+
+    @Column(name = "to_date")
+    private Instant toDate;
+
+
     @PrePersist
     void onPrePersist() {
         if (createdAt == null) createdAt = Instant.now();

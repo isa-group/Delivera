@@ -3,8 +3,8 @@ package com.delivera.data.fms.controller;
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.data.fms.dto.ClusterConfig;
 import com.delivera.data.fms.dto.DbscanResult;
+import com.delivera.data.fms.dto.DeliveryWindow;
 import com.delivera.data.fms.dto.InstanceCatalog;
-import com.delivera.data.fms.dto.InstanceSummary;
 import com.delivera.data.fms.dto.RoutingRequest;
 import com.delivera.data.fms.dto.RoutingResponse;
 import com.delivera.data.fms.dto.SolveClusterRequest;
@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -65,6 +64,24 @@ public class FmsRoutingController {
             @RequestParam(defaultValue = "GREEDY") TypeSolver solverType) {
         UUID companyId = securityUtils.getCurrentCompanyId();
         RoutingRequest response = fmsRoutingService.getRoutingRequestForCompany(companyId, solverType, true);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Get data that will be used to run MD-CVRP solvers ",
+    description = "Obtain the related company's data that is used in the MD-CVRP")
+    @PostMapping("/data")
+    public ResponseEntity<RoutingRequest> data(
+        @Parameter(description = "Tipo de solver a utilizar (RANDOM o GREEDY)")
+        @RequestParam(defaultValue = "GREEDY") TypeSolver solverType, 
+        @RequestBody  @Valid DeliveryWindow window
+    ) {
+        UUID companyId = securityUtils.getCurrentCompanyId();
+        RoutingRequest response = fmsRoutingService.coreCreateRequest(
+            companyId, 
+            solverType,
+            window,
+            true
+        );
         return ResponseEntity.ok(response);
     }
 
