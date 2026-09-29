@@ -215,12 +215,13 @@ public class RefreshTokenService {
         String ip,
         UUID companyId
     ) {
+        refreshToken.setSuspicious(isSuspicious(refreshToken, device, userAgent));
         refreshToken.setLastUsed(Instant.now());
         refreshToken.setIp(ip);
         refreshToken.setDevice(device);
         refreshToken.setUserAgent(userAgent);
         refreshToken.setCompanyId(companyId);
-        refreshToken.setSuspicious(isSuspicious(refreshToken, device, userAgent));
+        
         return repository.save(refreshToken);
     }
 
