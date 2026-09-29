@@ -182,7 +182,6 @@ public class AuthService {
 
     @Compensable
     @Transactional
-    //@SpaceTransaction
     public CompanyRegisterResponse registerCompany(CompanyRegisterRequest request, RequestClientData requestClientData) {
         if (userRepository.findByEmail(request.email()).isPresent()) {
             throw new EmailAlreadyExistsException();

@@ -2,6 +2,7 @@ package com.delivera.service;
 
 
 import com.delivera.client.config.properties.SecurityUtils;
+import com.delivera.client.exception.ClientException;
 import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.exception.CompanyHasActiveOrdersException;
 import com.delivera.exception.ForbiddenException;
@@ -15,9 +16,10 @@ import com.delivera.org.model.Company;
 import com.delivera.org.model.Organization;
 import com.delivera.org.repository.CompanyRepository;
 import com.delivera.org.repository.OrganizationRepository;
+import com.delivera.org.service.SettingsClient;
 import com.delivera.org.service.SettingsService;
 import com.delivera.repository.*;
-import com.delivera.repository.ActivityTypeRepository;
+import com.delivera.space.service.SpaceCompanies;
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.repository.WorkerRepository;
 
@@ -35,6 +37,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -64,8 +67,17 @@ class SettingsServiceTest {
     private SubscriptionService subscriptionService;
     @Mock
     private AppConfigService appConfigService;
+
+    @Mock 
+    private  SpaceCompanies spaceCompanies;
+
+    
+    @Mock 
+    private SettingsClient settingsClient;
+
     @InjectMocks
     private SettingsService settingsService;
+
 
     private UUID companyId;
     private UUID orgId;
@@ -139,10 +151,8 @@ class SettingsServiceTest {
         target.setOrganization(organization);
 
         when(companyRepository.findById(target.getId())).thenReturn(Optional.of(target));
-        when(orderRepository.existsByCompanyIdAndStatusIn(any(), any())).thenReturn(false);
+
         when(loyalUserRepository.findByCompanyIdOrderByLinkCreatedAtDesc(any())).thenReturn(List.of());
-        when(operationalUnitRepository.findAllByCompanyId(any())).thenReturn(List.of());
-        when(workerRepository.findByCompanyId(any())).thenReturn(List.of());
 
         settingsService.deleteCompany(target.getId(), false);
         verify(companyRepository).delete(target);
@@ -190,11 +200,14 @@ class SettingsServiceTest {
                 .isInstanceOf(ForbiddenException.class);
     }
 
+    
+
     @Test
     void deleteCompany_activeOrders_throws() {
         Company target = new Company(); target.setId(UUID.randomUUID()); target.setOrganization(organization);
         when(companyRepository.findById(target.getId())).thenReturn(Optional.of(target));
-        when(orderRepository.existsByCompanyIdAndStatusIn(any(), any())).thenReturn(true);
+        doThrow(new  ClientException(403,""))
+        .when(settingsClient).deleteAllByCompany(any(),anyBoolean());
         assertThatThrownBy(() -> settingsService.deleteCompany(target.getId(), false))
                 .isInstanceOf(CompanyHasActiveOrdersException.class);
     }

@@ -35,6 +35,40 @@ public record OrderResponse(
         Double currentLat,
         Double currentLon,
         Instant currentLocationAt) {
+    
+        public OrderResponse() {
+            this(
+                null,   // id
+                null,   // reference
+                null,   // orderType
+                null,   // originId
+                null,   // originName
+                null,   // originCompanyId
+                null,   // destinationId
+                null,   // destinationName
+                null,   // destinationCompanyId
+                null,   // recipientEmail
+                null,   // recipientName
+                null,   // recipientAddress
+                null,   // status
+                null,   // priority
+                null,   // notes
+                null,   // trackingToken
+                false,  // claimed
+                null,   // loyalUserId
+                null,   // createdAt
+                null,   // originLat
+                null,   // originLon
+                null,   // destinationLat
+                null,   // destinationLon
+                null,   // currentLat
+                null,   // currentLon
+                null    // currentLocationAt
+            );
+        }
+            
+
+    
 
     public static OrderResponse from(Order order) {
         LoyalUser lu = order.getLoyalUser();

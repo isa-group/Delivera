@@ -80,7 +80,6 @@ public class OrderService {
 
     @Compensable
     @Transactional
-    //@SpaceTransaction
     public OrderResponse createB2C(OrderRequest request) {
         UUID companyId = securityUtils.getCurrentCompanyId();
         subscriptionService.checkOrderLimit(companyId);
