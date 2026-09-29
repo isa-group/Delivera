@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
 import com.delivera.order.model.OrderPriority;
@@ -23,7 +24,9 @@ public record OrderRequest(
         @DecimalMin(value = "-180.0") @DecimalMax(value = "180.0") BigDecimal recipientLongitude,
         @NotNull OrderType orderType,
         OrderPriority priority,
-        @Size(max = 1000) String notes
+        @Size(max = 1000) String notes,
+        Instant fromDate,
+        Instant toDate
     ) {
 
     @AssertTrue(message = "Latitude and longitude must both be provided or both be absent")

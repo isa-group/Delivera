@@ -149,7 +149,7 @@ class OrderServiceTest {
 
     @Test
     void create_internalOrder_success() {
-        OrderRequest req = new OrderRequest(origin.getId(), destination.getId(), null, null, null, null, null, OrderType.INTERNAL, null, null);
+        OrderRequest req = new OrderRequest(origin.getId(), destination.getId(), null, null, null, null, null, OrderType.INTERNAL, null, null,null, null);
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
         when(securityUtils.getCurrentEmail()).thenReturn("admin@test.com");
         when(unitRepository.findByIdAndCompanyId(origin.getId(), companyId)).thenReturn(Optional.of(origin));
@@ -168,7 +168,7 @@ class OrderServiceTest {
         destCompany.setOrganization(organization);
         destination.setCompany(destCompany);
 
-        OrderRequest req = new OrderRequest(origin.getId(), destination.getId(), null, null, null, null, null, OrderType.B2B, null, null);
+        OrderRequest req = new OrderRequest(origin.getId(), destination.getId(), null, null, null, null, null, OrderType.B2B, null, null, null, null);
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
         when(securityUtils.getCurrentEmail()).thenReturn("admin@test.com");
         when(unitRepository.findByIdAndCompanyId(origin.getId(), companyId)).thenReturn(Optional.of(origin));
@@ -251,7 +251,7 @@ class OrderServiceTest {
         OrderRequest req = new OrderRequest(
                 origin.getId(), null, "c@t.com", "Client", "Street 1",
                 new java.math.BigDecimal("40.0"), new java.math.BigDecimal("-3.0"),
-                OrderType.B2C, null, null);
+                OrderType.B2C, null, null, null, null);
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
         when(securityUtils.getCurrentEmail()).thenReturn("admin@test.com");
         when(unitRepository.findByIdAndCompanyId(origin.getId(), companyId)).thenReturn(Optional.of(origin));
@@ -267,7 +267,7 @@ class OrderServiceTest {
 
     @Test
     void create_internal_sameOriginDestination_throws() {
-        OrderRequest req = new OrderRequest(origin.getId(), origin.getId(), null, null, null, null, null, OrderType.INTERNAL, null, null);
+        OrderRequest req = new OrderRequest(origin.getId(), origin.getId(), null, null, null, null, null, OrderType.INTERNAL, null, null, null, null);
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
         when(unitRepository.findByIdAndCompanyId(origin.getId(), companyId)).thenReturn(Optional.of(origin));
         when(companyRepository.findById(companyId)).thenReturn(Optional.of(company));
@@ -284,7 +284,7 @@ class OrderServiceTest {
         link.setAddress("Loyal St");
         link.setLatitude(new java.math.BigDecimal("1.0"));
         link.setLongitude(new java.math.BigDecimal("2.0"));
-        OrderRequest req = new OrderRequest(origin.getId(), null, "c@t.com", null, null, null, null, OrderType.B2C, null, null);
+        OrderRequest req = new OrderRequest(origin.getId(), null, "c@t.com", null, null, null, null, OrderType.B2C, null, null, null, null);
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
         when(securityUtils.getCurrentEmail()).thenReturn("admin@test.com");
         when(unitRepository.findByIdAndCompanyId(origin.getId(), companyId)).thenReturn(Optional.of(origin));
@@ -304,7 +304,7 @@ class OrderServiceTest {
 
     @Test
     void create_b2b_sameCompany_throws() {
-        OrderRequest req = new OrderRequest(origin.getId(), destination.getId(), null, null, null, null, null, OrderType.B2B, null, null);
+        OrderRequest req = new OrderRequest(origin.getId(), destination.getId(), null, null, null, null, null, OrderType.B2B, null, null, null, null);
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
         when(unitRepository.findByIdAndCompanyId(origin.getId(), companyId)).thenReturn(Optional.of(origin));
         when(unitRepository.findById(destination.getId())).thenReturn(Optional.of(destination));

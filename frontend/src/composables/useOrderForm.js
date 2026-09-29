@@ -193,7 +193,11 @@ export function useOrderForm() {
         orderType: orderType.value,
         priority: priority.value,
         notes: notes.value.trim() || null,
+        fromDate: selectedInstants.value.from || null,
+        toDate: selectedInstants.value.to || null
+
       }
+      console.log(body)
       if (orderType.value === 'INTERNAL') {
         body.destinationId = destinationId.value
       } else if (orderType.value === 'B2B') {

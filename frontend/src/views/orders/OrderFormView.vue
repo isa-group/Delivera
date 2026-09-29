@@ -10,6 +10,8 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import { customerIcon } from '@/composables/useDeliveraMap'
+import { DatePicker } from 'primevue'
+import { getLocaleFormat } from '@/composables/useDateRange'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow })
@@ -23,6 +25,7 @@ const {
   recipientAddress, recipientLatitude, recipientLongitude, locating, captureLocation,
   priority, notes, loading, error, errors, invalids,b2bCompanyId,organizationCompanies,
   destinationOptions, organizations,companyUnits, handleSubmit,
+  fromDate, toDate 
 } = useOrderForm()
 
 const mapEl = ref(null)
@@ -338,6 +341,34 @@ onUnmounted(() => { if (map) { map.remove(); map = null; marker = null } })
             </div>
           </template>
 
+          <!-- DATES -->
+          <div class="form-field">
+              <label for="from-date">{{ t('orders.fromDate') }}</label>
+              <DatePicker
+                  v-model="fromDate"
+                  showTime
+                  showIcon
+                  manualInput
+                  hourFormat="24"
+                  :dateFormat="getLocaleFormat()"
+                  :max-date="toDate"
+                  :showOnFocus="false"
+              />
+            </div>
+            <div class="form-field">
+              <label for="to-date">{{ t('orders.toDate') }}</label>
+              <DatePicker
+                  v-model="toDate"
+                  showTime
+                  showIcon
+                  manualInput
+                  hourFormat="24"
+                  :dateFormat="getLocaleFormat()"
+                  :min-date="fromDate"
+                  :showOnFocus="false"
+              />
+            </div>
+
           <!-- Prioridad -->
           <template v-if="orderType">
             <div class="form-field">
@@ -352,8 +383,12 @@ onUnmounted(() => { if (map) { map.remove(); map = null; marker = null } })
               />
             </div>
 
-            <!-- Notas -->
-            <div class="form-field">
+          
+
+            
+
+              <!-- Notas -->
+              <div class="form-field">
               <label for="order-notes">{{ t('orders.notes') }}</label>
               <PTextarea
                 id="order-notes"
