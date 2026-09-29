@@ -95,7 +95,7 @@ server:
 space:
   client:
     url: ${SPACE_URL:https://space.score.us.es}
-    api-key: org_2304904ad11adfafe7276a3d29de58f01c2b61832d8f903ba747d3245ff1d5bd
+    api-key: 
     timeout: ${SPACE_TIMEOUT:10000}
 
 
