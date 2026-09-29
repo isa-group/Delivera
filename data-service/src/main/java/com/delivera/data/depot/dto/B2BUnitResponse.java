@@ -12,16 +12,4 @@ public record B2BUnitResponse(
     UUID companyId,
     UUID orgId
 ) {
-    /* 
-    public static B2BUnitResponse from(OperationalUnit unit) {
-        return new B2BUnitResponse(
-                unit.getId(),
-                unit.getName(),
-                unit.getType().name(),
-                unit.getCompanyId()
-                //unit.getCompany().getName(),
-                //unit.getCompany().getOrganization().getId(),
-                //unit.getCompany().getOrganization().getName()
-            );
-    }*/
 }

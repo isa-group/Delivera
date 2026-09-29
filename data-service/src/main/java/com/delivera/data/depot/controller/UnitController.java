@@ -42,13 +42,7 @@ public class UnitController {
     public ResponseEntity<List<B2BUnitResponse>> listExternal(@Valid @PathVariable UUID companyId ) {
         return ResponseEntity.ok(unitService.getExternalUnits(companyId));
     }
-    /* TODO: CREO QUE NO SE UTILIZA
-    @Operation(summary = "Listar empresas de la misma organización (B2B)")
-    @GetMapping("/external-companies")
-    public ResponseEntity<List<CompanySummary>> listExternalCompanies() {
-        return ResponseEntity.ok(unitService.getExternalCompanies());
-    }
-    */
+
 
     @GetMapping("/names")
     public ResponseEntity<Map<UUID,String>> getByOrganization(

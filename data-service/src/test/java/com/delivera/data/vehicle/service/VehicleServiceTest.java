@@ -312,4 +312,155 @@ class VehicleServiceTest {
 
         verify(vehicleRepository, never()).delete(any());
     }
+        @Test
+        void createSeed_shouldThrowConflictWhenPlateExists() {
+
+                when(vehicleRepository.existsByCompanyIdAndPlate(
+                        companyId,
+                        request.plate()
+                )).thenReturn(true);
+
+                assertThatThrownBy(
+                        () -> vehicleService.createSeed(
+                                companyId,
+                                request
+                        )
+                ).isInstanceOf(
+                        VehiclePlateConflictException.class
+                );
+
+                verify(vehicleRepository, never())
+                        .save(any());
+        }
+        @Test
+        void createSeed_shouldThrowUnitNotFound() {
+        
+                when(vehicleRepository.existsByCompanyIdAndPlate(
+                        companyId,
+                        request.plate()
+                )).thenReturn(false);
+
+                when(
+                        unitRepository.findByIdAndCompanyId(
+                                request.depotId(),
+                                companyId
+                        )
+                ).thenReturn(Optional.empty());
+
+                assertThatThrownBy(
+                        () -> vehicleService.createSeed(
+                                companyId,
+                                request
+                        )
+                ).isInstanceOf(
+                        UnitNotFoundException.class
+                );
+        }
+        @Test
+        void createSeed_shouldTranslateDataIntegrityViolationException() {
+        
+            when(vehicleRepository.existsByCompanyIdAndPlate(
+                    companyId,
+                    request.plate()
+            )).thenReturn(false);
+        
+            when(
+                    unitRepository.findByIdAndCompanyId(
+                            request.depotId(),
+                            companyId
+                    )
+            ).thenReturn(Optional.of(depot));
+        
+            when(
+                    vehicleRepository.save(any(Vehicle.class))
+            ).thenThrow(
+                    new DataIntegrityViolationException("constraint")
+            );
+        
+            assertThatThrownBy(
+                    () -> vehicleService.createSeed(
+                            companyId,
+                            request
+                    )
+            ).isInstanceOf(
+                    VehiclePlateConflictException.class
+            );
+        }
+
+        @Test
+        void createSeed_shouldCreateVehicle() {
+
+                when(vehicleRepository.existsByCompanyIdAndPlate(
+                        companyId,
+                        request.plate()
+                )).thenReturn(false);
+
+                when(
+                        unitRepository.findByIdAndCompanyId(
+                                request.depotId(),
+                                companyId
+                        )
+                ).thenReturn(Optional.of(depot));
+
+                when(
+                        vehicleRepository.save(any(Vehicle.class))
+                ).thenReturn(vehicle);
+
+                VehicleResponse response =
+                        vehicleService.createSeed(
+                                companyId,
+                                request
+                        );
+
+                assertThat(response).isNotNull();
+
+                verify(spaceVehicles)
+                        .addWithRollBack(
+                                depot.getOrgId().toString()
+                        );
+        }
+
+        @Test
+        void update_shouldTranslateDataIntegrityViolationException() {
+        
+                when(securityUtils.getCurrentCompanyId())
+                        .thenReturn(companyId);
+
+                when(
+                        vehicleRepository.findByIdAndCompanyId(
+                                vehicleId,
+                                companyId
+                        )
+                ).thenReturn(Optional.of(vehicle));
+
+                when(
+                        vehicleRepository.existsByCompanyIdAndPlateAndIdNot(
+                                companyId,
+                                request.plate(),
+                                vehicleId
+                        )
+                ).thenReturn(false);
+
+                when(
+                        unitRepository.findByIdAndCompanyId(
+                                request.depotId(),
+                                companyId
+                        )
+                ).thenReturn(Optional.of(depot));
+
+                when(
+                        vehicleRepository.save(any(Vehicle.class))
+                ).thenThrow(
+                        new DataIntegrityViolationException("constraint")
+                );
+
+                assertThatThrownBy(
+                        () -> vehicleService.update(
+                                vehicleId,
+                                request
+                        )
+                ).isInstanceOf(
+                        VehiclePlateConflictException.class
+                );
+        }
 }

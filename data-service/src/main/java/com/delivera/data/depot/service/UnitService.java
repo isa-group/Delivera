@@ -2,7 +2,6 @@ package com.delivera.data.depot.service;
 
 import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.client.transaction.annotation.Compensable;
-import com.delivera.client.transaction.compensation.Compensations;
 import com.delivera.data.common.dto.IdNameProjection;
 import com.delivera.data.depot.dto.AssignRequest;
 import com.delivera.data.depot.dto.B2BUnitResponse;

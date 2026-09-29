@@ -1,6 +1,5 @@
 package com.delivera.data.fms.dto;
 
-import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
