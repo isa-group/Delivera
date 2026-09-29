@@ -687,6 +687,7 @@ routes:
     depots: Unidades escogidas
     GENETIC: Genético
     GREEDY: Voraz
+    ANNEALING: Recocido
   tables:
     group: Grupo
     slot: Ranura

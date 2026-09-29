@@ -28,12 +28,14 @@ export function useRoutesMap() {
 
     const colorBySolver = {
         "GREEDY":"#283593",
-        "GENETIC":"#026901"
+        "GENETIC":"#026901",
+        "ANNEALING":"#460202"
     }
 
     const dashedColorBySolver = {
         "GREEDY":"#283593",
-        "GENETIC":"#026901"
+        "GENETIC":"#026901",
+        "ANNEALING": "#460202"
     }
 
 
@@ -99,40 +101,6 @@ export function useRoutesMap() {
             }) 
     }
 
-
-    /*
-      
-        const visibleLayers = ref(new Set())
-         const availableLayers = computed(() =>
-             Array.from(selectedSolversId.value)
-                 .map(id => solvers.find(s => s.id === id))
-         )
-
-         function toggleLayer(solverType) {
-            if (map === null) return;
-            const layer = layersBySolver.value[solverType]
-        
-            const visible = new Set(visibleLayers.value)
-        
-            if (visible.has(solverType)) {
-        
-                visible.delete(solverType)
-                
-                map.removeLayer(layer)
-        
-            } else {
-        
-                visible.add(solverType)
-        
-                layer.addTo(map)
-            }
-        
-            visibleLayers.value = visible
-        }
-     */
-        
-
-   
 
     function unmountMap(map, layersBySolver, layerOverlay) {
         if (layersBySolver.value) {

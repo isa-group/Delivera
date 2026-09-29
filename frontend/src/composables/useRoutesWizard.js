@@ -12,7 +12,7 @@ export function useRoutesWizard() {
         {name:"showData", value: 3},
         {name:"selectMode", value: 4},
         {name:"selectSolvers", value: 5},
-        {name:"executeSolvers", value: 6},
+        //{name:"executeSolvers", value: 6},
     ]
     
     const currentPhaseTitle = computed(() => {
