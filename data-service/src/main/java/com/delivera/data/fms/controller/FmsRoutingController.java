@@ -42,28 +42,21 @@ public class FmsRoutingController {
         this.securityUtils = securityUtils;
     }
 
-    @Operation(summary = "Resolver rutas de la empresa",
-            description = "Resuelve el problema de ruteo de vehiculos para la empresa autenticada. " +
-                    "Obtiene depositos, ordenes pendientes y vehiculos de la base de datos, " +
-                    "construye el problema y lo envia al FMS Routing Service para su optimizacion.")
-    @PostMapping("/solve")
-    public ResponseEntity<RoutingResponse> solve(
-            @Parameter(description = "Tipo de solver a utilizar (RANDOM o GREEDY)")
-            @RequestParam(defaultValue = "GREEDY") TypeSolver solverType) {
-        UUID companyId = securityUtils.getCurrentCompanyId();
-        RoutingResponse response = fmsRoutingService.solveForCompany(companyId, solverType);
-        return ResponseEntity.ok(response);
-    }
+
+   
 
 
     @Operation(summary = "Get data that will be used to run MD-CVRP solvers ",
             description = "Obtain the related company's data that is used in the MD-CVRP")
     @GetMapping("/data")
-    public ResponseEntity<RoutingRequest> data(
-            @Parameter(description = "Tipo de solver a utilizar (RANDOM o GREEDY)")
-            @RequestParam(defaultValue = "GREEDY") TypeSolver solverType) {
+    public ResponseEntity<RoutingRequest> data() {
         UUID companyId = securityUtils.getCurrentCompanyId();
-        RoutingRequest response = fmsRoutingService.getRoutingRequestForCompany(companyId, solverType, true);
+        RoutingRequest response = fmsRoutingService.getRoutingRequestForCompany(
+            companyId, 
+            null, 
+            true, 
+            false
+        );
         return ResponseEntity.ok(response);
     }
 
@@ -72,15 +65,15 @@ public class FmsRoutingController {
     @PostMapping("/data")
     public ResponseEntity<RoutingRequest> data(
         @Parameter(description = "Tipo de solver a utilizar (RANDOM o GREEDY)")
-        @RequestParam(defaultValue = "GREEDY") TypeSolver solverType, 
         @RequestBody  @Valid DeliveryWindow window
     ) {
         UUID companyId = securityUtils.getCurrentCompanyId();
         RoutingRequest response = fmsRoutingService.coreCreateRequest(
             companyId, 
-            solverType,
+            null,
             window,
-            true
+            true,
+            false
         );
         return ResponseEntity.ok(response);
     }
@@ -99,7 +92,27 @@ public class FmsRoutingController {
     description = "Obtain all standard instances in the MD-CVRP")
     @GetMapping("/data/benchmarks/{name}")
     public ResponseEntity<RoutingRequest> benchmarkInstace(@Valid @PathVariable(name = "name") String name) {
-        RoutingRequest response = fmsRoutingService.getInstance(name);
+        boolean notBuildMatrix = false;
+        RoutingRequest response = fmsRoutingService.getInstance(
+            name, 
+            null, 
+            notBuildMatrix 
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Get MD-CVRP benchmarks ",
+    description = "Obtain all standard instances in the MD-CVRP")
+    @PostMapping ("/cluster/benchmarks/{name}")
+    public ResponseEntity<DbscanResult> clsuterbenchmarkInstace(
+        @Valid @PathVariable(name = "name") String name,
+        @RequestBody ClusterConfig config
+    ) {
+        DbscanResult response = fmsRoutingService.clustersForInstance(
+            name, 
+            config,
+            null
+        );
         return ResponseEntity.ok(response);
     }
 
@@ -110,9 +123,21 @@ public class FmsRoutingController {
     public ResponseEntity<DbscanResult> cluster(
             @Parameter(description = "Tipo de solver a utilizar (RANDOM o GREEDY)")
             @RequestParam(defaultValue = "GREEDY") TypeSolver solverType,
-            @RequestBody ClusterConfig config) {
+            @RequestBody ClusterConfig config
+    ) {
+        config.setWindow( 
+            config.getWindow() != null ? 
+                config.getWindow() : 
+                DeliveryWindow.allOrders()
+        );
         UUID companyId = securityUtils.getCurrentCompanyId();
-        DbscanResult response = fmsRoutingService.clusters(companyId,config, solverType, false);
+        boolean notShowAllDepots = false;
+        DbscanResult response = fmsRoutingService.clustersForCompany(
+            companyId,
+            config, 
+            solverType, 
+            notShowAllDepots
+        );
         return ResponseEntity.ok(response);
     }
 

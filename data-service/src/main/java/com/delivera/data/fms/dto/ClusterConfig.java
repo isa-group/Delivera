@@ -38,6 +38,6 @@ public class ClusterConfig {
     @Builder.Default
     private  boolean dbscan = true;
 
-
-
+    @Builder.Default
+    private DeliveryWindow window = DeliveryWindow.allOrders();
 }

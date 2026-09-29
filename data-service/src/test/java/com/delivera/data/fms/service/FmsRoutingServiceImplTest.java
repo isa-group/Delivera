@@ -13,15 +13,21 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -116,6 +122,7 @@ class FmsRoutingServiceImplTest {
                         companyId,
                         TypeSolver.GREEDY,
                         new DeliveryWindow(),
+                        false,
                         false
                 );
 
@@ -147,6 +154,7 @@ class FmsRoutingServiceImplTest {
                         companyId,
                         TypeSolver.GREEDY,
                         new DeliveryWindow(),
+                        false,
                         false
                 );
 
@@ -166,7 +174,8 @@ class FmsRoutingServiceImplTest {
                         companyId,
                         TypeSolver.GREEDY,
                         new DeliveryWindow(),
-                        true
+                        true,
+                        false
                 );
 
         assertThat(request.depots()).hasSize(2);
@@ -182,7 +191,8 @@ class FmsRoutingServiceImplTest {
                         companyId,
                         TypeSolver.GREEDY,
                         new DeliveryWindow(),
-                        true
+                        true,
+                        false
                 );
 
         assertThat(request.depots().get(0).matrixIndex())
@@ -208,6 +218,7 @@ class FmsRoutingServiceImplTest {
                         companyId,
                         TypeSolver.GREEDY,
                         new DeliveryWindow(),
+                        true,
                         true
                 );
 
@@ -232,6 +243,7 @@ class FmsRoutingServiceImplTest {
                         companyId,
                         TypeSolver.GREEDY,
                         new DeliveryWindow(),
+                        true,
                         true
                 );
 
@@ -252,6 +264,7 @@ class FmsRoutingServiceImplTest {
                         companyId,
                         TypeSolver.GREEDY,
                         new DeliveryWindow(),
+                        true,
                         true
                 );
 
@@ -276,7 +289,8 @@ class FmsRoutingServiceImplTest {
                         companyId,
                         TypeSolver.GREEDY,
                         new DeliveryWindow(),
-                        false
+                        false,
+                        true
                 );
 
         VehicleProjection vehicle =
@@ -299,7 +313,8 @@ class FmsRoutingServiceImplTest {
                         companyId,
                         TypeSolver.GREEDY,
                         new DeliveryWindow(),
-                        false
+                        false,
+                        true
                 );
 
         assertThat(request.customers())
@@ -327,8 +342,12 @@ class FmsRoutingServiceImplTest {
                         )
                 ));
 
-        when(orderRepository.findRoutableOrdersByCompanyIdAndStatus(
+        when(orderRepository.searchRoutableOrders(
                 eq(companyId),
+                anyBoolean(),
+                anyBoolean(),
+                any(),
+                any(),
                 anySet()
         )).thenReturn(List.of(
                 new RoutableOrder(
@@ -342,6 +361,7 @@ class FmsRoutingServiceImplTest {
                 service.getRoutingRequestForCompany(
                         companyId,
                         TypeSolver.GREEDY,
+                        false,
                         false
                 );
 
@@ -349,4 +369,209 @@ class FmsRoutingServiceImplTest {
         assertThat(request.customers()).hasSize(1);
         assertThat(request.vehicles()).hasSize(1);
     }
+
+
+        @Test
+        void coreCreateRequest_shouldUseDefaultDateRangeWhenDatesAreNull() {
+
+                DeliveryWindow window = new DeliveryWindow();
+                window.setIncludeNullsFromDate(true);
+                window.setIncludeNullsToDate(true);
+
+                when(vehicleRepository.findDTOsByCompanyId(companyId))
+                        .thenReturn(List.of());
+
+                when(unitRepository.findRotubleUnitsByCompanyId(companyId))
+                        .thenReturn(List.of());
+
+                when(orderRepository.searchRoutableOrders(
+                        any(),
+                        anyBoolean(),
+                        anyBoolean(),
+                        any(),
+                        any(),
+                        anySet()
+                )).thenReturn(List.of());
+
+                service.coreCreateRequest(
+                        companyId,
+                        TypeSolver.GREEDY,
+                        window,
+                        false,
+                        false
+                );
+
+                verify(orderRepository)
+                .searchRoutableOrders(
+                        eq(companyId),
+                        eq(true),
+                        eq(true),
+                        eq(Instant.parse("1900-01-01T00:00:00Z")),
+                        eq(Instant.parse("9999-12-31T23:59:59Z")),
+                        anySet()
+                );
+        }
+
+        @Test
+        void clusters_shouldDelegateToClusterService() {
+        
+            ClusterConfig config = mock(ClusterConfig.class);
+        
+            RoutingRequest request =
+                    new RoutingRequest(
+                            "test",
+                            List.of(),
+                            List.of(),
+                            List.of(),
+                            new double[0][0],
+                            TypeSolver.GREEDY
+                    );
+        
+            DbscanResult expected =
+                    DbscanResult.builder()
+                            .clusters(List.of())
+                            .build();
+        
+            when(clusterService.clusterClients(
+                    config,
+                    request.customers(),
+                    request.depots(),
+                    request.distanceMatrix()
+            )).thenReturn(expected);
+        
+            DbscanResult result =
+                    service.clusters(
+                            config,
+                            request
+                    );
+        
+            assertThat(result)
+                    .isSameAs(expected);
+        
+            verify(clusterService)
+                    .clusterClients(
+                            config,
+                            request.customers(),
+                            request.depots(),
+                            request.distanceMatrix()
+                    );
+        }
+        @Test
+        void clustersForCompany_shouldBuildRequestAndCluster() {
+
+                UUID companyId = UUID.randomUUID();
+
+                ClusterConfig config =
+                        ClusterConfig.builder()
+                                .build();
+
+                RoutingRequest request =
+                        new RoutingRequest(
+                                "test",
+                                List.of(),
+                                List.of(),
+                                List.of(),
+                                new double[0][0],
+                                TypeSolver.GREEDY
+                        );
+
+                DbscanResult expected =
+                        DbscanResult.builder()
+                                .clusters(List.of())
+                                .build();
+
+                FmsRoutingServiceImpl spy =
+                        Mockito.spy(service);
+
+                doReturn(request)
+                        .when(spy)
+                        .coreCreateRequest(
+                                eq(companyId),
+                                eq(TypeSolver.GREEDY),
+                                eq(config.getWindow()),
+                                eq(false),
+                                eq(true)
+                        );
+
+                doReturn(expected)
+                        .when(spy)
+                        .clusters(
+                                config,
+                                request
+                        );
+
+                DbscanResult result =
+                        spy.clustersForCompany(
+                                companyId,
+                                config,
+                                TypeSolver.GREEDY,
+                                true
+                        );
+
+                assertThat(result)
+                        .isSameAs(expected);
+        }
+        @Test
+        void getRoutingRequestForCompany_custom_shouldBuildRequest() {
+        
+            UUID depotId = UUID.randomUUID();
+            UUID customerId = UUID.randomUUID();
+        
+            Set<UUID> depots = Set.of(depotId);
+            Set<UUID> customers = Set.of(customerId);
+        
+            when(vehicleRepository.retrieveDTOsByCompanyIdInSelectedDepots(
+                    companyId,
+                    depots
+            )).thenReturn(List.of(
+                    new VehicleDto(
+                            UUID.randomUUID(),
+                            100,
+                            depotId
+                    )
+            ));
+        
+            when(unitRepository.retrieveDepotsByCompanyId(
+                    companyId,
+                    depots
+            )).thenReturn(List.of(
+                    new RoutableUnit(
+                            depotId,
+                            BigDecimal.valueOf(40),
+                            BigDecimal.valueOf(-3)
+                    )
+            ));
+        
+            when(orderRepository.retrieveSelectedClientsByCompanyIdAndStatus(
+                    eq(companyId),
+                    anySet(),
+                    eq(customers)
+            )).thenReturn(List.of(
+                    new RoutableOrder(
+                            customerId,
+                            BigDecimal.valueOf(41),
+                            BigDecimal.valueOf(-4)
+                    )
+            ));
+        
+            RoutingRequest result =
+                    service.getRoutingRequestForCompany(
+                            companyId,
+                            customers,
+                            depots,
+                            TypeSolver.GREEDY
+                    );
+        
+            assertThat(result.depots())
+                    .hasSize(1);
+        
+            assertThat(result.customers())
+                    .hasSize(1);
+        
+            assertThat(result.vehicles())
+                    .hasSize(1);
+        
+            assertThat(result.distanceMatrix().length)
+                    .isEqualTo(2);
+        }
 }

@@ -17,6 +17,13 @@ public class DeliveryWindow {
 
     private  Instant toDate;
 
-    
+    public  static  DeliveryWindow allOrders() {
+        DeliveryWindow window = new  DeliveryWindow();
+
+        window.setIncludeNullsFromDate(true);
+        window.setIncludeNullsToDate(true);
+
+        return  window;
+    }
 
 }
