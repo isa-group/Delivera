@@ -2,12 +2,12 @@ package com.delivera.fms.routing.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(name = "TracePoint", description = "Un punto de la curva anytime de un solver")
+@Schema(name = "TracePoint", description = "A point of a solver's anytime curve")
 public record TracePointDto(
-        @Schema(description = "Milisegundos desde el arranque del motor", example = "1780")
+        @Schema(description = "Milliseconds since the engine started", example = "1780")
         Long elapsedMs,
 
-        @Schema(description = "Coste de la mejor solucion factible en ese instante", example = "5901.44")
+        @Schema(description = "Cost of the best feasible solution at that instant", example = "5901.44")
         Double cost
 ) {
 }

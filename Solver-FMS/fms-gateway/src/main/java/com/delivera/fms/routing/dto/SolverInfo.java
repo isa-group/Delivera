@@ -13,44 +13,44 @@ import java.util.List;
  * invoca, sin decir nada de como esta implementado. Un motor escrito en Python o
  * un solver exacto comercial se integran declarando este mismo descriptor.
  */
-@Schema(description = "Metainformacion de un solver registrado en el gateway")
+@Schema(description = "Metadata of a solver registered in the gateway")
 public record SolverInfo(
 
-        @Schema(description = "Identificador del solver, el mismo valor que se envia en solverType",
+        @Schema(description = "Solver identifier, the same value sent in solverType",
                 example = "GENETIC")
         TypeSolver type,
 
-        @Schema(description = "Nombre legible del solver", example = "Algoritmo Genetico")
+        @Schema(description = "Human-readable solver name", example = "Genetic Algorithm")
         String name,
 
-        @Schema(description = "Descripcion funcional del algoritmo",
-                example = "Metaheuristica evolutiva con busqueda local para MD-CVRP")
+        @Schema(description = "Functional description of the algorithm",
+                example = "Evolutionary metaheuristic with local search for the MD-CVRP")
         String description,
 
-        @Schema(description = "Familia algoritmica a la que pertenece el solver",
-                example = "Metaheuristica")
+        @Schema(description = "Algorithmic family the solver belongs to",
+                example = "Metaheuristic")
         String strategy,
 
-        @Schema(description = "Tecnologia con la que esta implementado el motor. Informativo: la " +
-                "pasarela solo depende del contrato HTTP",
+        @Schema(description = "Technology the engine is implemented with. Informative: the " +
+                "gateway only depends on the HTTP contract",
                 example = "Java 22 / Spring Boot + jMetal 6.6")
         String technology,
 
-        @Schema(description = "Version del solver. Fijarla es lo que hace citable un resultado de benchmark",
+        @Schema(description = "Solver version. Pinning it is what makes a benchmark result citable",
                 example = "1.0.0")
         String version,
 
-        @Schema(description = "Indica si dos ejecuciones sobre la misma entrada producen la misma solucion",
+        @Schema(description = "Whether two runs on the same input produce the same solution",
                 example = "false")
         boolean deterministic,
 
         @ArraySchema(
-                arraySchema = @Schema(description = "Parametros de invocacion con sus valores por defecto"),
+                arraySchema = @Schema(description = "Invocation parameters with their default values"),
                 schema = @Schema(implementation = SolverParameter.class))
         List<SolverParameter> parameters,
 
-        @Schema(description = "Estado del motor. Solo se comprueba si se solicita con includeStatus=true, " +
-                "en caso contrario vale UNKNOWN")
+        @Schema(description = "Engine status. Only checked when requested with includeStatus=true; " +
+                "otherwise it is UNKNOWN")
         SolverStatus status
 ) {
 

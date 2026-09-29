@@ -6,15 +6,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 @Schema(name = "InstanceCatalog",
-        description = "Catalogo de instancias estandar disponibles en el gateway. Se deriva del "
-                + "contenido del directorio de instancias, por lo que crece con solo anadir ficheros")
+        description = "Catalogue of standard instances available in the gateway. It is derived from "
+                + "the contents of the instance directory, so it grows just by adding files")
 public record InstanceCatalog(
 
-        @Schema(description = "Numero de instancias devueltas", example = "33")
+        @Schema(description = "Number of instances returned", example = "33")
         int total,
 
         @ArraySchema(
-                arraySchema = @Schema(description = "Instancias del banco, ordenadas por nombre"),
+                arraySchema = @Schema(description = "Instances in the bank, sorted by name"),
                 schema = @Schema(implementation = InstanceSummary.class))
         List<InstanceSummary> instances
 ) {

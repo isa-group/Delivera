@@ -11,42 +11,42 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * La lista de nodos vive en {@link InstanceDetail}.
  */
 @Schema(name = "InstanceSummary",
-        description = "Propiedades de una instancia de benchmark MD-CVRP, sin sus nodos")
+        description = "Properties of an MD-CVRP benchmark instance, without its nodes")
 public record InstanceSummary(
 
-        @Schema(description = "Nombre de la instancia, sin extension. Es el valor que se envia "
-                + "como fileName al resolverla", example = "p01")
+        @Schema(description = "Instance name, without extension. It is the value sent "
+                + "as fileName to solve it", example = "p01")
         String name,
 
-        @Schema(description = "Variante del problema declarada en el fichero", example = "MDVRP")
+        @Schema(description = "Problem variant declared in the file", example = "MDVRP")
         String problemType,
 
-        @Schema(description = "Numero de depositos", example = "4")
+        @Schema(description = "Number of depots", example = "4")
         int numDepots,
 
-        @Schema(description = "Numero de clientes a servir", example = "50")
+        @Schema(description = "Number of customers to serve", example = "50")
         int numCustomers,
 
-        @Schema(description = "Vehiculos disponibles en cada deposito", example = "4")
+        @Schema(description = "Vehicles available at each depot", example = "4")
         int vehiclesPerDepot,
 
-        @Schema(description = "Capacidad de carga de cada vehiculo. Las instancias del banco la "
-                + "comparten entre depositos; el valor por deposito esta en el detalle",
+        @Schema(description = "Load capacity of each vehicle. The bank's instances share it "
+                + "across depots; the per-depot value is in the detail",
                 example = "80")
         int vehicleCapacity,
 
-        @Schema(description = "Duracion maxima de ruta, en las mismas unidades que las distancias. "
-                + "Ausente significa sin limite: el fichero lo codifica con un 0, que no es una "
-                + "duracion sino la ausencia del dato",
+        @Schema(description = "Maximum route duration, in the same units as the distances. "
+                + "Absent means no limit: the file encodes it with a 0, which is not a "
+                + "duration but the absence of the datum",
                 example = "310")
         Double maxDuration,
 
-        @Schema(description = "Suma de la demanda de todos los clientes", example = "777")
+        @Schema(description = "Sum of the demand of all customers", example = "777")
         int totalDemand,
 
-        @Schema(description = "Fraccion de la capacidad total de la flota que consume la demanda. "
-                + "Mide lo apretada que esta la instancia: cuanto mas cerca de 1, menos holgura "
-                + "hay para repartir",
+        @Schema(description = "Fraction of the fleet's total capacity consumed by the demand. "
+                + "Measures how tight the instance is: the closer to 1, the less slack "
+                + "there is to distribute",
                 example = "0.6070")
         double loadRatio
 ) {

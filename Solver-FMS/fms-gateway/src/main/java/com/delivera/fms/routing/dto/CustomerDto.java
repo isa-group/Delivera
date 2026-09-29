@@ -5,25 +5,25 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@Schema(name = "Customer", description = "Datos de un cliente (punto de entrega) para el problema de ruteo")
+@Schema(name = "Customer", description = "A customer (delivery point) of the routing problem")
 public record CustomerDto(
-        @Schema(description = "Identificador unico del cliente", example = "C-001")
+        @Schema(description = "Unique customer identifier", example = "C-001")
         @NotBlank String id,
 
-        @Schema(description = "Demanda del cliente (unidades a entregar)", example = "5")
+        @Schema(description = "Customer demand (units to deliver)", example = "5")
         @NotNull @Min(value = 1) Integer demand,
 
-        @Schema(description = "Latitud de la ubicacion del cliente", example = "40.4168")
+        @Schema(description = "Latitude of the customer's location", example = "40.4168")
         @NotNull Double lat,
 
-        @Schema(description = "Longitud de la ubicacion del cliente", example = "-3.7038")
+        @Schema(description = "Longitude of the customer's location", example = "-3.7038")
         @NotNull Double lng,
 
-        @Schema(description = "Indice del cliente en la matriz de distancias", example = "0")
+        @Schema(description = "Index of the customer in the distance matrix", example = "0")
         @NotNull Integer matrixIndex,
 
-        @Schema(description = "Tiempo de servicio en el cliente, en las mismas unidades que la "
-                + "duracion maxima de ruta. Ausente significa 0", example = "10")
+        @Schema(description = "Service time at the customer, in the same units as the maximum "
+                + "route duration. Absent means 0", example = "10")
         Double serviceDuration
 ) {
 }

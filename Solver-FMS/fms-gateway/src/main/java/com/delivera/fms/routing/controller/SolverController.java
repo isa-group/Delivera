@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/fms/solvers")
-@Tag(name = "Solvers", description = "Catalogo de solvers y su metainformacion")
+@Tag(name = "Solvers", description = "Solver catalogue and its metadata")
 public class SolverController {
 
     private final SolverRegistry registry;
@@ -30,51 +30,51 @@ public class SolverController {
         this.registry = registry;
     }
 
-    @Operation(summary = "Listar solvers disponibles",
-            description = "Devuelve todos los solvers registrados en el gateway con su metainformacion completa: " +
-                    "descripcion, parametros con sus valores por defecto y restricciones sobre los problemas " +
-                    "que pueden abordar. El catalogo se deriva de la configuracion de motores, por lo que crece " +
-                    "automaticamente segun se van incorporando nuevos algoritmos. " +
-                    "El valor del campo 'type' es el que debe enviarse como solverType al resolver un problema.")
-    @ApiResponse(responseCode = "200", description = "Catalogo de solvers",
+    @Operation(summary = "List available solvers",
+            description = "Returns every solver registered in the gateway with its full metadata: " +
+                    "description, algorithmic family and parameters with their default values. " +
+                    "The catalogue is derived from the engine configuration, so it grows " +
+                    "automatically as new algorithms are added. " +
+                    "The value of the 'type' field is the one to send as solverType when solving a problem.")
+    @ApiResponse(responseCode = "200", description = "Solver catalogue",
             content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = SolverCatalog.class),
                     examples = @ExampleObject(
-                            name = "Catalogo resumido",
-                            description = "Respuesta sin comprobacion de estado (includeStatus=false)",
+                            name = "Abridged catalogue",
+                            description = "Response without health check (includeStatus=false)",
                             value = SOLVER_CATALOG_EXAMPLE)))
     @GetMapping
     public ResponseEntity<SolverCatalog> listSolvers(
-            @Parameter(description = "Si es true, consulta la salud de cada motor y rellena el campo status. " +
-                    "Anade latencia a la respuesta (hasta 2 segundos por motor no disponible).")
+            @Parameter(description = "If true, checks the health of each engine and fills in the status field. " +
+                    "Adds latency to the response (up to 2 seconds per unavailable engine).")
             @RequestParam(defaultValue = "false") boolean includeStatus) {
         return ResponseEntity.ok(SolverCatalog.of(registry.findAll(includeStatus)));
     }
 
-    @Operation(summary = "Obtener un solver concreto",
-            description = "Devuelve la metainformacion del solver indicado: descripcion, parametros " +
-                    "admitidos con sus valores por defecto y restricciones sobre los problemas que soporta. " +
-                    "El ejemplo de respuesta es el descriptor real del solver GENETIC, con los 13 parametros " +
-                    "que acepta y para que sirve cada uno; son los que pueden enviarse en el mapa 'parameters' " +
-                    "al resolver un problema.")
+    @Operation(summary = "Get a specific solver",
+            description = "Returns the metadata of the given solver: description and accepted " +
+                    "parameters with their default values and ranges. " +
+                    "The example response is the actual descriptor of the GENETIC solver, with the 14 parameters " +
+                    "it accepts and what each one is for; they are the ones that can be sent in the 'parameters' " +
+                    "map when solving a problem.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Solver encontrado",
+            @ApiResponse(responseCode = "200", description = "Solver found",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = SolverInfo.class),
                             examples = @ExampleObject(
-                                    name = "Descriptor del solver GENETIC",
-                                    description = "Parametros del algoritmo genetico con su significado, " +
-                                            "valor por defecto y rango admitido",
+                                    name = "GENETIC solver descriptor",
+                                    description = "Parameters of the genetic algorithm with their meaning, " +
+                                            "default value and accepted range",
                                     value = GENETIC_SOLVER_EXAMPLE))),
-            @ApiResponse(responseCode = "404", description = "El solver no esta registrado en el gateway",
+            @ApiResponse(responseCode = "404", description = "The solver is not registered in the gateway",
                     content = @Content)
     })
     @GetMapping("/{type}")
     public ResponseEntity<SolverInfo> getSolver(
-            @Parameter(description = "Tipo de solver", required = true, example = "GENETIC")
+            @Parameter(description = "Solver type", required = true, example = "GENETIC")
             @PathVariable TypeSolver type,
-            @Parameter(description = "Si es true, consulta la salud del motor y rellena el campo status")
+            @Parameter(description = "If true, checks the engine's health and fills in the status field")
             @RequestParam(defaultValue = "false") boolean includeStatus) {
         return ResponseEntity.ok(registry.findByType(type, includeStatus));
     }
@@ -88,16 +88,16 @@ public class SolverController {
     private static final String GENETIC_SOLVER_EXAMPLE = """
             {
               "type": "GENETIC",
-              "name": "Algoritmo Genetico",
-              "description": "Metaheuristica evolutiva con cruce BCRC, mutaciones intra e inter deposito, troceado optimo de Prins y busqueda local",
-              "strategy": "Metaheuristica",
+              "name": "Genetic Algorithm",
+              "description": "Evolutionary metaheuristic with BCRC crossover, intra- and inter-depot mutations, Prins' optimal split and local search",
+              "strategy": "Metaheuristic",
               "technology": "Java 22 / Spring Boot + jMetal 6.6",
               "version": "2.0.0",
               "deterministic": false,
               "parameters": [
                 {
                   "name": "populationSize",
-                  "description": "Individuos por generacion. Mas poblacion explora mas soluciones distintas a costa de mas tiempo por generacion",
+                  "description": "Individuals per generation. A larger population explores more distinct solutions at the cost of more time per generation",
                   "type": "INTEGER",
                   "defaultValue": 150,
                   "min": 10.0,
@@ -106,7 +106,7 @@ public class SolverController {
                 },
                 {
                   "name": "maxEvaluations",
-                  "description": "Tope de evaluaciones de la funcion objetivo. Rara vez llega a actuar: en la practica la ejecucion termina antes por estancamiento, asi que subirlo no mejora el coste por si solo",
+                  "description": "Cap on objective function evaluations. It rarely kicks in: in practice the run ends earlier through stagnation, so raising it does not improve the cost on its own",
                   "type": "INTEGER",
                   "defaultValue": 75000,
                   "min": 1000.0,
@@ -115,7 +115,7 @@ public class SolverController {
                 },
                 {
                   "name": "minGenerations",
-                  "description": "Generaciones que se ejecutan siempre antes de permitir un reinicio o la parada anticipada. Evita cortar una busqueda que aun no ha arrancado",
+                  "description": "Generations always run before a restart or an early stop is allowed. Prevents cutting short a search that has not taken off yet",
                   "type": "INTEGER",
                   "defaultValue": 100,
                   "min": 1.0,
@@ -124,7 +124,7 @@ public class SolverController {
                 },
                 {
                   "name": "crossoverProbability",
-                  "description": "Probabilidad de cruzar cada pareja seleccionada con BCRC, que reinserta los clientes del otro padre en su mejor posicion. Bajarla conserva mas padres intactos",
+                  "description": "Probability of crossing each selected pair with BCRC, which reinserts the other parent's customers in their best position. Lowering it keeps more parents intact",
                   "type": "DECIMAL",
                   "defaultValue": 0.9,
                   "min": 0.0,
@@ -133,7 +133,7 @@ public class SolverController {
                 },
                 {
                   "name": "intraDepotMutationProbability",
-                  "description": "Probabilidad de reordenar clientes dentro de un mismo deposito. Afina rutas ya asignadas sin cambiar el reparto entre depositos",
+                  "description": "Probability of reordering customers within the same depot. Refines already assigned routes without changing the distribution among depots",
                   "type": "DECIMAL",
                   "defaultValue": 0.2,
                   "min": 0.0,
@@ -142,7 +142,7 @@ public class SolverController {
                 },
                 {
                   "name": "interDepotMutationProbability",
-                  "description": "Probabilidad de mover clientes frontera a otro deposito. Es el unico operador que cambia el reparto entre depositos, del que depende la calidad en instancias con depositos proximos",
+                  "description": "Probability of moving border customers to another depot. It is the only operator that changes the distribution among depots, on which quality depends in instances with nearby depots",
                   "type": "DECIMAL",
                   "defaultValue": 0.3,
                   "min": 0.0,
@@ -151,7 +151,7 @@ public class SolverController {
                 },
                 {
                   "name": "elitismCount",
-                  "description": "Mejores individuos distintos que pasan intactos a la siguiente generacion. Protege del retroceso; subirlo demasiado reduce la diversidad",
+                  "description": "Best distinct individuals that pass intact to the next generation. Protects against regression; raising it too much reduces diversity",
                   "type": "INTEGER",
                   "defaultValue": 5,
                   "min": 0.0,
@@ -160,7 +160,7 @@ public class SolverController {
                 },
                 {
                   "name": "tournamentSize",
-                  "description": "Individuos que compiten en cada seleccion. Mas torneo es mas presion selectiva y convergencia mas rapida, con mas riesgo de optimo local",
+                  "description": "Individuals competing in each selection. A larger tournament means more selective pressure and faster convergence, with more risk of a local optimum",
                   "type": "INTEGER",
                   "defaultValue": 3,
                   "min": 2.0,
@@ -169,7 +169,7 @@ public class SolverController {
                 },
                 {
                   "name": "localSearchFrequency",
-                  "description": "Cada cuantas generaciones se aplica 2-opt y relocate a los mejores individuos. Un valor menor intensifica la busqueda y encarece cada generacion",
+                  "description": "Every how many generations 2-opt and relocate are applied to the best individuals. A lower value intensifies the search and makes each generation more expensive",
                   "type": "INTEGER",
                   "defaultValue": 10,
                   "min": 1.0,
@@ -178,7 +178,7 @@ public class SolverController {
                 },
                 {
                   "name": "interDepotFrequency",
-                  "description": "Cada cuantas generaciones se aplica la mutacion inter deposito a una muestra de la descendencia",
+                  "description": "Every how many generations the inter-depot mutation is applied to a sample of the offspring",
                   "type": "INTEGER",
                   "defaultValue": 5,
                   "min": 1.0,
@@ -187,7 +187,7 @@ public class SolverController {
                 },
                 {
                   "name": "restartStagnantGenerations",
-                  "description": "Generaciones sin mejora que disparan un reinicio de poblacion conservando el mejor individuo. Junto con maxRestarts es lo que de verdad termina la ejecucion",
+                  "description": "Generations without improvement that trigger a population restart keeping the best individual. Together with maxRestarts, it is what really ends the run",
                   "type": "INTEGER",
                   "defaultValue": 20,
                   "min": 1.0,
@@ -196,7 +196,7 @@ public class SolverController {
                 },
                 {
                   "name": "maxRestarts",
-                  "description": "Reinicios de poblacion permitidos antes de parar. Es el parametro con mas recorrido para mejorar el coste, a cambio de alargar la ejecucion",
+                  "description": "Population restarts allowed before stopping. It is the parameter with the most room to improve the cost, at the expense of a longer run",
                   "type": "INTEGER",
                   "defaultValue": 3,
                   "min": 0.0,
@@ -205,11 +205,19 @@ public class SolverController {
                 },
                 {
                   "name": "heuristicSeedRatio",
-                  "description": "Fraccion de la poblacion inicial construida con vecino mas cercano aleatorizado; el resto se genera al azar. Arranca desde mejores soluciones a costa de diversidad",
+                  "description": "Fraction of the initial population built with randomised nearest neighbour; the rest is generated at random. Starts from better solutions at the expense of diversity",
                   "type": "DECIMAL",
                   "defaultValue": 0.2,
                   "min": 0.0,
                   "max": 1.0,
+                  "required": false
+                },
+                {
+                  "name": "seed",
+                  "description": "Random generator seed. With the same instance, the same parameters and the same seed the solution is identical. If not sent, the engine draws one and returns it in the response's seed field, so any run can be repeated afterwards. The upper bound is 2^48-1 because java.util.Random keeps 48 bits: above it two different seeds would give the same sequence",
+                  "type": "INTEGER",
+                  "min": 0.0,
+                  "max": 281474976710655.0,
                   "required": false
                 }
               ],
@@ -219,13 +227,13 @@ public class SolverController {
 
     private static final String SOLVER_CATALOG_EXAMPLE = """
             {
-              "total": 3,
+              "total": 4,
               "solvers": [
                 {
                   "type": "GREEDY",
-                  "name": "Voraz",
-                  "description": "Heuristica constructiva de vecino mas cercano con asignacion al deposito mas proximo",
-                  "strategy": "Heuristica constructiva",
+                  "name": "Greedy",
+                  "description": "Nearest-neighbour constructive heuristic with assignment to the closest depot",
+                  "strategy": "Constructive heuristic",
                   "technology": "Java 22 / Spring Boot",
                   "version": "1.0.0",
                   "deterministic": true,
@@ -234,16 +242,16 @@ public class SolverController {
                 },
                 {
                   "type": "GENETIC",
-                  "name": "Algoritmo Genetico",
-                  "description": "Metaheuristica evolutiva con cruce BCRC, mutaciones intra e inter deposito y busqueda local",
-                  "strategy": "Metaheuristica",
+                  "name": "Genetic Algorithm",
+                  "description": "Evolutionary metaheuristic with BCRC crossover, intra- and inter-depot mutations, Prins' optimal split and local search",
+                  "strategy": "Metaheuristic",
                   "technology": "Java 22 / Spring Boot + jMetal 6.6",
                   "version": "2.0.0",
                   "deterministic": false,
                   "parameters": [
                     {
                       "name": "populationSize",
-                      "description": "Numero de individuos de la poblacion",
+                      "description": "Individuals per generation. A larger population explores more distinct solutions at the cost of more time per generation",
                       "type": "INTEGER",
                       "defaultValue": 150,
                       "min": 10.0,

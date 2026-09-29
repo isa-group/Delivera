@@ -5,15 +5,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 
-@Schema(description = "Catalogo de solvers disponibles en el gateway. Crece automaticamente " +
-        "a medida que se registran nuevos motores en la configuracion.")
+@Schema(description = "Catalogue of solvers available in the gateway. It grows automatically " +
+        "as new engines are registered in the configuration.")
 public record SolverCatalog(
 
-        @Schema(description = "Numero de solvers devueltos", example = "3")
+        @Schema(description = "Number of solvers returned", example = "4")
         int total,
 
         @ArraySchema(
-                arraySchema = @Schema(description = "Solvers registrados, ordenados por el peso de configuracion"),
+                arraySchema = @Schema(description = "Registered solvers, sorted by their configured order"),
                 schema = @Schema(implementation = SolverInfo.class))
         List<SolverInfo> solvers
 ) {
