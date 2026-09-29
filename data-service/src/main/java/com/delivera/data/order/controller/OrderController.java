@@ -34,7 +34,6 @@ import java.util.UUID;
 @RequestMapping("/orders")
 @Tag(name = "Pedidos", description = "Gestión de pedidos")
 public class OrderController {
-    // TODO:P005-Order-Controller
     private final OrderService orderService;
     private final AuthService authService;
     private final AuthRateLimiter authRateLimiter;
@@ -99,7 +98,7 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getPublicByReference(reference));
     }
 
-    /* TODO:P001-LoyalUser */
+
     @Operation(summary = "Registro de destinatario a través del token de seguimiento")
     @PostMapping("/public/track/{token}/register")
     public ResponseEntity<LoginResponse> claimRegister(

@@ -54,18 +54,4 @@ public class OrderInternalController {
 
     }
 
-    /* TODO
-    @PostMapping("/public/track/{token}/register/{LoyalUserId}")
-    public ResponseEntity<String> claimOrder(
-        @Valid @PathVariable(name = "token") String  token,
-        @Valid @PathVariable(name = "LoyalUserId") UUID loyalUserId,
-        @Valid @RequestBody String email
-    ) {
-       
-        return ResponseEntity.status(200).body(
-            orderService.claimOrder(token,email ,loyalUserId)
-        );
-
-    }*/
-
 }
