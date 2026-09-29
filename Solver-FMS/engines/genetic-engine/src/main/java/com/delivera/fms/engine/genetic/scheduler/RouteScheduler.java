@@ -1,7 +1,9 @@
 package com.delivera.fms.engine.genetic.scheduler;
 
-import com.delivera.fms.engine.genetic.dto.CustomerDto;
-import com.delivera.fms.engine.genetic.dto.DepotDto;
+import com.delivera.fms.engine.core.model.Depot;
+import com.delivera.fms.engine.core.model.Route;
+import com.delivera.fms.engine.core.model.RoutingProblem;
+import com.delivera.fms.engine.core.split.RouteSplitter;
 import com.delivera.fms.engine.genetic.dto.RouteDto;
 import com.delivera.fms.engine.genetic.dto.VehicleDto;
 
@@ -18,17 +20,12 @@ import java.util.Map;
  */
 public class RouteScheduler {
 
-    private final List<CustomerDto> customers;
-    private final double[][] distanceMatrix;
+    private final RoutingProblem problem;
     private final RouteSplitter splitter;
     private final Map<String, List<VehicleDto>> vehiclesByDepot;
 
-    public RouteScheduler(List<CustomerDto> customers,
-                          double[][] distanceMatrix,
-                          RouteSplitter splitter,
-                          List<VehicleDto> vehicles) {
-        this.customers = customers;
-        this.distanceMatrix = distanceMatrix;
+    public RouteScheduler(RoutingProblem problem, RouteSplitter splitter, List<VehicleDto> vehicles) {
+        this.problem = problem;
         this.splitter = splitter;
         this.vehiclesByDepot = new HashMap<>();
         if (vehicles != null) {
@@ -38,40 +35,28 @@ public class RouteScheduler {
         }
     }
 
-    public List<RouteDto> buildRoutes(DepotDto depot, List<Integer> customerOrder) {
+    public List<RouteDto> buildRoutes(Depot depot, List<Integer> customerOrder) {
         List<VehicleDto> depotVehicles = vehiclesByDepot.getOrDefault(depot.id(), List.of());
 
         List<RouteDto> routes = new ArrayList<>();
-        List<List<Integer>> split = splitter.split(depot, customerOrder);
-
-        for (List<Integer> route : split) {
-            if (route.isEmpty()) {
+        for (Route route : splitter.routes(depot, customerOrder)) {
+            if (route.customers().isEmpty()) {
                 continue;
             }
 
             String vehicleId = vehicleFor(depotVehicles, depot, routes.size());
-
-            List<String> stops = new ArrayList<>(route.size());
-            double totalDistance = 0.0;
-            int totalLoad = 0;
-            int currentIndex = depot.matrixIndex();
-
-            for (int customerIdx : route) {
-                CustomerDto customer = customers.get(customerIdx);
-                totalDistance += distanceMatrix[currentIndex][customer.matrixIndex()];
-                stops.add(customer.id());
-                totalLoad += customer.demand();
-                currentIndex = customer.matrixIndex();
+            List<String> stops = new ArrayList<>(route.customers().size());
+            for (int customer : route.customers()) {
+                stops.add(problem.customer(customer).id());
             }
-            totalDistance += distanceMatrix[currentIndex][depot.matrixIndex()];
 
-            routes.add(new RouteDto(vehicleId, depot.id(), stops, totalDistance, totalLoad));
+            routes.add(new RouteDto(vehicleId, depot.id(), stops, route.distance(), route.load()));
         }
 
         return routes;
     }
 
-    private String vehicleFor(List<VehicleDto> depotVehicles, DepotDto depot, int index) {
+    private String vehicleFor(List<VehicleDto> depotVehicles, Depot depot, int index) {
         return depotVehicles.isEmpty()
                 ? "V-GA-" + depot.id() + "-" + (index + 1)
                 : depotVehicles.get(index % depotVehicles.size()).id();

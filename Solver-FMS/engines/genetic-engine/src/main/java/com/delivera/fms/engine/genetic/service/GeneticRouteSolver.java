@@ -1,11 +1,14 @@
 package com.delivera.fms.engine.genetic.service;
 
-import com.delivera.fms.engine.genetic.dto.CustomerDto;
-import com.delivera.fms.engine.genetic.dto.DepotDto;
+import com.delivera.fms.engine.core.model.Customer;
+import com.delivera.fms.engine.core.model.Depot;
+import com.delivera.fms.engine.core.model.RoutingProblem;
+import com.delivera.fms.engine.core.search.DepotRebalancer;
+import com.delivera.fms.engine.core.search.RouteOptimizer;
+import com.delivera.fms.engine.core.split.RouteSplitter;
 import com.delivera.fms.engine.genetic.dto.RouteDto;
 import com.delivera.fms.engine.genetic.dto.RoutingRequest;
 import com.delivera.fms.engine.genetic.dto.RoutingResponse;
-import com.delivera.fms.engine.genetic.dto.VehicleDto;
 import com.delivera.fms.engine.genetic.operator.crossover.BestCostRouteCrossover;
 import com.delivera.fms.engine.genetic.operator.mutation.InterDepotMutation;
 import com.delivera.fms.engine.genetic.operator.mutation.IntraDepotMutation;
@@ -13,7 +16,6 @@ import com.delivera.fms.engine.genetic.operator.search.InterDepotLocalSearch;
 import com.delivera.fms.engine.genetic.operator.search.LocalSearch;
 import com.delivera.fms.engine.genetic.scheduler.PermutationCodec;
 import com.delivera.fms.engine.genetic.scheduler.RouteScheduler;
-import com.delivera.fms.engine.genetic.scheduler.RouteSplitter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -53,24 +55,22 @@ public class GeneticRouteSolver {
                 request.problemId(), SOLVER_TYPE, seed, params);
         long startTime = System.currentTimeMillis();
 
-        RouteSplitter splitter = new RouteSplitter(
-                request.customers(), request.distanceMatrix(),
-                capacityByDepot(request), fleetByDepot(request));
-        MDCVRPProblem problem = new MDCVRPProblem(request, splitter);
-        RouteScheduler scheduler = new RouteScheduler(
-                request.customers(), request.distanceMatrix(), splitter, request.vehicles());
+        RoutingProblem routing = ProblemMapper.toProblem(request);
+        RouteSplitter splitter = new RouteSplitter(routing);
+        MDCVRPProblem problem = new MDCVRPProblem(routing, splitter);
+        RouteScheduler scheduler = new RouteScheduler(routing, splitter, request.vehicles());
 
         BestCostRouteCrossover crossover = new BestCostRouteCrossover(
-                params.crossoverProbability(), request.depots(), splitter, random);
+                params.crossoverProbability(), routing.depots(), splitter, random);
         IntraDepotMutation intraMutation = new IntraDepotMutation(
-                params.intraDepotMutationProbability(), request.depots(), random);
+                params.intraDepotMutationProbability(), routing.depots(), random);
         InterDepotMutation interMutation = new InterDepotMutation(
-                params.interDepotMutationProbability(), request.customers(), request.depots(),
-                request.distanceMatrix(), splitter, random);
+                params.interDepotMutationProbability(), routing.customers(), routing.depots(),
+                routing.distanceMatrix(), splitter, random);
         LocalSearch localSearch = new LocalSearch(
-                request.customers(), request.depots(), request.distanceMatrix(), splitter);
+                routing.depots(), new RouteOptimizer(routing, splitter));
         InterDepotLocalSearch interDepotSearch = new InterDepotLocalSearch(
-                request.customers(), request.depots(), request.distanceMatrix(), splitter);
+                routing.depots(), new DepotRebalancer(routing, splitter));
 
         List<PermutationSolution<Integer>> population = initializePopulation(problem, params, random);
         evaluatePopulation(population, problem);
@@ -165,7 +165,7 @@ public class GeneticRouteSolver {
         localSearch.improveSolution(bestSolution);
         problem.evaluate(bestSolution);
 
-        List<RouteDto> routes = decodeSolution(bestSolution, request, scheduler);
+        List<RouteDto> routes = decodeSolution(bestSolution, routing, scheduler);
         double totalCost = routes.stream().mapToDouble(RouteDto::totalDistance).sum();
         long computationTime = System.currentTimeMillis() - startTime;
 
@@ -196,40 +196,6 @@ public class GeneticRouteSolver {
             return number.longValue();
         }
         return ThreadLocalRandom.current().nextLong(MAX_SEED + 1);
-    }
-
-    /** Capacidad del mayor vehiculo de cada deposito; sin vehiculos declarados, sin limite. */
-    private static Map<DepotDto, Integer> capacityByDepot(RoutingRequest request) {
-        Map<String, List<VehicleDto>> byDepot = vehiclesByDepot(request);
-        Map<DepotDto, Integer> capacities = new HashMap<>();
-        for (DepotDto depot : request.depots()) {
-            capacities.put(depot, byDepot.getOrDefault(depot.id(), List.of()).stream()
-                    .mapToInt(VehicleDto::capacity)
-                    .max()
-                    .orElse(Integer.MAX_VALUE));
-        }
-        return capacities;
-    }
-
-    /** Numero de vehiculos de cada deposito; sin vehiculos declarados, sin limite. */
-    private static Map<DepotDto, Integer> fleetByDepot(RoutingRequest request) {
-        Map<String, List<VehicleDto>> byDepot = vehiclesByDepot(request);
-        Map<DepotDto, Integer> fleets = new HashMap<>();
-        for (DepotDto depot : request.depots()) {
-            List<VehicleDto> vehicles = byDepot.getOrDefault(depot.id(), List.of());
-            fleets.put(depot, vehicles.isEmpty() ? Integer.MAX_VALUE : vehicles.size());
-        }
-        return fleets;
-    }
-
-    private static Map<String, List<VehicleDto>> vehiclesByDepot(RoutingRequest request) {
-        Map<String, List<VehicleDto>> byDepot = new HashMap<>();
-        if (request.vehicles() != null) {
-            for (VehicleDto vehicle : request.vehicles()) {
-                byDepot.computeIfAbsent(vehicle.startDepotId(), key -> new ArrayList<>()).add(vehicle);
-            }
-        }
-        return byDepot;
     }
 
     private List<PermutationSolution<Integer>> initializePopulation(MDCVRPProblem problem,
@@ -275,12 +241,12 @@ public class GeneticRouteSolver {
     private PermutationSolution<Integer> createHeuristicSolution(MDCVRPProblem problem,
                                                                   PseudoRandomGenerator random) {
         PermutationSolution<Integer> solution = problem.createSolution();
-        List<CustomerDto> customers = problem.customers();
+        List<Customer> customers = problem.customers();
         double[][] distanceMatrix = problem.distanceMatrix();
-        Map<Integer, DepotDto> depotMap = PermutationCodec.depotMap(solution);
+        Map<Integer, Depot> depotMap = PermutationCodec.depotMap(solution);
 
-        Map<DepotDto, List<Integer>> depotOrder = new LinkedHashMap<>();
-        for (DepotDto depot : problem.depots()) {
+        Map<Depot, List<Integer>> depotOrder = new LinkedHashMap<>();
+        for (Depot depot : problem.depots()) {
             depotOrder.put(depot, new ArrayList<>());
         }
         for (int i = 0; i < customers.size(); i++) {
@@ -423,7 +389,7 @@ public class GeneticRouteSolver {
             copy.objectives()[i] = source.objectives()[i];
         }
 
-        Map<Integer, DepotDto> sourceMap = PermutationCodec.depotMap(source);
+        Map<Integer, Depot> sourceMap = PermutationCodec.depotMap(source);
         if (sourceMap != null) {
             copy.attributes().put(PermutationCodec.DEPOT_MAP, new HashMap<>(sourceMap));
         }
@@ -432,11 +398,11 @@ public class GeneticRouteSolver {
     }
 
     private List<RouteDto> decodeSolution(PermutationSolution<Integer> solution,
-                                           RoutingRequest request,
+                                           RoutingProblem problem,
                                            RouteScheduler scheduler) {
-        Map<Integer, DepotDto> depotMap = PermutationCodec.depotMap(solution);
-        Map<DepotDto, List<Integer>> depotOrder =
-                PermutationCodec.depotOrder(solution, request.depots(), depotMap);
+        Map<Integer, Depot> depotMap = PermutationCodec.depotMap(solution);
+        Map<Depot, List<Integer>> depotOrder =
+                PermutationCodec.depotOrder(solution, problem.depots(), depotMap);
 
         List<RouteDto> routes = new ArrayList<>();
         for (var entry : depotOrder.entrySet()) {
@@ -447,25 +413,25 @@ public class GeneticRouteSolver {
 
     static class MDCVRPProblem {
 
-        private final List<CustomerDto> customers;
-        private final List<DepotDto> depots;
+        private final List<Customer> customers;
+        private final List<Depot> depots;
         private final double[][] distanceMatrix;
         private final RouteSplitter splitter;
 
-        MDCVRPProblem(RoutingRequest request, RouteSplitter splitter) {
-            this.customers = request.customers();
-            this.depots = request.depots();
-            this.distanceMatrix = request.distanceMatrix();
+        MDCVRPProblem(RoutingProblem problem, RouteSplitter splitter) {
+            this.customers = problem.customers();
+            this.depots = problem.depots();
+            this.distanceMatrix = problem.distanceMatrix();
             this.splitter = splitter;
         }
 
         PermutationSolution<Integer> createSolution() {
             PermutationSolution<Integer> solution = new IntegerPermutationSolution(customers.size(), 1, 0);
 
-            Map<Integer, DepotDto> depotMap = new HashMap<>();
+            Map<Integer, Depot> depotMap = new HashMap<>();
             for (int i = 0; i < customers.size(); i++) {
-                CustomerDto customer = customers.get(i);
-                DepotDto nearest = depots.stream()
+                Customer customer = customers.get(i);
+                Depot nearest = depots.stream()
                         .min(Comparator.comparingDouble(
                                 depot -> distanceMatrix[depot.matrixIndex()][customer.matrixIndex()]))
                         .orElse(depots.get(0));
@@ -477,16 +443,13 @@ public class GeneticRouteSolver {
         }
 
         PermutationSolution<Integer> evaluate(PermutationSolution<Integer> solution) {
-            Map<Integer, DepotDto> depotMap = PermutationCodec.depotMap(solution);
-            Map<DepotDto, List<Integer>> depotOrder =
+            Map<Integer, Depot> depotMap = PermutationCodec.depotMap(solution);
+            Map<Depot, List<Integer>> depotOrder =
                     PermutationCodec.depotOrder(solution, depots, depotMap);
 
             double totalDistance = 0.0;
             for (var entry : depotOrder.entrySet()) {
-                DepotDto depot = entry.getKey();
-                RouteSplitter.Split split = splitter.evaluate(depot, entry.getValue());
-                totalDistance += split.cost()
-                        + RouteSplitter.fleetPenalty(split.routeCount(), splitter.fleet(depot));
+                totalDistance += splitter.penalizedCost(entry.getKey(), entry.getValue());
             }
 
             solution.objectives()[0] = totalDistance;
@@ -497,11 +460,11 @@ public class GeneticRouteSolver {
             return customers.size();
         }
 
-        List<CustomerDto> customers() {
+        List<Customer> customers() {
             return customers;
         }
 
-        List<DepotDto> depots() {
+        List<Depot> depots() {
             return depots;
         }
 

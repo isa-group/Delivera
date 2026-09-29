@@ -25,13 +25,35 @@ def render_tree(tree, path, config, dataset):
     depth = max(1, tree.get_depth())
     figure, axes = plt.subplots(
         figsize=(max(9.0, 3.8 * tree.get_n_leaves()), 2.6 * (depth + 1)), dpi=300)
-    plot_tree(tree, feature_names=FEATURES, class_names=list(tree.classes_), filled=True,
-              rounded=True, impurity=False, fontsize=9, ax=axes)
+    nodes = plot_tree(tree, feature_names=FEATURES, class_names=list(tree.classes_), filled=True,
+                      rounded=True, impurity=False, fontsize=9, ax=axes)
+    _label_edges(axes, nodes, fontsize=9)
     axes.set_title(f"Que solver conviene  ·  {n} instancias  ·  profundidad max {config.max_depth}",
                    fontsize=11, pad=14)
     figure.tight_layout()
     figure.savefig(path, bbox_inches="tight")
     plt.close(figure)
+
+
+def _label_edges(axes, nodes, fontsize):
+    """
+    Pone True/False en cada rama. sklearn solo lo pone en las dos que salen de la raiz, y
+    sin eso las bifurcaciones de abajo no dicen hacia que lado se cumple la condicion.
+    Se imita su estilo: en el punto medio de la flecha, True a la izquierda (se cumple
+    `<=`) y False a la derecha.
+    """
+    boxes = [node for node in nodes if node.get_bbox_patch() is not None]
+    if not boxes:
+        return
+    root = max(boxes, key=lambda node: node.xy[1]).xy
+    for node in boxes:
+        parent, child = node.xy, node.xyann
+        if parent == child or parent == root:  # La raiz no tiene rama; sus hijas ya las rotula sklearn.
+            continue
+        middle = ((parent[0] + child[0]) / 2, (parent[1] + child[1]) / 2)
+        text, align = ("True  ", "right") if child[0] < parent[0] else ("  False", "left")
+        axes.annotate(text, middle, xycoords="axes fraction", ha=align, fontsize=fontsize,
+                      zorder=node.get_zorder())
 
 
 def _render_single_node(tree, path, dataset):

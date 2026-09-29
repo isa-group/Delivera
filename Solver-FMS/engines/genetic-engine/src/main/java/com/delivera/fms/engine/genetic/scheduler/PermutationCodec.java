@@ -1,6 +1,6 @@
 package com.delivera.fms.engine.genetic.scheduler;
 
-import com.delivera.fms.engine.genetic.dto.DepotDto;
+import com.delivera.fms.engine.core.model.Depot;
 import org.uma.jmetal.solution.permutationsolution.PermutationSolution;
 
 import java.util.ArrayList;
@@ -23,21 +23,21 @@ public final class PermutationCodec {
     }
 
     @SuppressWarnings("unchecked")
-    public static Map<Integer, DepotDto> depotMap(PermutationSolution<Integer> solution) {
-        return (Map<Integer, DepotDto>) solution.attributes().get(DEPOT_MAP);
+    public static Map<Integer, Depot> depotMap(PermutationSolution<Integer> solution) {
+        return (Map<Integer, Depot>) solution.attributes().get(DEPOT_MAP);
     }
 
     // Clientes de cada deposito, en el orden en que aparecen en la permutacion.
-    public static Map<DepotDto, List<Integer>> depotOrder(PermutationSolution<Integer> solution,
-                                                          List<DepotDto> depots,
-                                                          Map<Integer, DepotDto> depotMap) {
-        Map<DepotDto, List<Integer>> depotOrder = new LinkedHashMap<>();
-        for (DepotDto depot : depots) {
+    public static Map<Depot, List<Integer>> depotOrder(PermutationSolution<Integer> solution,
+                                                          List<Depot> depots,
+                                                          Map<Integer, Depot> depotMap) {
+        Map<Depot, List<Integer>> depotOrder = new LinkedHashMap<>();
+        for (Depot depot : depots) {
             depotOrder.put(depot, new ArrayList<>());
         }
         for (int i = 0; i < solution.variables().size(); i++) {
             int customer = solution.variables().get(i);
-            DepotDto depot = depotMap.get(customer);
+            Depot depot = depotMap.get(customer);
             if (depot != null) {
                 depotOrder.get(depot).add(customer);
             }
@@ -50,15 +50,15 @@ public final class PermutationCodec {
      * ocupa cada deposito. Requiere que el conjunto de clientes de cada deposito no haya cambiado.
      */
     public static void writeBack(PermutationSolution<Integer> solution,
-                                 Map<DepotDto, List<Integer>> depotOrder,
-                                 Map<Integer, DepotDto> depotMap) {
-        Map<DepotDto, Iterator<Integer>> cursors = new HashMap<>();
+                                 Map<Depot, List<Integer>> depotOrder,
+                                 Map<Integer, Depot> depotMap) {
+        Map<Depot, Iterator<Integer>> cursors = new HashMap<>();
         for (var entry : depotOrder.entrySet()) {
             cursors.put(entry.getKey(), entry.getValue().iterator());
         }
 
         for (int i = 0; i < solution.variables().size(); i++) {
-            DepotDto depot = depotMap.get(solution.variables().get(i));
+            Depot depot = depotMap.get(solution.variables().get(i));
             Iterator<Integer> cursor = (depot == null) ? null : cursors.get(depot);
             if (cursor != null && cursor.hasNext()) {
                 solution.variables().set(i, cursor.next());
@@ -72,7 +72,7 @@ public final class PermutationCodec {
      * variante que deben usar los operadores inter-deposito.
      */
     public static void writeBackContiguous(PermutationSolution<Integer> solution,
-                                           Map<DepotDto, List<Integer>> depotOrder) {
+                                           Map<Depot, List<Integer>> depotOrder) {
         int position = 0;
         for (List<Integer> order : depotOrder.values()) {
             for (int customer : order) {
