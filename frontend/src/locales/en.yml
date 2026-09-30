@@ -746,3 +746,7 @@ routes:
   results: Results
   load: Load
   dataConfig: data configuration
+  fromDate: Delivery period start
+  toDate: Delivery period end
+  includeNullFromDate: Include orders without delivery start date
+  includeNullToDate: Include orders without delivery end date

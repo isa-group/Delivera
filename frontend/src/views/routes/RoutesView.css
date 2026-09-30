@@ -315,6 +315,30 @@
         0 10px 25px rgba(34,197,94,.25);
 }
 
+.custom-section {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 3rem;
+    margin-top: 1rem;
+}
+
+.date-config {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.date-config label {
+    font-weight: 600;
+}
+
+.parameter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
 
 @media (max-width: 768px) {
 

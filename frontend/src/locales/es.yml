@@ -732,3 +732,7 @@ routes:
   results: Resultados
   dataConfig: configuración de los datos
   load: Cargar
+  fromDate: Inicio del período de entrega
+  toDate: Fin del período de entrega
+  includeNullFromDate: Incluir ordenes sin fecha de incio del período de entrega
+  includeNullToDate: Incluir ordenes sin fecha de fin del período de entrega

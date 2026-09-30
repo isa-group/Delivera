@@ -70,19 +70,28 @@ export function useRoutes() {
         drawRoutes,
         unmountMap,
         addRootSolutionToMap,
-        unmountRootLayer
+        unmountRootLayer,
+        benchmarkAccumulateRealCostBySlotAndSolver
         
     } = mapUtils
     const modesUtils = useRoutesModes(wizard)
     const dataUtils = useRoutesData(wizard)
     const {
         data,
+        dataError,
+        selectedBenchmark,
+        deliveryWindowConfig,
         loadInitialData: loadInitialData,
+        isBenchmark,
+        isCustomMode
     } = dataUtils
-    const groupingUtils = useRoutesGrouping(wizard, mapUtils,{maxPerExecution})
+    const groupingUtils = useRoutesGrouping(wizard, mapUtils,{maxPerExecution}, {isBenchmark})
     const {
-        groups,        
+        groups,   
+        groupsError,     
         executeGrouping,
+        executeCustomGrouping,
+        executeBenchmarksGrouping,
         groupsRows
     } = groupingUtils
     const solverUtils = useRoutesSolver(wizard,modesUtils, groupingUtils)
@@ -106,9 +115,10 @@ export function useRoutes() {
                     solverDistance:  `${
                         solverDistance? numberI18n({value: solverDistance, maxFractionDigits: 3}) :  "-"
                     }`, 
-                    aproxDistance: `${numberI18n({value: metrics.distance/1000, maxFractionDigits: 3})} `, 
-                    aproxDuration: `${numberI18n({value: metrics.duration/3600})}`,
-                    rawAproxDistance: metrics.distance/1000
+                    aproxDistance: metrics.distance ? `${numberI18n({value: metrics.distance/1000, maxFractionDigits: 3})} ` : '-', 
+                    aproxDuration:  metrics.duration ? `${numberI18n({value: metrics.duration/3600})}` : '-',
+                    rawAproxDistance: metrics.distance/1000,
+                    rawSolverDistance: solverDistance
                 })
             })
         })
@@ -123,6 +133,10 @@ export function useRoutes() {
         
             const dist1 = e1.rawAproxDistance ?? Number.MAX_VALUE
             const dist2 = e2.rawAproxDistance ?? Number.MAX_VALUE
+
+            if (dist1 == dist2) {
+                return e1.rawSolverDistance - e2.rawSolverDistance
+            }
         
             return dist1 - dist2
         })
@@ -166,13 +180,16 @@ export function useRoutes() {
             layerOverlay.removeLayer(initalDepotLayer)
             initalDepotLayer = null
         }
+
         if (data.value) {
+            console.log(data.value)
             initialCustomerLayer =  initLayer()
             initalDepotLayer = initLayer()
             const {
                 customers,
                 depots
             } = data.value
+            console.log(customers)
             addCustomers({map: initialCustomerLayer, customers})
             addDepots({map: initalDepotLayer, depots})
             addlayer(layerOverlay,initialCustomerLayer,t("routes.layers.initialCustomers"))
@@ -247,7 +264,15 @@ export function useRoutes() {
         if (groups.value) {
             removeGroupLayers()
         }
-        await executeGrouping()
+        if (isBenchmark()) {
+            await executeBenchmarksGrouping(selectedBenchmark.value)
+        } else if(isCustomMode()) {
+            await executeCustomGrouping(deliveryWindowConfig.value)
+            
+        } else {
+            await executeGrouping()
+        }
+        
         if (groups.value) {
             const executionResult = groups.value
             const depotsIndexs = new Set()
@@ -275,29 +300,22 @@ export function useRoutes() {
     }
 
     async function  runSolvers() {
-        /*
-        executeAllSelected({
-            data,
-            layersBySolver,
-            drawFunction: drawRoutes
-        })
+        if (isBenchmark()) {
+            // drawRoutes --> This will calculate OSMR routes, however benchmarks have clients in the ocean and sea, so it will not draw any route.
+            executeSlots({
+                data, 
+                layersBySolver, 
+                drawFunction: benchmarkAccumulateRealCostBySlotAndSolver, 
+                urlBase: `/fms/routing/solve/benchmarks/${selectedBenchmark.value}/cluster`
+            })
+        } else {
+            executeSlots({data, layersBySolver, drawFunction: drawRoutes })
+            .then(() => addRootSolutionToMap({map, layerOverlay}))
+        }
         
-        */
-        executeSlots({data, layersBySolver, drawFunction: drawRoutes }).then(() => addRootSolutionToMap({map, layerOverlay}))
-        /*Object.entries(layersBySolver.value).map(([solverType,layer]) =>{
-            layer.root.addTo(map)
-            addlayer(layerOverlay,layer.root,t(`routes.layers.${solverType}`))
-        })*/
         
     }
 
-    // TODO: DELETE
-    function showExecutions() {
-        console.log(routesBySolver.value)
-        console.log(realCostBySolver.value)
-        console.log(data.value)
-        console.log(groupsRows.value)
-    }
  
     // =====================================
     // [END] UTILS
@@ -314,7 +332,6 @@ export function useRoutes() {
         runSolvers,
         runInitialData,
         runGrouping,
-        showExecutions,
         focusOnGroup
     }
 

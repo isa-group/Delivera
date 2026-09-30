@@ -35,6 +35,8 @@ const {
         selectedBenchmark,
         toDate,
         fromDate,
+        includeNullsFromDate,
+        includeNullsToDate,
         selectPhase,
         showGroupDatatable,
         canGoToPhase,
@@ -47,7 +49,6 @@ const {
         runSolvers,
         runInitialData,
         toggleConfig,
-        showExecutions,
         showDataConfigButton,
         showLoadButton,
         showBenchmarksSection,
@@ -60,6 +61,7 @@ const {
         focusOnGroup,
         getAvailableSlots,
         toggleCatalog,
+        showCustomSection,
        
 
     } = useRoutes()
@@ -144,6 +146,58 @@ const {
                             optionValue="value"
                             @click.stop
                         />
+                        <div class="custom-section" v-if="showCustomSection()">
+
+                            <div class="date-config" >
+                                <label>{{ t('routes.fromDate') }}</label>
+
+                                <DatePicker
+                                    v-model="fromDate"
+                                    showTime
+                                    showIcon
+                                    manualInput
+                                    hourFormat="24"
+                                    :dateFormat="getLocaleFormat()"
+                                    :max-date="toDate"
+                                    :showOnFocus="false"
+                                />
+
+                                <div class="parameter-checkbox">
+                                    <span>{{ t('routes.includeNullFromDate') }}</span>
+
+                                    <Checkbox
+                                        v-model="includeNullsFromDate"
+                                        :binary="true"
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="date-config">
+                                <label>{{ t('routes.toDate') }}</label>
+
+                               
+                                <DatePicker
+                                    v-model="toDate"
+                                    showTime
+                                    showIcon
+                                    manualInput
+                                    hourFormat="24"
+                                    :dateFormat="getLocaleFormat()"
+                                    :min-date="fromDate"
+                                    :showOnFocus="false"
+                                />
+
+                                <div class="parameter-checkbox">
+                                    <span>{{ t('routes.includeNullToDate') }}</span>
+
+                                    <Checkbox
+                                        v-model="includeNullsToDate"
+                                        :binary="true"
+                                    />
+                                </div>
+                            </div>
+
+                        </div>
                         <PButton
                             v-if="showDataConfigButton()"
                             class="data-config-box-buttom"
@@ -152,27 +206,6 @@ const {
                             :aria-label=" `${(!showConfig? t('routes.show') : t('routes.hide'))} ${t('routes.dataConfig')}`"
                             @click="toggleConfig()"
                         />
-                        <div v-if="false">
-                            <DatePicker
-                                v-model="fromDate"
-                                showTime
-                                showIcon
-                                manualInput
-                                hourFormat="24"
-                                :dateFormat="getLocaleFormat()"
-                                :max-date="toDate"
-                            />
-
-                            <DatePicker
-                                v-model="toDate"
-                                showTime
-                                showIcon
-                                manualInput
-                                hourFormat="24"
-                                :dateFormat="getLocaleFormat()"
-                                :min-date="fromDate"
-                            />
-                        </div>
                         <div class="execute-panel">
                             <PButton
                                 v-if="showLoadButton()"

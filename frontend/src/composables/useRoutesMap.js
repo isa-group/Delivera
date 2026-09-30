@@ -285,6 +285,27 @@ export function useRoutesMap() {
         accumulateRealCostBySlotAndSolver({slotId, solverType, routeMetrics})
     }
 
+    async function benchmarkAccumulateRealCostBySlotAndSolver({
+        routes, 
+        customers, 
+        depots, 
+        solverType,
+        slotId
+    }) {
+        const customersById = getCoordinatesByElemetId(customers)
+        const depotsById = getCoordinatesByElemetId(depots)
+        const addRoutesPromises = []
+        let routeIndx = 0
+        //const osrmRoutes = []
+        const routeMetrics = {
+            distance: undefined,
+            duration: undefined
+        }        
+        
+        
+        accumulateRealCostBySlotAndSolver({slotId, solverType, routeMetrics})
+    }
+
 
 
 
@@ -298,6 +319,7 @@ export function useRoutesMap() {
         drawRoutes,
         unmountMap,
         addRootSolutionToMap,
-        unmountRootLayer
+        unmountRootLayer,
+        benchmarkAccumulateRealCostBySlotAndSolver
     }
 }

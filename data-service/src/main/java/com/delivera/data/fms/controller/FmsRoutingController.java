@@ -8,6 +8,7 @@ import com.delivera.data.fms.dto.InstanceCatalog;
 import com.delivera.data.fms.dto.RoutingRequest;
 import com.delivera.data.fms.dto.RoutingResponse;
 import com.delivera.data.fms.dto.SolveClusterRequest;
+import com.delivera.data.fms.dto.SolveInstanceClusterRequest;
 import com.delivera.data.fms.dto.TypeSolver;
 import com.delivera.data.fms.service.FmsRoutingService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -154,6 +155,26 @@ public class FmsRoutingController {
         UUID companyId = securityUtils.getCurrentCompanyId();
         RoutingResponse response = fmsRoutingService.solverForCompany(
             companyId, 
+            request.getCustomers(),
+            request.getDepots(),
+            solverType
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Resolver rutas de la empresa",
+    description = "Resuelve el problema de ruteo de vehiculos para la empresa autenticada. " +
+            "Obtiene depositos, ordenes pendientes y vehiculos de la base de datos, " +
+            "construye el problema y lo envia al FMS Routing Service para su optimizacion.")
+    @PostMapping("/solve/benchmarks/{name}/cluster")
+    public ResponseEntity<RoutingResponse> solveInstanceCluster(
+        @Parameter(description = "Tipo de solver a utilizar (RANDOM o GREEDY)")
+        @RequestParam(defaultValue = "GREEDY") TypeSolver solverType,
+        @RequestBody  SolveInstanceClusterRequest request,
+        @Valid @PathVariable(name = "name") String name
+    ) {
+        RoutingResponse response = fmsRoutingService.solverForInstance(
+            name, 
             request.getCustomers(),
             request.getDepots(),
             solverType

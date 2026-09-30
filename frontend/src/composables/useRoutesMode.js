@@ -16,6 +16,8 @@ export function useRoutesModes({
     const customModeId = 101
     //const selectedModesId = ref(new Set())
     const modes = [
+        // TODO: I have no time to fully implement this section
+        /*
         {
             id:1,
             name: t("routes.modes.best.name"),
@@ -32,7 +34,7 @@ export function useRoutesModes({
             name: t("routes.modes.custom.name"),
             description: t("routes.modes.custom.description"),
             icon: "pi pi-cog"
-        },
+        },*/
         {
             id:comparisonModeId,
             name: t("routes.modes.comparison.name"),

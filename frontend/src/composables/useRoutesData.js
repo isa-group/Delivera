@@ -31,15 +31,29 @@ export function useRoutesData({
 
     })
 
-    
     const selectedBenchmark = ref({})
     
     const dataError = ref()
-    const {executeLoad} = useLoad()
+    const {executeLoad, post} = useLoad()
     const dataApi = useServices("data-service")
     const url = "/fms/routing/data"
     const benchmarksUrl = "/fms/routing/data/benchmarks"
     const showConfig = ref(false)
+    const includeNullsFromDate  = ref(true)
+    const includeNullsToDate = ref(true)
+
+    const isBenchmarkComputed = computed(() => {
+        return isBenchmark()
+    })
+
+    const deliveryWindowConfig = computed(() => {
+        return {
+            fromDate: selectedInstants.value.from ?? null,
+            toDate: selectedInstants.value.to ?? null,
+            includeNullsFromDate: includeNullsFromDate.value,
+            includeNullsToDate: includeNullsToDate.value
+        }
+    })
 
     const {fromDate, toDate, selectedInstants} = useDateRange()
 
@@ -68,6 +82,8 @@ export function useRoutesData({
 
     ]
 
+    
+
     function isBenchmark() {
         return selections.value.has(benchmarkId)
     }
@@ -80,14 +96,21 @@ export function useRoutesData({
         return selections.value.has(customId)
     }
 
+    function showCustomSection() {
+        return isCustomMode() && showConfig.value
+    }
+
     function showDataConfigButton() {
         return isCustomMode() || isBenchmark()
     }
 
     async function loadInitialData() {
+        console.log(deliveryWindowConfig.value)
         dataError.value = ""
         if (isBenchmark() && selectedBenchmark.value) {
             await executeLoad(dataApi,benchmarksUrl+`/${selectedBenchmark.value}`,data,dataError)
+        } else if(isCustomMode()) {
+            await post(dataApi,url, deliveryWindowConfig.value ,data, dataError )
         } else {
             await executeLoad(dataApi,url,data,dataError)
         }
@@ -115,7 +138,6 @@ export function useRoutesData({
         if (oneSelected) {
             if(isBenchmark()) {
                 await executeLoad(dataApi,benchmarksUrl,  allBenchmark, allBenchmarkError, null, mapInstances)
-                console.log(allBenchmark.value)
                 showConfig.value = true
             } 
         } else {
@@ -135,6 +157,7 @@ export function useRoutesData({
 
     return {
         data,
+        dataError,
         dataModes,
         selectedDataModeId: selections,
         selectedInstants,
@@ -142,15 +165,22 @@ export function useRoutesData({
         toDate,
         showConfig,
         allBenchmark,
+        isBenchmarkComputed,
         possibleBenchmarks,
         selectedBenchmark,
+        includeNullsFromDate,
+        includeNullsToDate,
+        deliveryWindowConfig,
         loadInitialData: loadInitialData,
         selectDataMode,
         toggleConfig,
         showDataModeSelector,
         showBenchmarksSection,
         showDataConfigButton,
-        showLoadButton
+        showLoadButton,
+        isBenchmark,
+        isCustomMode,
+        showCustomSection
 
         
     }

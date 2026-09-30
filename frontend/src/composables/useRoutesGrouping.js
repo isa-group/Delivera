@@ -8,7 +8,7 @@ export function useRoutesGrouping({
     disabledNextPhases,
     goToPhase,
     getCurrentPhaseName
-},{addCustomers, addDepots}, {maxPerExecution}) {
+},{addCustomers, addDepots}, {maxPerExecution}, {isBenchmark}) {
 
     const { t } = useI18n() 
     const dataApi = useServices("data-service")
@@ -28,6 +28,7 @@ export function useRoutesGrouping({
     const groupsError = ref()
 
     const showExtraMetrics = ref(false)
+
 
 
     const groupingParams = ref({
@@ -64,14 +65,17 @@ export function useRoutesGrouping({
     }
 
 
-    const groupingNormalSelectors = [
-        objectByName("maxDepotRadiusKm",1,500),
-        objectByName("maxClusterSize",1,maxPerExecution.value),
+    const groupingNormalSelectors = computed( () => { 
+        const benchmark = isBenchmark()
+        return [
+        objectByName("maxDepotRadiusKm",1, benchmark? 10000 : 500),
+        objectByName("maxClusterSize",1,benchmark? 500 : maxPerExecution.value ),
         objectByName("minClusterSize",1,100),
-        objectByName("maxRadiusKm",1,500),
-        objectByName("noiseClusterMaxDistanceKm",1,500),
-        objectByName("noiseMaxDistanceKm",1,500)  
-    ]
+        objectByName("maxRadiusKm",1,benchmark? 10000 : 500 ),
+        objectByName("noiseClusterMaxDistanceKm",1, benchmark? 10000 : 500),
+        objectByName("noiseMaxDistanceKm",1, benchmark? 10000 : 500)  
+    ] 
+    })
 
 
     function showGroupingParams(){
@@ -133,8 +137,72 @@ export function useRoutesGrouping({
         }
     }
 
+    function checkInLimitsParams() {
+        const limitViolations = []
+        const limitConfig =groupingNormalSelectors.value.forEach(
+            ({
+                key,
+                name,
+                min,
+                max,
+                step
+            }) =>{
+                const paramValue = groupingParams.value[key]
+                if (paramValue > max || paramValue < min) {
+                    limitViolations.push(paramValue)
+                }
+            }
+        )
+
+        
+
+        return limitViolations.length == 0
+    }
+
     async function executeGrouping() {
-        await post(dataApi,"/fms/routing/cluster",groupingParams.value,groups,groupsError)
+        if (checkInLimitsParams()) {
+            await post(dataApi,"/fms/routing/cluster",groupingParams.value,groups,groupsError)
+            setGroupData()
+            goToPhase({name: "selectMode"})
+        } else {
+            groupingParams.value = {
+                dbscan: true,
+                maxRadiusKm: 50,
+                maxDepotRadiusKm: 150,
+                minClusterSize: 3,
+                maxClusterSize: 20,
+                noiseClusterMaxDistanceKm: 150,
+                noiseMaxDistanceKm: 30
+            }
+        }
+       
+
+    }
+
+    async function executeCustomGrouping(deliveryWindowConfig) {
+        if (checkInLimitsParams()) {
+            const params = {...groupingParams.value}
+            params.window = deliveryWindowConfig
+            await post(dataApi,"/fms/routing/cluster",params,groups,groupsError)
+            setGroupData()
+            goToPhase({name: "selectMode"})
+        } else {
+            groupingParams.value = {
+                dbscan: true,
+                maxRadiusKm: 50,
+                maxDepotRadiusKm: 150,
+                minClusterSize: 3,
+                maxClusterSize: 20,
+                noiseClusterMaxDistanceKm: 150,
+                noiseMaxDistanceKm: 30
+            }
+        }
+       
+
+    }
+
+    async function executeBenchmarksGrouping(name) {
+        await post(dataApi,`/fms/routing/cluster/benchmarks/${name}`,groupingParams.value,groups,groupsError)
         setGroupData()
         goToPhase({name: "selectMode"})
 
@@ -209,6 +277,7 @@ export function useRoutesGrouping({
         groupingParams,
         groupingNormalSelectors,
         groups,
+        groupsError,
         groupingParamsDisabled,
         groupsRows,
         groupsRowsMetadata,
@@ -217,6 +286,8 @@ export function useRoutesGrouping({
         showGroupDatatable,
         clampValue,
         executeGrouping,
+        executeCustomGrouping,
+        executeBenchmarksGrouping,
         toggleShowExtraMetrics,
         getAvailableSlots,
         getSlots,

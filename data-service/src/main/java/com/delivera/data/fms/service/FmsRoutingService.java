@@ -73,4 +73,6 @@ public interface FmsRoutingService {
         ClusterConfig config, 
         TypeSolver solverType
     );
+
+    RoutingResponse solverForInstance(String name, Set<String> customers, Set<String> depots, TypeSolver solverType);
 }

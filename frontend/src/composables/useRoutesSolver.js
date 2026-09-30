@@ -98,7 +98,7 @@ export function useRoutesSolver(
         return routesBySolver.value[solverType]
     }
 
-    async function executeSlots({data,layersBySolver , drawFunction = () => {}}) {
+    async function executeSlots({data,layersBySolver , drawFunction = () => {}, urlBase = undefined}) {
         const promises = []
         getSolverNames().forEach(name => initSolverLayer(name, layersBySolver) )
         
@@ -112,7 +112,7 @@ export function useRoutesSolver(
             
             getSolverNames().forEach(name => {
                 if (slotRow[name]) {
-                    promises.push(promiseExecuteSolver(slotRow.id, payload, name))
+                    promises.push(promiseExecuteSolver(slotRow.id, payload, name, urlBase))
                 }
             })
         }
@@ -148,11 +148,16 @@ export function useRoutesSolver(
 
     
 
-    async function  promiseExecuteSolver(slotId, instance, solverType) {
+    async function  promiseExecuteSolver(
+        slotId, 
+        instance, 
+        solverType, 
+        urlBase = "/fms/routing/solve/cluster" 
+    ) {
         if (translateSolver[solverType] && !isSolved(solverType)) {
             return post(
                 dataApi,
-                "/fms/routing/solve/cluster?solverType="+translateSolver[solverType],
+                `${urlBase}?solverType=${translateSolver[solverType]}`,
                 instance,
                 routesByCluster,
                 routesErrorBySolver,
@@ -166,12 +171,6 @@ export function useRoutesSolver(
                     newRoutes[slotId].push({solver: solverType, solution: data})
                     
                     return newRoutes
-                    /*
-                    return {
-
-                        ...routesBySolver.value,
-                        [solverType]: data
-                    }*/
                 }
             )
         }else {
@@ -199,7 +198,8 @@ export function useRoutesSolver(
     async function executeAllSelected({
         data,
         layersBySolver, 
-        drawFunction = () => {}
+        drawFunction = () => {},
+        urlBase = undefined
     }) {
         const promises = []
         forExistingSelectedSolvers((solver) => {

@@ -308,6 +308,74 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
                 .body(RoutingResponse.class);
     }
 
+    @Override
+    public RoutingResponse solverForInstance(
+        String name, 
+        Set<String> customers, 
+        Set<String> depots,
+        TypeSolver solverType
+    ) {
+
+        RoutingRequest request = getInstance(
+            name,
+            solverType,
+            false
+        );
+
+        Integer index = 0;
+
+        List<VehicleProjection> vehicles = request.vehicles()
+        .stream()
+        .filter(vehicle -> depots.contains(vehicle.getStartDepotId()))
+        .toList();
+
+        List<DepotDto> depotDTOs = new  ArrayList<>();
+        for (DepotDto depot: request.depots()) {
+            if (depots.contains(depot.id())) {
+                DepotDto newDepot = new  DepotDto(
+                    depot.id(), 
+                    depot.lat(), 
+                    depot.lng(), 
+                    index
+                );
+                depotDTOs.add(newDepot);
+                index += 1; 
+            }
+        }
+
+        List<CustomerDto> customerDTOs = new  ArrayList<>();
+
+        for (CustomerDto customer: request.customers()) {
+            if (customers.contains(customer.id())) {
+                CustomerDto newCustomer = new  CustomerDto(
+                    customer.id(), 
+                    customer.demand(),
+                    customer.lat(), 
+                    customer.lng(), 
+                    index
+                );
+                customerDTOs.add(newCustomer);
+                index += 1; 
+            }
+        }
+
+        request = buildRequest(
+            customerDTOs, 
+            depotDTOs, 
+            vehicles, 
+            solverType, 
+            true
+        );
+
+
+        return fmsRoutingClient.post()
+                .uri("/api/v1/fms/routing/solve")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .retrieve()
+                .body(RoutingResponse.class);
+    }
+
 
 
     private  List<DepotDto> transformInDTO(
