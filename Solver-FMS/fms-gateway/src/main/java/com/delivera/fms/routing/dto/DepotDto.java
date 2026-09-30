@@ -4,22 +4,22 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@Schema(name = "Depot", description = "Datos de un deposito (punto de origen de vehiculos)")
+@Schema(name = "Depot", description = "A depot (starting point of vehicles)")
 public record DepotDto(
-        @Schema(description = "Identificador unico del deposito", example = "DEP-1")
+        @Schema(description = "Unique depot identifier", example = "DEP-1")
         @NotBlank String id,
 
-        @Schema(description = "Latitud de la ubicacion del deposito", example = "40.4168")
+        @Schema(description = "Latitude of the depot's location", example = "40.4168")
         @NotNull Double lat,
 
-        @Schema(description = "Longitud de la ubicacion del deposito", example = "-3.7038")
+        @Schema(description = "Longitude of the depot's location", example = "-3.7038")
         @NotNull Double lng,
 
-        @Schema(description = "Indice del deposito en la matriz de distancias", example = "0")
+        @Schema(description = "Index of the depot in the distance matrix", example = "0")
         @NotNull Integer matrixIndex,
 
-        @Schema(description = "Duracion maxima de una ruta que sale de este deposito, en las mismas "
-                + "unidades que la matriz de distancias. Ausente o 0 significa sin limite",
+        @Schema(description = "Maximum duration of a route leaving from this depot, in the same "
+                + "units as the distance matrix. Absent or 0 means no limit",
                 example = "200")
         Double maxDuration
 ) {

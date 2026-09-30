@@ -26,7 +26,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("FMS Gateway API")
                         .version("1.0.0")
-                        .description("API del Gateway de optimizacion de rutas del Fleet Management System"));
+                        .description("Route optimisation gateway API of the Fleet Management System"));
     }
 
     /**

@@ -5,41 +5,41 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 
-@Schema(description = "Respuesta con la solucion del problema de ruteo")
+@Schema(description = "Response with the solution of the routing problem")
 public record RoutingResponse(
-        @Schema(description = "Identificador del problema resuelto", example = "p01")
+        @Schema(description = "Identifier of the solved problem", example = "p01")
         String problemId,
 
-        @Schema(description = "Estado de la resolucion (COMPLETED / FAILURE)", example = "COMPLETED")
+        @Schema(description = "Solving status (COMPLETED / FAILURE)", example = "COMPLETED")
         String status,
 
-        @Schema(description = "Tipo de solver utilizado en la resolucion",
+        @Schema(description = "Solver type used",
                 allowableValues = {"RANDOM", "GREEDY", "GENETIC", "ANNEALING"}, example = "GREEDY")
         String solverUsed,
 
-        @Schema(description = "Costo total de la solucion (suma de distancias de todas las rutas)", example = "775.2683743807665")
+        @Schema(description = "Total cost of the solution (sum of the distances of all routes)", example = "775.2683743807665")
         Double totalCost,
 
-        @Schema(description = "Tiempo de computo en milisegundos", example = "6")
+        @Schema(description = "Computation time in milliseconds", example = "6")
         Long computationTimeMs,
 
-        @Schema(description = "Semilla con la que se ejecuto el solver. Reenviarla en " +
-                "'parameters' reproduce exactamente esta solucion. Ausente en los solvers " +
-                "deterministas, que no dependen del azar",
+        @Schema(description = "Seed the solver ran with. Sending it back in " +
+                "'parameters' reproduces exactly this solution. Absent in deterministic " +
+                "solvers, which do not depend on chance",
                 example = "1234", nullable = true)
         Long seed,
 
         @ArraySchema(
-                arraySchema = @Schema(description = "Lista de rutas que componen la solucion"),
+                arraySchema = @Schema(description = "List of routes that make up the solution"),
                 schema = @Schema(implementation = RouteDto.class))
         List<RouteDto> routes,
 
         @ArraySchema(
-                arraySchema = @Schema(description = "Curva anytime: instantes, desde el arranque, en " +
-                        "los que mejoro la mejor solucion factible. Permite saber que coste habria dado " +
-                        "el motor con menos presupuesto sin volver a ejecutarlo. Solo la devuelven los " +
-                        "motores que buscan de forma incremental con presupuesto de tiempo (ANNEALING); " +
-                        "el resto la dejan a null", nullable = true),
+                arraySchema = @Schema(description = "Anytime curve: instants, since start-up, at " +
+                        "which the best feasible solution improved. It tells what cost the engine would " +
+                        "have given with a smaller budget without running it again. Only engines that " +
+                        "search incrementally with a time budget return it (ANNEALING); " +
+                        "the rest leave it null", nullable = true),
                 schema = @Schema(implementation = TracePointDto.class))
         List<TracePointDto> trace
 ) {

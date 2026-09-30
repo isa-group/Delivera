@@ -9,32 +9,32 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * pasarela cuando el cliente no envia el parametro, de modo que el motor siempre
  * ejecuta una configuracion completa y conocida.
  */
-@Schema(description = "Parametro configurable de un solver, con su valor por defecto y su rango valido")
+@Schema(description = "Configurable solver parameter, with its default value and valid range")
 public record SolverParameter(
 
-        @Schema(description = "Nombre del parametro, tal y como se envia en el mapa 'parameters'",
+        @Schema(description = "Parameter name, as sent in the 'parameters' map",
                 example = "populationSize")
         String name,
 
-        @Schema(description = "Que controla el parametro y como afecta al comportamiento del solver",
-                example = "Individuos por generacion")
+        @Schema(description = "What the parameter controls and how it affects the solver's behaviour",
+                example = "Individuals per generation")
         String description,
 
-        @Schema(description = "Tipo de dato. Indica si el parametro admite decimales")
+        @Schema(description = "Data type. Tells whether the parameter accepts decimals")
         ParameterType type,
 
-        @Schema(description = "Valor aplicado si el cliente no envia el parametro. " +
-                "Ausente significa que el solver decide internamente",
+        @Schema(description = "Value applied if the client does not send the parameter. " +
+                "Absent means the solver decides internally",
                 example = "150")
         Object defaultValue,
 
-        @Schema(description = "Valor minimo admitido. Ausente significa sin cota inferior", example = "10")
+        @Schema(description = "Minimum accepted value. Absent means no lower bound", example = "10")
         Double min,
 
-        @Schema(description = "Valor maximo admitido. Ausente significa sin cota superior", example = "2000")
+        @Schema(description = "Maximum accepted value. Absent means no upper bound", example = "2000")
         Double max,
 
-        @Schema(description = "Si es true, el cliente debe enviarlo porque no hay valor por defecto",
+        @Schema(description = "If true, the client must send it because there is no default value",
                 example = "false")
         boolean required
 ) {

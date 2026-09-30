@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/fms/routing")
-@Tag(name = "Routing", description = "Resolucion de rutas de vehiculos")
+@Tag(name = "Routing", description = "Vehicle route solving")
 public class RoutingController {
 
     private final EngineDispatcher engineDispatcher;
@@ -32,19 +32,19 @@ public class RoutingController {
         this.engineDispatcher = engineDispatcher;
     }
 
-    @Operation(summary = "Resolver problema de ruteo",
-            description = "Resuelve un problema de ruteo de vehiculos con capacidad para multiples almacenes (MD-CVRP) " +
-                    "utilizando el solver especificado en la solicitud. " +
-                    "Devuelve las rutas optimizadas con sus vehiculos, paradas, distancias y cargas. " +
-                    "Los parametros del solver que no se envien se completan con los valores por defecto " +
-                    "declarados en sus metadatos.")
-    @ApiResponse(responseCode = "200", description = "Problema resuelto correctamente",
+    @Operation(summary = "Solve a routing problem",
+            description = "Solves a multi-depot capacitated vehicle routing problem (MD-CVRP) " +
+                    "with the solver specified in the request. " +
+                    "Returns the optimised routes with their vehicles, stops, distances and loads. " +
+                    "Solver parameters not sent are filled in with the default values " +
+                    "declared in its metadata.")
+    @ApiResponse(responseCode = "200", description = "Problem solved successfully",
             content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = RoutingResponse.class),
                     examples = @ExampleObject(
-                            name = "Solucion MD-CVRP (instancia p01)",
-                            description = "Resolucion real de la instancia p01 (4 depositos, 50 clientes) con el solver GREEDY",
+                            name = "MD-CVRP solution (instance p01)",
+                            description = "Actual solution of instance p01 (4 depots, 50 customers) with the GREEDY solver",
                             value = OpenApiExamples.ROUTING_RESPONSE)))
     @PostMapping("/solve")
     public ResponseEntity<RoutingResponse> solve(
@@ -55,12 +55,12 @@ public class RoutingController {
                             schema = @Schema(implementation = RoutingRequest.class),
                             examples = {
                                     @ExampleObject(
-                                            name = "MD-CVRP (2 depositos, 5 clientes)",
-                                            description = "Instancia lista para ejecutar: matriz 7x7 consistente con los indices de los nodos",
+                                            name = "MD-CVRP (2 depots, 5 customers)",
+                                            description = "Ready-to-run instance: 7x7 matrix consistent with the node indices",
                                             value = OpenApiExamples.SOLVE_REQUEST),
                                     @ExampleObject(
-                                            name = "MD-CVRP con parametros del solver",
-                                            description = "Misma instancia con duracion maxima y tiempos de servicio, resuelta por el motor genetico con parametros propios",
+                                            name = "MD-CVRP with solver parameters",
+                                            description = "Same instance with maximum duration and service times, solved by the genetic engine with its own parameters",
                                             value = OpenApiExamples.SOLVE_REQUEST_TUNED)}))
             @Valid @RequestBody RoutingRequest request) {
         validateConsistency(request);

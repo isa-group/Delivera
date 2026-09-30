@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * No convierte tipos: tanto el YAML de configuracion como el JSON de la peticion
  * entregan ya los numeros tipados. Su trabajo es rechazar lo que no encaja.
  */
-@Schema(description = "Tipo de dato de un parametro de solver", enumAsRef = true)
+@Schema(description = "Data type of a solver parameter", enumAsRef = true)
 public enum ParameterType {
 
     // Numero sin parte decimal. Se normaliza a Long para no acotar el rango a 32 bits.

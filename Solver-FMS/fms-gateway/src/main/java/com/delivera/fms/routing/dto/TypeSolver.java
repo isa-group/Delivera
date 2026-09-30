@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * correspondiente bajo fms.engines en application.yml. El cliente HTTP, el
  * despacho y el catalogo GET /api/v1/fms/solvers se actualizan solos.
  */
-@Schema(description = "Tipo de algoritmo de resolucion de rutas", enumAsRef = true)
+@Schema(description = "Route-solving algorithm type", enumAsRef = true)
 public enum TypeSolver {
     RANDOM,
     GREEDY,

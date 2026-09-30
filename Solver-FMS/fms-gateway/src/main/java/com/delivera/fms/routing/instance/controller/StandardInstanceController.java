@@ -30,7 +30,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/fms/instances")
-@Tag(name = "Instancias", description = "Carga y procesamiento de instancias de benchmark MD-CVRP")
+@Tag(name = "Instances", description = "Loading and solving of MD-CVRP benchmark instances")
 public class StandardInstanceController {
 
     private final StandardInstanceClient client;
@@ -41,101 +41,101 @@ public class StandardInstanceController {
         this.registry = registry;
     }
 
-    @Operation(summary = "Listar instancias estandar disponibles",
-            description = "Devuelve el banco de instancias MD-CVRP que tiene montado el gateway, con las "
-                    + "propiedades de cada una: numero de depositos y clientes, flota, capacidad, duracion "
-                    + "maxima de ruta y demanda total. Son las instancias clasicas de Cordeau, las mismas "
-                    + "que usa el benchmark. El catalogo se deriva del contenido del directorio de "
-                    + "instancias, asi que anadir un fichero basta para que aparezca aqui. "
-                    + "El campo 'name' es el que debe enviarse como fileName al resolver una instancia.")
-    @ApiResponse(responseCode = "200", description = "Catalogo de instancias",
+    @Operation(summary = "List the available standard instances",
+            description = "Returns the MD-CVRP instance bank mounted in the gateway, with the "
+                    + "properties of each one: number of depots and customers, fleet, capacity, maximum "
+                    + "route duration and total demand. They are the classic Cordeau instances, the same "
+                    + "ones the benchmark uses. The catalogue is derived from the contents of the instance "
+                    + "directory, so adding a file is enough for it to show up here. "
+                    + "The 'name' field is the one to send as fileName when solving an instance.")
+    @ApiResponse(responseCode = "200", description = "Instance catalogue",
             content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = InstanceCatalog.class),
                     examples = @ExampleObject(
-                            name = "Catalogo del banco Cordeau",
-                            description = "Respuesta recortada a 3 de las 33 instancias del banco",
+                            name = "Cordeau bank catalogue",
+                            description = "Response trimmed to 3 of the 33 instances in the bank",
                             value = INSTANCE_CATALOG_EXAMPLE)))
     @GetMapping
     public ResponseEntity<InstanceCatalog> listInstances() throws IOException {
         return ResponseEntity.ok(InstanceCatalog.of(registry.findAll()));
     }
 
-    @Operation(summary = "Obtener una instancia concreta",
-            description = "Devuelve la instancia indicada con todos sus nodos, ya traducida al modelo "
-                    + "del gateway: no es el fichero tal cual, sino los depositos, clientes y vehiculos "
-                    + "que se le enviarian al motor. Los identificadores son los mismos que aparecen "
-                    + "despues en las rutas de la solucion, de modo que una respuesta de "
-                    + "POST /api/v1/fms/instances/send se puede leer contra esta representacion. "
-                    + "La matriz de distancias no se incluye: se calcula al resolver a partir de "
-                    + "estas coordenadas.")
+    @Operation(summary = "Get a specific instance",
+            description = "Returns the given instance with all its nodes, already translated to the "
+                    + "gateway model: not the file as is, but the depots, customers and vehicles that "
+                    + "would be sent to the engine. The identifiers are the same ones that later appear "
+                    + "in the solution routes, so a response from "
+                    + "POST /api/v1/fms/instances/send can be read against this representation. "
+                    + "The distance matrix is not included: it is computed from these coordinates "
+                    + "when solving.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Instancia encontrada",
+            @ApiResponse(responseCode = "200", description = "Instance found",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = InstanceDetail.class),
                             examples = @ExampleObject(
-                                    name = "Instancia p01",
-                                    description = "4 depositos y 50 clientes. Las listas de clientes y "
-                                            + "vehiculos se muestran recortadas",
+                                    name = "Instance p01",
+                                    description = "4 depots and 50 customers. The customer and vehicle "
+                                            + "lists are shown trimmed",
                                     value = INSTANCE_DETAIL_EXAMPLE))),
             @ApiResponse(responseCode = "404",
-                    description = "La instancia no esta en el directorio de instancias",
+                    description = "The instance is not in the instance directory",
                     content = @Content)
     })
     @GetMapping("/{name}")
     public ResponseEntity<InstanceDetail> getInstance(
-            @Parameter(description = "Nombre de la instancia, con o sin extension (ej. p01)",
+            @Parameter(description = "Instance name, with or without extension (e.g. p01)",
                     required = true, example = "p01")
             @PathVariable String name) throws IOException {
         return ResponseEntity.ok(registry.findByName(name));
     }
 
-    @Operation(summary = "Enviar instancia de benchmark al solver",
-            description = "Carga un archivo de instancia MD-CVRP (JSON) desde el directorio de instancias, " +
-                    "lo parsea y lo envia al motor de ruteo correspondiente para su resolucion. " +
-                    "Admite en el cuerpo un mapa de parametros del solver: los que no se envien toman su " +
-                    "valor por defecto segun los metadatos, lo que permite repetir la misma instancia con " +
-                    "distintas configuraciones del mismo algoritmo.",
+    @Operation(summary = "Send a benchmark instance to the solver",
+            description = "Loads an MD-CVRP instance file (JSON) from the instance directory, " +
+                    "parses it and sends it to the corresponding routing engine to be solved. " +
+                    "Accepts a map of solver parameters in the body: those not sent take their " +
+                    "default value from the metadata, which allows running the same instance with " +
+                    "different configurations of the same algorithm.",
             // Declarado en la operacion y no en el argumento: springdoc no genera
             // cuerpo para un parametro de tipo Map, que reserva para los query params.
             // Cualificado porque el nombre corto RequestBody ya lo ocupa el de Spring,
             // que es el que necesita el argumento del metodo.
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Parametros del solver por nombre. Opcional: sin cuerpo se usan los " +
-                            "valores por defecto. La lista admitida por cada solver, con el significado " +
-                            "y el rango de cada parametro, esta en GET /api/v1/fms/solvers/{type}",
+                    description = "Solver parameters by name. Optional: without a body the default " +
+                            "values are used. The list each solver accepts, with the meaning and range " +
+                            "of each parameter, is at GET /api/v1/fms/solvers/{type}",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(type = "object"),
                             examples = {
-                                    @ExampleObject(name = "Genetico: barrido de parametros",
-                                            description = "Poblacion y presupuesto mayores que los de por defecto",
+                                    @ExampleObject(name = "Genetic: parameter sweep",
+                                            description = "Larger population and budget than the defaults",
                                             value = "{\"populationSize\": 300, \"maxEvaluations\": 150000}"),
-                                    @ExampleObject(name = "Genetico: busqueda mas larga",
-                                            description = "maxRestarts es el parametro con mas recorrido para bajar el coste",
+                                    @ExampleObject(name = "Genetic: longer search",
+                                            description = "maxRestarts is the parameter with the most room to lower the cost",
                                             value = "{\"maxRestarts\": 10, \"restartStagnantGenerations\": 30}"),
-                                    @ExampleObject(name = "Ejecucion reproducible",
-                                            description = "Con la misma instancia, los mismos parametros y la misma semilla "
-                                                    + "la solucion es identica. La respuesta devuelve siempre la semilla usada, "
-                                                    + "tambien cuando no se envia",
+                                    @ExampleObject(name = "Reproducible run",
+                                            description = "With the same instance, the same parameters and the same seed "
+                                                    + "the solution is identical. The response always returns the seed used, "
+                                                    + "also when none is sent",
                                             value = "{\"populationSize\": 300, \"seed\": 1234}")})))
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Instancia resuelta correctamente",
+            @ApiResponse(responseCode = "200", description = "Instance solved successfully",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = RoutingResponse.class),
                             examples = @ExampleObject(
-                                    name = "Solucion MD-CVRP (instancia p01)",
-                                    description = "Resolucion real de la instancia p01 (4 depositos, 50 clientes) con el solver GREEDY",
+                                    name = "MD-CVRP solution (instance p01)",
+                                    description = "Actual solution of instance p01 (4 depots, 50 customers) with the GREEDY solver",
                                     value = OpenApiExamples.ROUTING_RESPONSE))),
             @ApiResponse(responseCode = "404",
-                    description = "La instancia no esta en el directorio de instancias",
+                    description = "The instance is not in the instance directory",
                     content = @Content)
     })
     @PostMapping("/send")
     public ResponseEntity<RoutingResponse> sendInstance(
-            @Parameter(description = "Nombre del archivo de instancia sin extension (ej. p01)", required = true)
+            @Parameter(description = "Instance file name without extension (e.g. p01)", required = true)
             @RequestParam String fileName,
-            @Parameter(description = "Tipo de solver a utilizar (RANDOM, GREEDY, GENETIC o ANNEALING)")
+            @Parameter(description = "Solver type to use (RANDOM, GREEDY, GENETIC or ANNEALING)")
             @RequestParam(defaultValue = "GREEDY") TypeSolver solverType,
             @RequestBody(required = false) Map<String, Object> parameters) throws IOException {
         RoutingResponse response = client.sendInstance(
