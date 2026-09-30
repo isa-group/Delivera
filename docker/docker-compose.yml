@@ -129,7 +129,23 @@ services:
     volumes:
       - ../backend/src/main/resources/keys:/app/keys:ro
       - ../backend/src/main/resources/certs:/app/certs:ro
-      
+    
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+
+    container_name: frontend
+
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+
+    depends_on:
+      - auth-service
+      - data-service
+      - delivera-service
 
 volumes:
   delivera_pg_data:
