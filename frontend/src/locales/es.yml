@@ -272,6 +272,8 @@ orders:
     IN_TRANSIT: En tránsito
     DELIVERED: Entregado
     CANCELLED: Cancelado
+  fromDate: Inicio del período de entrega
+  toDate: Fin del período de entrega
 
 tracking:
   title: Seguimiento de pedido
@@ -374,6 +376,7 @@ nav:
   workers: Equipo
   admin: Administración
   pricing: Planes de Precios
+  routes: Rutas
 
 admin:
   title: Panel de administración
@@ -638,3 +641,98 @@ pricing:
   activateRenew: Activar auto renovación
   desactivateRenew: Desactivar auto renovación
   
+routes:
+  title: Sistema de creación de rutas
+  configData: Seleccionar datos
+  groupingData: Agrupar y recopilar datos
+  selectMode: Seleccionar el modo
+  showData: Mostrar los datos
+  selectSolvers: Seleccionar los resolutores
+  executeSolvers: Ejecutar los resolutores
+  modes:
+    best: 
+      name: Mejor algoritmo disponible
+      description: Usa automáticamente el mejor algoritmo disponible para su caso concreto.
+    fastest:
+      name: Más rápido y barato
+      description: Usa el algoritmo más rápido y barato posible, no tiene porque ser la mejor solución disponible.
+    comparison:
+      name: Comparación
+      description: Selección de varios algoritmos para hacer comparativas entre los resultados.
+    custom:
+      name: Personalizado
+      description: Escoge el algoritmo disponible que prefieras.
+  dataModes:
+    all:
+      name: Todos a la vez
+      description: Utiliza todos los pedidos disponibles en un mismo grupo. Útil cuando tienes un único área de clientes.
+    custom:
+      name: Personalizado
+      description: Permite seleccionar manualmente los pedidos que se utilizarán en la planificación según el intervalo temporal elegido.
+    benchmarks:
+      name: Banco de pruebas
+      description: Permite seleccionar entre los distintos datos de prueba disponibles.
+  grouping:
+    maxRadiusKm: Radio máximo del grupo (km)
+    maxDepotRadiusKm: Radio máximo de asignación de depósitos (km)
+    minClusterSize: Tamaño mínimo del grupo
+    maxClusterSize: Tamaño máximo del grupo
+    noiseClusterMaxDistanceKm: Distancia máxima entre un cliente aislado y un grupo (km)
+    noiseMaxDistanceKm: Distancia máxima entre un cliente aislado y el cliente más cercano del grupo (km)
+    dbscan: Usar pre-agrupación
+  layers:
+    initialCustomers: Todos los clientes
+    initialDepots: Todas las unidades
+    cluster: Grupo
+    depots: Unidades escogidas
+    GENETIC: Genético
+    GREEDY: Voraz
+    ANNEALING: Recocido
+  tables:
+    group: Grupo
+    slot: Ranura
+    clients: Clientes
+    demand: Demanda
+    units: Unidades
+    cohesion: Cohesión
+    density: Densidad
+    radius: Radio (Km)
+    area: Área (Km^2)
+    type: Tipo
+    solverDistance: Distancia estimada (Km)
+    aproxDistance: Distancia ideal (Km)
+    aproxDuration: Duración ideal (h)
+    name: Nombre
+    vehiclesPerDepot: Vehículos por unidad
+    vehicleCapacity: Capacidad del vehículo
+    maxDuration: Duración máxima
+    loadRatio: Ratio de carga
+
+  solvers:
+    GREEDY:
+      name: Voraz
+      description: "Construye una solución rápida seleccionando en cada paso la opción local más favorable. Ofrece tiempos de cálculo muy bajos y resultados consistentes, aunque no siempre encuentra la ruta globalmente óptima."
+    GENETIC:
+      name: Genético
+      description: "Utiliza una población de soluciones que evoluciona mediante cruces y mutaciones. Requiere más tiempo de cálculo, pero suele encontrar rutas de mayor calidad y explorar mejor el espacio de soluciones."
+    ANNEALING:
+      name: Recocido simulado
+      description: "Parte de una solución inicial y la mejora progresivamente mediante cambios aleatorios controlados. Puede escapar de óptimos locales y encontrar soluciones de alta calidad con un coste computacional moderado."
+  slot:
+    title: ¿Qué es una ranura de ejecución?
+    p1: Una ranura representa una ejecución independiente del resolutor.
+    p2: Los grupos asignados a la misma ranura se resolverán conjuntamente.
+    p3: Puede combinar grupos siempre que no se supere el límite máximo de clientes por ejecución.
+    p4: Las agrupaciones más compactas suelen producir resultados más eficientes.
+  execute: Ejecutar
+  show: Mostrar
+  hide: Ocultar
+  extraMetrics: métricas adicionales
+  catalog: Catálogo
+  results: Resultados
+  dataConfig: configuración de los datos
+  load: Cargar
+  fromDate: Inicio del período de entrega
+  toDate: Fin del período de entrega
+  includeNullFromDate: Incluir ordenes sin fecha de incio del período de entrega
+  includeNullToDate: Incluir ordenes sin fecha de fin del período de entrega

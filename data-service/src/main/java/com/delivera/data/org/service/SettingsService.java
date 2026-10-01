@@ -7,10 +7,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.client.space.service.AbstractSpaceFeature;
 import com.delivera.client.transaction.annotation.Compensable;
-import com.delivera.client.transaction.compensation.Compensations;
 import com.delivera.data.depot.repository.OperationalUnitRepository;
 import com.delivera.data.depot.repository.WorkerRepository;
 import com.delivera.data.exception.CompanyHasActiveOrdersException;
@@ -44,12 +42,9 @@ public class SettingsService {
     private final SpaceUnits spaceUnits;
     private final SpaceVehicles spaceVehicles;
 
-    private final SecurityUtils securityUtils;
-
     @Compensable
     @Transactional
     public void deleteCompany(UUID companyId, Boolean confirmation) {
-        //String orgId = securityUtils.getCurrentOrgId().toString();
         CompanySettings settings = get(companyId);
         String orgId = settings.getOrgId().toString();
 

@@ -41,6 +41,9 @@ public class DataOrderRequest {
     private UUID loyalUserId;
     private UUID currentCompanyId;
 
+    private  Instant fromDate;
+    private  Instant toDate;
+
     // seed
     private Instant createdAt;
     private String reference;

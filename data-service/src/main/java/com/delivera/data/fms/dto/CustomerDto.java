@@ -3,7 +3,7 @@ package com.delivera.data.fms.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description = "Datos de un cliente (punto de entrega) para el problema de ruteo")
-public record CustomerDto(
+public record CustomerDto (
         @Schema(description = "Identificador unico del cliente", example = "C-001")
         String id,
 
@@ -18,5 +18,15 @@ public record CustomerDto(
 
         @Schema(description = "Indice del cliente en la matriz de distancias", example = "0")
         Integer matrixIndex
-) {
+) implements Coordinates{
+
+        @Override
+        public Double getLat() {
+                return this.lat();
+        }
+
+        @Override
+        public Double getLng() {
+                return this.lng();
+        }
 }

@@ -135,7 +135,6 @@ public class OrderService {
         String email = securityUtils.getCurrentEmail();
         request.setReference(generateReference());
         request.setCreatedAt(null);
-        System.out.println(request.getClaimed());
         return create(request, companyId, email);
     }
 
@@ -172,6 +171,8 @@ public class OrderService {
         order.setStatus(OrderStatus.PENDING);
         order.setClaimed(request.getClaimed());
         order.setCreatedAt(request.getCreatedAt());
+        order.setFromDate(request.getFromDate());
+        order.setToDate(request.getToDate());
 
         order.setPriority(resolveDefaultPriority(request.getPriority(), origin));
 

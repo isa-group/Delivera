@@ -80,7 +80,6 @@ public class OrderService {
 
     @Compensable
     @Transactional
-    //@SpaceTransaction
     public OrderResponse createB2C(OrderRequest request) {
         UUID companyId = securityUtils.getCurrentCompanyId();
         subscriptionService.checkOrderLimit(companyId);
@@ -131,7 +130,9 @@ public class OrderService {
             request,
             coords,
             loyalUser.getId(),
-            loyalUser.getUser() != null
+            loyalUser.getUser() != null,
+            request.fromDate(),
+            request.toDate()
         );
         
 
@@ -145,7 +146,9 @@ public class OrderService {
         OrderRequest request,
         RecipientCoords coords,
         UUID loyalUserId,
-        Boolean claimed
+        Boolean claimed,
+        Instant fromDate,
+        Instant toDate
     ){
         DataOrderRequest finalRequest = new DataOrderRequest();
         finalRequest.setOriginId(request.originId());
@@ -160,6 +163,8 @@ public class OrderService {
         finalRequest.setNotes(request.notes());
         finalRequest.setLoyalUserId(loyalUserId);
         finalRequest.setClaimed(claimed);
+        finalRequest.setFromDate(fromDate);
+        finalRequest.setToDate(toDate);
         return finalRequest;
     }
 

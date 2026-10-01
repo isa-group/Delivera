@@ -207,11 +207,6 @@ public class AuthController {
         .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
         .body(loginResponse);
 
-        /* 
-        return client.getOrgInfoByUserId(credential.getUserId())
-        .map( orgInfo -> authService.buildLoginResponse(credential, orgInfo))
-        .map(loginResponse -> ResponseEntity.ok(loginResponse));
-        */
     }
 
    

@@ -205,10 +205,6 @@ function activityLabel(code) {
 
 
 
-async function reloadSubscription() {
-  const res = await api.get('/settings/subscription')
-  if (res.ok) subscription.value = await res.json()
-}
 
 async function  combineSettings(sett,dataSett) {
   sett.defaultPriority = dataSett.defaultPriority
@@ -219,10 +215,9 @@ async function  combineSettings(sett,dataSett) {
 async function load() {
   loadError.value = ''
   try {
-    const [settRes, compRes, subRes, dataSettRes ] = await Promise.all([
+    const [settRes, compRes, dataSettRes ] = await Promise.all([
       api.get('/settings'),
       api.get('/settings/companies'),
-      api.get('/settings/subscription'),
       dataApi.get('/settings')
     ])
     if (settRes.ok && dataSettRes.ok) settings.value = await combineSettings(
@@ -238,7 +233,6 @@ async function load() {
       }
       return company
     })
-    if (subRes.ok) subscription.value = await subRes.json()
   } catch {
     loadError.value = t('error.connection')
   }
@@ -425,11 +419,9 @@ async function confirmDeleteCompany(id) {
       if (isCurrent) {
         router.push('/home')
         auth.loadCompanies()
-        reloadSubscription()
       } else {
         allCompanies.value = allCompanies.value.filter(c => c.id !== id)
         auth.loadCompanies()
-        reloadSubscription()
         deletingCompanyId.value = null
         deleteHasActiveOrders.value = false
       }
@@ -455,11 +447,12 @@ function toggleAddCompany() {
     addingCompany.value = false
     return
   }
+  /*
   const sub = subscription.value
   if (sub && !sub.companies.unlimited && sub.companies.current >= sub.companies.max) {
     addError.value = t('settings.companyLimitReached')
     return
-  }
+  }*/
   addingCompany.value = true
 }
 
@@ -471,10 +464,10 @@ async function addCompany() {
   try {
     const res = await api.post('/settings/companies', { name: newCompanyName.value.trim(), activityType: newActivityType.value })
     if (res.ok) {
+      console.log("ERROR?")
       const created = await res.json()
       allCompanies.value.push(created)
       auth.loadCompanies()
-      reloadSubscription()
       newCompanyName.value = ''
       newActivityType.value = null
       addingCompany.value = false
@@ -502,7 +495,6 @@ async function copyHandle() {
       <p class="settings-subtitle">{{ t('settings.subtitle') }}</p>
 
       <PMessage v-if="loadError" severity="error" :closable="false" class="form-message">{{ loadError }}</PMessage>
-      <PMessage v-if="showUpgradeBanner" severity="warn" :closable="true" class="form-message">{{ t('settings.upgradeBanner') }}</PMessage>
 
       <PTabs v-if="settings" v-model:value="activeTab">
         <PTabList>

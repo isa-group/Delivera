@@ -11,12 +11,14 @@ import com.delivera.model.*;
 import com.delivera.org.model.Company;
 import com.delivera.org.repository.CompanyRepository;
 import com.delivera.repository.*;
+import com.delivera.space.service.SpaceWorkers;
 import com.delivera.worker.dto.ChangeRoleRequest;
 import com.delivera.worker.dto.WorkerInviteRequest;
 import com.delivera.worker.dto.WorkerResponse;
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.model.WorkerRole;
 import com.delivera.worker.repository.WorkerRepository;
+import com.delivera.worker.service.UnitWorkerClient;
 import com.delivera.worker.service.WorkerService;
 
 import reactor.core.publisher.Mono;
@@ -35,6 +37,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +52,8 @@ class WorkerServiceTest {
     @Mock private SecurityUtils securityUtils;
     @Mock private SubscriptionService subscriptionService;
     @Mock private AuthClient client;
+    @Mock  private  SpaceWorkers spaceWorkers;
+    @Mock  private  UnitWorkerClient unitWorkerClient;
     @InjectMocks private WorkerService workerService;
 
     private UUID companyId;
@@ -70,8 +77,10 @@ class WorkerServiceTest {
         worker.setRole(WorkerRole.OPERATOR);
 
         when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
-    }
 
+    }
+    
+    /*TODO:DELETE 
     @Test
     void invite_existingUser_createsWorkerWithoutTempPassword() {
         when(userRepository.findByEmail("worker@test.com")).thenReturn(Optional.of(user));
@@ -85,8 +94,8 @@ class WorkerServiceTest {
         assertThat(response.email()).isEqualTo("worker@test.com");
         assertThat(response.tempPassword()).isNull();
         verify(userRepository, never()).save(any());
-    }
-
+    }*/
+    /* 
     @Test
     void invite_newUser_createsUserAndReturnsTempPassword() {
         when(client.register(any(), any(), any(), any()))
@@ -114,12 +123,12 @@ class WorkerServiceTest {
 
         assertThat(response.tempPassword()).isNotNull();
         verify(userRepository).save(any(User.class));
-    }
+    }*/
 
     @Test
     void invite_alreadyWorker_throwsException() {
         when(workerRepository.findByUserEmailAndCompanyId("worker@test.com", companyId)).thenReturn(Optional.of(worker));
-
+        when(securityUtils.getCurrentOrgId()).thenReturn(companyId);
         assertThatThrownBy(() -> workerService.invite(new WorkerInviteRequest("worker@test.com", WorkerRole.OPERATOR)))
                 .isInstanceOf(WorkerAlreadyExistsException.class);
     }
@@ -151,7 +160,8 @@ class WorkerServiceTest {
     void remove_success() {
         UUID workerId = UUID.randomUUID();
         when(workerRepository.findByIdAndCompanyId(workerId, companyId)).thenReturn(Optional.of(worker));
-
+        when(securityUtils.getCurrentOrgId()).thenReturn(companyId);
+        
         workerService.remove(workerId);
 
         verify(workerRepository).delete(worker);
@@ -160,6 +170,7 @@ class WorkerServiceTest {
     @Test
     void remove_lastAdmin_throwsException() {
         worker.setRole(WorkerRole.COMPANY_ADMIN);
+        when(securityUtils.getCurrentOrgId()).thenReturn(companyId);
         UUID workerId = UUID.randomUUID();
         when(workerRepository.findByIdAndCompanyId(workerId, companyId)).thenReturn(Optional.of(worker));
         when(workerRepository.countByCompanyIdAndRole(companyId, WorkerRole.COMPANY_ADMIN)).thenReturn(1L);
@@ -172,7 +183,7 @@ class WorkerServiceTest {
     void remove_notFound_throwsException() {
         UUID workerId = UUID.randomUUID();
         when(workerRepository.findByIdAndCompanyId(workerId, companyId)).thenReturn(Optional.empty());
-
+        when(securityUtils.getCurrentOrgId()).thenReturn(companyId);
         assertThatThrownBy(() -> workerService.remove(workerId))
                 .isInstanceOf(WorkerNotFoundException.class);
     }
@@ -181,6 +192,7 @@ class WorkerServiceTest {
     void invite_existingLoyalUser_throws() {
         when(workerRepository.findByUserEmailAndCompanyId("worker@test.com", companyId)).thenReturn(Optional.empty());
         when(loyalUserRepository.findByEmail("worker@test.com")).thenReturn(List.of(new LoyalUser()));
+        when(securityUtils.getCurrentOrgId()).thenReturn(companyId);
         assertThatThrownBy(() -> workerService.invite(new WorkerInviteRequest("worker@test.com", WorkerRole.OPERATOR)))
                 .isInstanceOf(LoyalUserCannotBeWorkerException.class);
     }
@@ -194,6 +206,9 @@ class WorkerServiceTest {
     @Test
     void remove_self_throws() {
         UUID workerId = UUID.randomUUID();
+        when(securityUtils.getCurrentOrgId())
+        .thenReturn(UUID.randomUUID());
+
         when(workerRepository.findByIdAndCompanyId(workerId, companyId)).thenReturn(Optional.of(worker));
         when(securityUtils.getCurrentEmail()).thenReturn("worker@test.com");
         assertThatThrownBy(() -> workerService.remove(workerId))
@@ -202,6 +217,8 @@ class WorkerServiceTest {
 
     @Test
     void remove_invitedUserWithNoOtherWorkers_deletesUser() {
+        when(securityUtils.getCurrentOrgId())
+        .thenReturn(UUID.randomUUID());
         UUID workerId = UUID.randomUUID();
         user.setId(UUID.randomUUID());
         user.setInvited(true);
@@ -211,5 +228,132 @@ class WorkerServiceTest {
         when(workerRepository.countByUser_Id(user.getId())).thenReturn(0L);
         workerService.remove(workerId);
         verify(userRepository).delete(user);
+    }
+    @Test
+    void invite_existingUser_createsWorkerWithoutTempPassword() {
+    
+        when(securityUtils.getCurrentCompanyId())
+                .thenReturn(companyId);
+    
+        when(securityUtils.getCurrentOrgId())
+                .thenReturn(UUID.randomUUID());
+    
+        when(userRepository.findByEmail("worker@test.com"))
+                .thenReturn(Optional.of(user));
+    
+        when(
+                workerRepository.findByUserEmailAndCompanyId(
+                        "worker@test.com",
+                        companyId
+                )
+        ).thenReturn(Optional.empty());
+    
+        when(
+                loyalUserRepository.findByEmail("worker@test.com")
+        ).thenReturn(List.of());
+    
+        when(
+                companyRepository.findById(companyId)
+        ).thenReturn(Optional.of(company));
+    
+        when(workerRepository.save(any()))
+                .thenReturn(worker);
+    
+        WorkerResponse response =
+                workerService.invite(
+                        new WorkerInviteRequest(
+                                "worker@test.com",
+                                WorkerRole.OPERATOR
+                        )
+                );
+    
+        assertThat(response.email())
+                .isEqualTo("worker@test.com");
+    
+        assertThat(response.tempPassword())
+                .isNull();
+    
+        verify(userRepository, never())
+                .save(any());
+    
+        verify(client, never())
+                .register(any(), any(), any(), any());
+    }
+    @Test
+    void invite_newUser_createsUserAndReturnsTempPassword() {
+
+        when(securityUtils.getCurrentCompanyId())
+                .thenReturn(companyId);
+
+        when(securityUtils.getCurrentOrgId())
+                .thenReturn(UUID.randomUUID());
+
+        when(
+                client.register(
+                        any(),
+                        any(),
+                        any(),
+                        any()
+                )
+        ).thenReturn(Mono.empty());
+
+        when(userRepository.findByEmail("new@test.com"))
+                .thenReturn(Optional.empty());
+
+        when(
+                workerRepository.findByUserEmailAndCompanyId(
+                        "new@test.com",
+                        companyId
+                )
+        ).thenReturn(Optional.empty());
+
+        when(
+                loyalUserRepository.findByEmail("new@test.com")
+        ).thenReturn(List.of());
+
+        when(
+                companyRepository.findById(companyId)
+        ).thenReturn(Optional.of(company));
+
+        User savedUser = new User();
+
+        savedUser.setId(UUID.randomUUID());
+        savedUser.setEmail("new@test.com");
+        savedUser.setFirstName("new");
+        savedUser.setLastName("");
+
+        when(userRepository.save(any(User.class)))
+                .thenReturn(savedUser);
+
+        Worker savedWorker = new Worker();
+
+        savedWorker.setUser(savedUser);
+        savedWorker.setCompany(company);
+        savedWorker.setRole(WorkerRole.ANALYST);
+
+        when(workerRepository.save(any()))
+                .thenReturn(savedWorker);
+
+        WorkerResponse response =
+                workerService.invite(
+                        new WorkerInviteRequest(
+                                "new@test.com",
+                                WorkerRole.ANALYST
+                        )
+                );
+
+        assertThat(response.tempPassword())
+                .isNotNull();
+
+        verify(userRepository)
+                .save(any(User.class));
+
+        verify(client)
+                .register(
+                        eq(savedUser.getId()),
+                        eq("new@test.com"),
+                        isNull(),
+                        anyString()
+                );
     }
 }
