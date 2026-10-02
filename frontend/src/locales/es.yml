@@ -736,3 +736,6 @@ routes:
   toDate: Fin del período de entrega
   includeNullFromDate: Incluir ordenes sin fecha de incio del período de entrega
   includeNullToDate: Incluir ordenes sin fecha de fin del período de entrega
+  depot: Unidad
+  customer: Cliente
+  viewDetail: Ver detalle
