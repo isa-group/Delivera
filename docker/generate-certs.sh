@@ -343,6 +343,10 @@ modes() {
 main() {
     head
 
+    mkdir -p certs
+
+    cd certs
+
     if [[ "$REGENERATE_CA" = true ]]; then
         FORCE=true
     fi
