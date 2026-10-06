@@ -123,11 +123,9 @@ export function useRoutesSolver(
             depots
         } = data.value
         const drawPromises = []
-        console.log(routesByCluster.value)
         for (const slotRow of slotRows.value) {
             const slotResult = routesByCluster.value[slotRow.id]
             if (slotResult) {
-                console.log(":)")
                 for (const {solver, solution} of slotResult) {
                     drawPromises.push(
                         drawFunction({
@@ -267,7 +265,6 @@ export function useRoutesSolver(
             const solverSolution = slotEntry.find( 
                 solution => solution.solver === solverType
             )
-            console.log("solution", solverSolution)
             if (solverSolution) {
                 distance = solverSolution.solution.totalCost
             }
