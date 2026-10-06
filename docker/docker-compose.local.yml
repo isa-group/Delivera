@@ -74,9 +74,7 @@ services:
     command: postgres -c 'max_connections=200'
 
   auth-service:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.auth
+    image: davposmar/delivera-auth:latest
 
 
     restart: unless-stopped
@@ -98,9 +96,7 @@ services:
       - ./certs/auth-service:/app/certs:ro
   
   data-service:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.data
+    image: davposmar/delivera-data:latest
 
 
     restart: unless-stopped
@@ -120,9 +116,7 @@ services:
       - ./certs/data-service:/app/certs:ro
   
   delivera-service:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.delivera
+    image: davposmar/delivera-service:latest
 
 
     restart: unless-stopped
@@ -142,10 +136,7 @@ services:
       - ./certs/delivera-service:/app/certs:ro
     
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
-
+    image: davposmar/delivera-frontend:latest
 
 
     restart: unless-stopped
