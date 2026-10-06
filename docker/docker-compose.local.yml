@@ -1,0 +1,163 @@
+name: Delivera
+
+services:
+  delivera-postgres:
+    image: postgres:16
+    restart: unless-stopped
+    env_file:
+      - env/.env.db.delivera
+      - env/.env.local
+    environment:
+      POSTGRES_DB: ${DATABASE_DELIVERA_NAME}
+      POSTGRES_USER: ${DATABASE_DELIVERA_USER}
+      POSTGRES_PASSWORD: ${DATABASE_DELIVERA_PASSWORD}
+    expose:
+      - "5432"
+    volumes:
+      - delivera_pg_data_local:/var/lib/postgresql/data
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "pg_isready -U ${DATABASE_DELIVERA_USER} -d ${DATABASE_DELIVERA_NAME}"
+      ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: postgres -c 'max_connections=200'
+    
+  auth-postgres:
+    image: postgres:16
+    restart: unless-stopped
+    env_file:
+      - env/.env.db.auth
+      - env/.env.local
+    environment:
+      POSTGRES_DB: ${DATABASE_AUTH_NAME}
+      POSTGRES_USER: ${DATABASE_AUTH_USER}
+      POSTGRES_PASSWORD: ${DATABASE_AUTH_PASSWORD}
+    expose:
+      - "5432"
+    volumes:
+      - delivera_auth_pg_data_local:/var/lib/postgresql/data
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "pg_isready -U ${DATABASE_AUTH_USER} -d ${DATABASE_AUTH_NAME}"
+      ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: postgres -c 'max_connections=200'
+
+  data-postgres:
+    image: postgres:16
+    restart: unless-stopped
+    env_file:
+      - env/.env.db.data
+      - env/.env.local
+    environment:
+      POSTGRES_DB: ${DATABASE_DATA_NAME}
+      POSTGRES_USER: ${DATABASE_DATA_USER}
+      POSTGRES_PASSWORD: ${DATABASE_DATA_PASSWORD}
+    expose:
+      - "5432"
+    volumes:
+      - delivera_data_pg_data_local:/var/lib/postgresql/data
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "pg_isready -U ${DATABASE_DATA_USER} -d ${DATABASE_DATA_NAME}"
+      ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: postgres -c 'max_connections=200'
+
+  auth-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.auth
+
+
+    restart: unless-stopped
+
+    env_file:
+      - env/.env.certs
+      - env/.env.db.auth
+      - env/.env.jwt
+      - env/.env.local
+      
+
+
+    expose:
+      - "80"
+      - "443"
+
+    volumes:
+      - ./keys:/app/keys:ro
+      - ./certs/auth-service:/app/certs:ro
+  
+  data-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.data
+
+
+    restart: unless-stopped
+
+    env_file:
+      - env/.env.certs
+      - env/.env.db.data
+      - env/.env.space
+      - env/.env.local
+
+
+    expose:
+      - "443"
+
+    volumes:
+      - ./certs/data-service:/app/certs:ro
+  
+  delivera-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.delivera
+
+
+    restart: unless-stopped
+
+    env_file:
+      - env/.env.certs
+      - env/.env.db.delivera
+      - env/.env.space
+      - env/.env.local
+      
+
+    expose:
+      - "443"
+
+    volumes:
+      - ./certs/delivera-service:/app/certs:ro
+    
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+
+
+
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+
+    volumes:
+      - ./certs/nginx-service:/etc/nginx/certs:ro
+      - ./certs/ca:/etc/nginx/ca:ro
+      - ./nginx/nginx.local.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  delivera_pg_data_local:
+  delivera_auth_pg_data_local:
+  delivera_data_pg_data_local:
+
