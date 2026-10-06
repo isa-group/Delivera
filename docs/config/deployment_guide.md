@@ -7,6 +7,62 @@
 
 Delivera uses a modular environment configuration system designed to simplify deployment across multiple environments (local, development, production, etc.).
 
+##  Development Mode: Start Only PostgreSQL Databases
+
+> **Important**
+>
+> Even if you only plan to run the services from your IDE, you should still complete the initial platform setup:
+>
+> ```bash
+> cd docker
+>
+> ./use-examples.sh
+>
+> ./generate-certs.sh
+>
+> ./generate-keys.sh
+>
+> ./generate-keys-env.sh
+> ```
+>
+> These files are required by the different services and should be generated before starting development.
+
+> **Space Configuration Required**
+>
+> Before running the application in development mode, you must configure your Space API keys in the corresponding `application-dev.yml` files.
+>
+> Update the following properties with your own credentials:
+>
+> ```yaml
+> app:
+>   space:
+>     api-key: your-api-key
+> ```
+>
+> The application will not be able to communicate with Space services correctly if these values are not configured.
+``
+
+Once the setup is complete, start only the PostgreSQL containers with:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d delivera-postgres auth-postgres data-postgres
+```
+
+This will start:
+
+- `delivera-postgres`
+- `auth-postgres`
+- `data-postgres`
+
+without starting any application services.
+
+### Stop the Databases
+
+```bash
+docker compose -f docker-compose.dev.yml down
+```
+
+
 ## Quick Start (Local)
 
 Run Delivera locally using the published Docker Hub images.
@@ -189,6 +245,61 @@ docker compose down
 ## Resumen
 
 Delivera utiliza un sistema modular de configuración de entornos que permite simplificar y automatizar el despliegue de la plataforma en distintos escenarios, como entornos locales, de desarrollo y de producción.
+
+
+##  Modo Desarrollo: Iniciar Solo las Bases de Datos
+
+> **Importante**
+>
+> Aunque vayas a ejecutar los servicios directamente desde tu IDE, es necesario realizar previamente la configuración inicial de la plataforma:
+>
+> ```bash
+> cd docker
+>
+> ./use-examples.sh
+>
+> ./generate-certs.sh
+>
+> ./generate-keys.sh
+>
+> ./generate-keys-env.sh
+> ```
+>
+> Estos archivos son necesarios para el correcto funcionamiento de los servicios y deben generarse antes de comenzar el desarrollo.
+
+> **Configuración de Space Obligatoria**
+>
+> Antes de ejecutar la aplicación en modo desarrollo, es necesario configurar las claves de la API de Space en los correspondientes archivos `application-dev.yml`.
+>
+> Actualiza las siguientes propiedades con tus propias credenciales:
+>
+> ```yaml
+> app:
+>   space:
+>     api-key: tu-api-key
+> ```
+>
+> La aplicación no podrá comunicarse correctamente con los servicios de Space si estos valores no están configurados.
+
+Una vez completada la configuración inicial, puedes arrancar únicamente los contenedores PostgreSQL con:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d delivera-postgres auth-postgres data-postgres
+```
+
+Esto iniciará:
+
+- `delivera-postgres`
+- `auth-postgres`
+- `data-postgres`
+
+sin arrancar ninguno de los microservicios de la aplicación.
+
+### Detener las Bases de Datos
+
+```bash
+docker compose -f docker-compose.dev.yml down
+```
 
 
 ## Inicio Rápido (Local)
