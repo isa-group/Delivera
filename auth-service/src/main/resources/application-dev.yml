@@ -102,19 +102,31 @@ app:
       enabled: true
       period: MONTHLY
     keys:
-      key-2026-06:
-        private-key: keys/private_key_2026_06.pem
-        public-key: keys/public_key_2026_06.pem
-      key-2026-07:
-        private-key: keys/private_key_2026_07.pem
-        public-key: keys/public_key_2026_07.pem
-      key-2026-08:
-        private-key: keys/private_key_2026_08.pem
-        public-key: keys/public_key_2026_08.pem
-      key-2026-09:
-        private-key: keys/private_key_2026_09.pem
-        public-key: keys/public_key_2026_09.pem
-    active-key-id: ${JWT_ACTIVE_KEY:key-2026-06}
+      backup:
+        keyId: ${JWT_BACKUP_ID:key-backup}
+        private-key: ${JWT_BACKUP_PRIVATE:file:../docker/keys/key-backup-private.pem}
+        public-key: ${JWT_BACKUP_PUBLIC:file:../docker/keys/key-backup-public.pem}
+      slot1:
+        keyId: ${JWT_SLOT1_ID:}
+        private-key: ${JWT_SLOT1_PRIVATE:}
+        public-key: ${JWT_SLOT1_PUBLIC:}
+      slot2:
+        keyId: ${JWT_SLOT2_ID:}
+        private-key: ${JWT_SLOT2_PRIVATE:}
+        public-key: ${JWT_SLOT2_PUBLIC:}
+      slot3:
+        keyId: ${JWT_SLOT3_ID:}
+        private-key: ${JWT_SLOT3_PRIVATE:}
+        public-key: ${JWT_SLOT3_PUBLIC:}
+      slot4:
+        keyId: ${JWT_SLOT4_ID:}
+        private-key: ${JWT_SLOT4_PRIVATE:}
+        public-key: ${JWT_SLOT4_PUBLIC:}
+      slot5:
+        keyId: ${JWT_SLOT5_ID:}
+        private-key: ${JWT_SLOT5_PRIVATE:}
+        public-key: ${JWT_SLOT5_PUBLIC:}
+    active-key-id: ${JWT_ACTIVE_KEY:key-backup}
   cors:
     allowed-origins: http://localhost:3000
   mail:

@@ -87,13 +87,18 @@ delivera:
 
       use-temp-file: false
 server:
+  port: ${DELIVERA_PORT:8080}
   ssl:
     enabled: ${ssl_Delivera_enabled}
     key-store: ${delivera.mtls.key-store}
     key-store-password: ${delivera.mtls.key-store-password}
     key-store-type: ${delivera.mtls.key-store-type}
+
+    trust-store: ${delivera.mtls.trust-store}
+    trust-store-password: ${delivera.mtls.trust-store-password}
+    trust-store-type: ${delivera.mtls.trust-store-type}
     # client-auth --> required = mTLS  | want --> check in backend if u required certificate
-    client-auth: none
+    client-auth:  ${DELIVERA-CLIENT-AUTH-SSL:none}
 
 
 app:

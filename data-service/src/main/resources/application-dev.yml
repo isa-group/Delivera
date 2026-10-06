@@ -85,6 +85,7 @@ delivera:
 
       use-temp-file: false
 server:
+  port: 9092
   ssl:
     enabled: false
     key-store: ${delivera.mtls.key-store}
