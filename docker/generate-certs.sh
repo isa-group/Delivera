@@ -1,4 +1,28 @@
 #!/usr/bin/env bash
+# ------------------------------------------------------------------------------
+# Env configuration
+# ------------------------------------------------------------------------------
+
+load_env() {
+
+    local env_file="$1"
+
+    [[ -f "$env_file" ]] || {
+        error "Environment file not found: $env_file"
+        exit 1
+    }
+
+    set -a
+    source "$env_file"
+    set +a
+}
+
+ENV_FILE="${ENV_FILE:-./env/.env.certs}"
+
+load_env $ENV_FILE
+
+
+
 
 # ------------------------------------------------------------------------------
 # Certificate Authority configuration
@@ -341,6 +365,7 @@ modes() {
 }
 
 main() {
+
     head
 
     mkdir -p certs
@@ -398,6 +423,8 @@ while [[ $# -gt 0 ]]; do
 
     esac
 done
+
+
 
 main
 
