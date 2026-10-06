@@ -64,10 +64,10 @@ delivera:
       
   mtls:
     enabled: true
-    key-store: ${DELIVERA_KEY_STORE:classpath:certs/delivera-keystore.p12}
+    key-store: ${DELIVERA_KEY_STORE:file:../docker/certs/delivera-service/delivera-service-keystore.p12}
     key-store-password: ${DELIVERA_KEYSTORE_PASSWORD:delivera_password}
     key-store-type: ${DELIVERA_KEY_STORE_TYPE:PKCS12}
-    trust-store: ${DELIVERA_TRUST_STORE:classpath:certs/delivera-truststore.p12}
+    trust-store: ${DELIVERA_TRUST_STORE:file:../docker/certs/delivera-service/delivera-service-truststore.p12}
     trust-store-password: ${DELIVERA_TRUSTSTORE_PASSWORD:delivera_password}
     trust-store-type: ${DELIVERA_TRUST_STORE_TYPE:PKCS12}
     server:

@@ -52,10 +52,10 @@ delivera:
 
   mtls:
     enabled: true
-    key-store: ${AUTH_KEY_STORE:classpath:certs/auth-keystore.p12}
+    key-store: ${AUTH_KEY_STORE:file:../docker/certs/auth-service/auth-service-keystore.p12}
     key-store-password: ${AUTH_KEYSTORE_PASSWORD:delivera_auth_password}
     key-store-type: ${AUTH_KEY_STORE_TYPE:PKCS12}
-    trust-store: ${AUTH_TRUST_STORE:classpath:certs/auth-truststore.p12}
+    trust-store: ${AUTH_TRUST_STORE:file:../docker/certs/auth-service/auth-service-truststore.p12}
     trust-store-password: ${AUTH_TRUSTSTORE_PASSWORD:delivera_auth_password}
     trust-store-type: ${AUTH_TRUST_STORE_TYPE:PKCS12}
     server:
