@@ -6,3 +6,12 @@
 *.key
 *.pem
 *.srl
+*.env.
+
+# Ignore all env files
+.env*
+env/.env*
+
+# Allow examples
+!.env*.example
+!env/.env*.example
