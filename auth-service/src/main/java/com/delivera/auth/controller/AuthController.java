@@ -81,16 +81,22 @@ public class AuthController {
         this.refreshTokenService = refreshTokenService;
     }
 
-    private String getIp(HttpServletRequest httpRequest) {
-        String ip = httpRequest.getHeader("X-Forwarded-For");
-        if (ip == null || activeGateway) {
-            ip = httpRequest.getRemoteAddr();
+    // TODO: UPDATE IN DATA SERVICE && DELIVERA SERVICE
+    private String getIp(HttpServletRequest request) {
+
+        String ip = request.getHeader("X-Forwarded-For");
+    
+        if (ip == null || ip.isBlank()) {
+            ip = request.getRemoteAddr();
+        } else {
+            ip = ip.split(",")[0].trim();
         }
-        ip = ip.split(",")[0].trim();
+        
         return ip.length() > 40
-        ? ip.substring(0, 40)
-        : ip;
+            ? ip.substring(0, 40)
+            : ip;
     }
+    
 
     private String getUserAgent(HttpServletRequest httpRequest) {
         String userAgent = httpRequest.getHeader("User-Agent");

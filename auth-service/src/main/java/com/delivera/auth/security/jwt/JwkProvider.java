@@ -38,9 +38,19 @@ public class JwkProvider {
         }
 
         for (var entry : properties.getKeys().entrySet()) {
-
-            String keyId = entry.getKey();
             var config = entry.getValue();
+            //String keyId = entry.getKey();
+            String keyId = config.getKeyId();
+            if (
+                keyId == null || keyId.isBlank()
+                || config.getPublicKey() == null || config.getPublicKey().isBlank()
+                || config.getPrivateKey() == null || config.getPrivateKey().isBlank()
+            ) {
+                continue;
+            }
+            
+            
+
 
             RSAPublicKey publicKey = (RSAPublicKey) loader.loadPublicKey(config.getPublicKey());
             RSAPrivateKey privateKey = (RSAPrivateKey) loader.loadPrivateKey(config.getPrivateKey());

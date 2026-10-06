@@ -5,16 +5,23 @@ services:
     image: postgres:16
     container_name: delivera_postgres
     restart: unless-stopped
+    env_file:
+      - env/.env.db.delivera
+      - env/.env.dev
+
     environment:
-      POSTGRES_DB: delivera_dev
-      POSTGRES_USER: delivera_user
-      POSTGRES_PASSWORD: delivera_pass
+      POSTGRES_DB: ${DATABASE_DELIVERA_NAME}
+      POSTGRES_USER: ${DATABASE_DELIVERA_USER}
+      POSTGRES_PASSWORD: ${DATABASE_DELIVERA_PASSWORD}
     ports:
       - "5433:5432"
     volumes:
-      - delivera_pg_data:/var/lib/postgresql/data
+      - delivera_pg_data_dev:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U delivera_user -d delivera_dev"]
+      test: [
+          "CMD-SHELL",
+          "pg_isready -U ${DATABASE_DELIVERA_USER} -d ${DATABASE_DELIVERA_NAME}"
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -24,16 +31,22 @@ services:
     image: postgres:16
     container_name: delivera_auth_postgres
     restart: unless-stopped
+    env_file:
+      - env/.env.db.auth
+      - env/.env.dev
     environment:
-      POSTGRES_DB: delivera_auth_dev
-      POSTGRES_USER: delivera_auth_user
-      POSTGRES_PASSWORD: delivera_auth_pass
+      POSTGRES_DB: ${DATABASE_AUTH_NAME}
+      POSTGRES_USER: ${DATABASE_AUTH_USER}
+      POSTGRES_PASSWORD: ${DATABASE_AUTH_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
-      - delivera_auth_pg_data:/var/lib/postgresql/data
+      - delivera_auth_pg_data_dev:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U delivera_auth_user -d delivera_auth_dev"]
+      test: [
+        "CMD-SHELL",
+        "pg_isready -U ${DATABASE_AUTH_USER} -d ${DATABASE_AUTH_NAME}"
+      ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -43,16 +56,22 @@ services:
     image: postgres:16
     container_name: delivera_data_postgres
     restart: unless-stopped
+    env_file:
+      - env/.env.db.data
+      - env/.env.dev
     environment:
-      POSTGRES_DB: delivera_data_dev
-      POSTGRES_USER: delivera_data_user
-      POSTGRES_PASSWORD: delivera_data_pass
+      POSTGRES_DB: ${DATABASE_DATA_NAME}
+      POSTGRES_USER: ${DATABASE_DATA_USER}
+      POSTGRES_PASSWORD: ${DATABASE_DATA_PASSWORD}
     ports:
       - "5434:5432"
     volumes:
-      - delivera_data_pg_data:/var/lib/postgresql/data
+      - delivera_data_pg_data_dev:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U delivera_data_user -d delivera_data_dev"]
+      test: [
+        "CMD-SHELL",
+        "pg_isready -U ${DATABASE_DATA_USER} -d ${DATABASE_DATA_NAME}"
+      ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -68,7 +87,11 @@ services:
     restart: unless-stopped
 
     env_file:
-      - .env
+      - env/.env.certs
+      - env/.env.db.auth
+      - env/.env.jwt
+      - env/.env.dev
+      
 
     ports:
       - "9090:9090"
@@ -79,8 +102,8 @@ services:
       - "9090"
 
     volumes:
-      - ../auth-service/src/main/resources/keys:/app/keys:ro
-      - ../auth-service/src/main/resources/certs:/app/certs:ro
+      - ./keys:/app/keys:ro
+      - ./certs/auth-service:/app/certs:ro
   
   data-service:
     build:
@@ -92,7 +115,10 @@ services:
     restart: unless-stopped
 
     env_file:
-      - .env
+      - env/.env.certs
+      - env/.env.db.data
+      - env/.env.space
+      - env/.env.dev
 
     ports:
       - "9092:9092"
@@ -103,8 +129,7 @@ services:
       - "9093"
 
     volumes:
-      - ../data-service/src/main/resources/keys:/app/keys:ro
-      - ../data-service/src/main/resources/certs:/app/certs:ro
+      - ./certs/data-service:/app/certs:ro
   
   delivera-service:
     build:
@@ -116,7 +141,10 @@ services:
     restart: unless-stopped
 
     env_file:
-      - .env
+      - env/.env.certs
+      - env/.env.db.delivera
+      - env/.env.space
+      - env/.env.dev
 
     ports:
       - "8080:8080"
@@ -127,8 +155,11 @@ services:
       - "8081"
 
     volumes:
-      - ../backend/src/main/resources/keys:/app/keys:ro
-      - ../backend/src/main/resources/certs:/app/certs:ro
+      - ./certs/delivera-service:/app/certs:ro
+    
+    depends_on:
+      - data-service
+      - auth-service
     
   frontend:
     build:
@@ -140,15 +171,13 @@ services:
     restart: unless-stopped
 
     ports:
-      - "80:80"
-
-    depends_on:
-      - auth-service
-      - data-service
-      - delivera-service
+      - "3000:80"
+    
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
 
 volumes:
-  delivera_pg_data:
-  delivera_auth_pg_data:
-  delivera_data_pg_data:
+  delivera_pg_data_dev:
+  delivera_auth_pg_data_dev:
+  delivera_data_pg_data_dev:
 

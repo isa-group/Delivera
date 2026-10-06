@@ -334,7 +334,6 @@ export async function  addFmsRoute(map, {
   const geometry =
     data.routes[0].geometry.coordinates
 
-  console.log(data)
   const latLngs =
       geometry.map(([lng, lat]) => [lat, lng])
 

@@ -12,6 +12,9 @@ import java.util.Base64;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j 
 @Component
 public class KeyLoader {
 
@@ -41,15 +44,13 @@ public class KeyLoader {
                 .generatePublic(new X509EncodedKeySpec(decoded));
     }
 
-    private String loadFile(String path) throws Exception {
-
-        
-        // ✅ file: → filesystem
+    private String loadFile(String path) throws Exception {        
+        //  file: → filesystem
         if (path.startsWith("file:")) {
             return new String(Files.readAllBytes(Path.of(path.substring(5))));
         }
 
-        // ✅ ruta absoluta (/app/...)
+        //  absolute  (/app/...)
         if (path.startsWith("/")) {
             return new String(Files.readAllBytes(Path.of(path)));
         }

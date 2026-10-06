@@ -464,7 +464,6 @@ async function addCompany() {
   try {
     const res = await api.post('/settings/companies', { name: newCompanyName.value.trim(), activityType: newActivityType.value })
     if (res.ok) {
-      console.log("ERROR?")
       const created = await res.json()
       allCompanies.value.push(created)
       auth.loadCompanies()

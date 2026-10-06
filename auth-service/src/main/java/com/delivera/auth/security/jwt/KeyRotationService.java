@@ -2,6 +2,9 @@ package com.delivera.auth.security.jwt;
 
 import java.time.LocalDate;
 import java.time.temporal.WeekFields;
+import java.util.Set;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -26,7 +29,11 @@ public class KeyRotationService {
 
         String generated = generateKey();
 
-        if (!properties.getKeys().containsKey(generated)) {
+        Set<String> keys = properties.getKeys().values()
+        .stream().map(keyConfig -> keyConfig.getKeyId())
+        .collect(Collectors.toSet());
+
+        if (!keys.contains(generated)) {
             return properties.getActiveKeyId();
         }
 

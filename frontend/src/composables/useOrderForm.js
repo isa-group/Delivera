@@ -197,7 +197,6 @@ export function useOrderForm() {
         toDate: selectedInstants.value.to || null
 
       }
-      console.log(body)
       if (orderType.value === 'INTERNAL') {
         body.destinationId = destinationId.value
       } else if (orderType.value === 'B2B') {

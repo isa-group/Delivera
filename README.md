@@ -5,6 +5,11 @@
 Plataforma SaaS multi-tenant de gestión logística que centraliza pedidos y operaciones de múltiples empresas.
 
 ---
+## Guía de Despliegue
+
+Usa la guía situada en docs/condig/deployment_guide.md para entender el despliegue y poder ejecutar la aplicación.
+
+---
 
 ## Stack
 
@@ -193,9 +198,11 @@ app:
       period: MONTHLY
     keys:
       key-2026-06:
+        keyId: key-2026-06
         private-key: keys/private_key_2026_06.pem
         public-key: keys/public_key_2026_06.pem
       key-2026-07:
+        keyId: key-2026-07
         private-key: keys/private_key_2026_07.pem
         public-key: keys/public_key_2026_07.pem
     active-key-id: ${JWT_ACTIVE_KEY:key-2026-06}

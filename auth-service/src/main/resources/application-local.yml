@@ -83,6 +83,7 @@ server:
     trust-store-password: ${delivera.mtls.trust-store-password}
     trust-store-type: ${delivera.mtls.trust-store-type}
     client-auth: ${AUTH-CLIENT-AUTH-SSL:none}
+    
 
 
 app:

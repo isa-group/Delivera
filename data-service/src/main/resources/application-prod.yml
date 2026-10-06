@@ -98,12 +98,16 @@ delivera:
 
       use-temp-file: false
 server:
+  port: ${DATA_PORT:9092}
   ssl:
     enabled: ${ssl_Data_enabled}
     key-store: ${delivera.mtls.key-store}
     key-store-password: ${delivera.mtls.key-store-password}
     key-store-type: ${delivera.mtls.key-store-type}
-    client-auth: none
+    trust-store: ${delivera.mtls.trust-store}
+    trust-store-password: ${delivera.mtls.trust-store-password}
+    trust-store-type: ${delivera.mtls.trust-store-type}
+    client-auth: ${DATA-CLIENT-AUTH-SSL:none}
 
 space:
   client:

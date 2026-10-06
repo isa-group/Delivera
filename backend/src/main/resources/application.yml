@@ -4,7 +4,7 @@ spring:
 app:
   space:
     service: ${SPACE_SERVICE:delivera}
-    version: ${SPACE_SERVICE_VERSION:1.0.11}
+    version: ${SPACE_SERVICE_VERSION:1.0.12}
     basic-plan: ${SPACE_BASICE_PLAN:MICRO}
   api-prefix: /api/v2
   

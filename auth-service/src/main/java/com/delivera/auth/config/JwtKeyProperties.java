@@ -32,6 +32,7 @@ public class JwtKeyProperties {
     @Getter
     @Setter
     public static class KeyConfig {
+        private String keyId;
         private String privateKey;
         private String publicKey;
     }
