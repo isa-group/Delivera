@@ -5,6 +5,11 @@
 Plataforma SaaS multi-tenant de gestión logística que centraliza pedidos y operaciones de múltiples empresas.
 
 ---
+## Guía de Despliegue
+
+Usa la guía situada en docs/condig/deployment_guide.md para entender el despliegue y poder ejecutar la aplicación.
+
+---
 
 ## Stack
 
