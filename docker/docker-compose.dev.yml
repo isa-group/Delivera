@@ -157,6 +157,10 @@ services:
     volumes:
       - ./certs/delivera-service:/app/certs:ro
     
+    depends_on:
+      - data-service
+      - auth-service
+    
   frontend:
     build:
       context: ../frontend

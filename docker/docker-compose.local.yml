@@ -135,6 +135,10 @@ services:
     volumes:
       - ./certs/delivera-service:/app/certs:ro
     
+    depends_on:
+      - data-service
+      - auth-service
+    
   frontend:
     image: davposmar/delivera-frontend:latest
 
@@ -148,6 +152,11 @@ services:
       - ./certs/nginx-service:/etc/nginx/certs:ro
       - ./certs/ca:/etc/nginx/ca:ro
       - ./nginx/nginx.local.conf:/etc/nginx/conf.d/default.conf:ro
+
+    depends_on:
+      - data-service
+      - auth-service
+      - delivera-service
 
 volumes:
   delivera_pg_data_local:
