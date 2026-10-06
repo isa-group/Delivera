@@ -156,6 +156,28 @@ docker compose -f docker-compose.local.yml up -d
 docker compose -f docker-compose.local.yml down
 ```
 
+## Solver Execution
+
+The optimization services (FMS Solvers) run independently from the rest of the platform.
+
+### Start the Solvers
+
+From the project root directory:
+
+```bash
+cd Solver-FMS/
+
+docker compose up -d
+```
+
+### Stop the Solvers
+
+```bash
+docker compose down
+```
+
+> The solvers are required for the optimization and route calculation features used by Delivera.
+
 ---
 ---
 # ES
@@ -319,3 +341,26 @@ docker compose -f docker-compose.local.yml up -d
 ```bash
 docker compose -f docker-compose.local.yml down
 ```
+
+
+## Ejecución de los Solvers
+
+Los servicios de optimización (FMS Solvers) se ejecutan de forma independiente al resto de la plataforma.
+
+### Iniciar los Solvers
+
+Desde la raíz del proyecto:
+
+```bash
+cd Solver-FMS/
+
+docker compose up -d
+```
+
+### Detener los Solvers
+
+```bash
+docker compose down
+```
+
+> Los solvers son necesarios para las funcionalidades de optimización y cálculo de rutas utilizadas por Delivera.
