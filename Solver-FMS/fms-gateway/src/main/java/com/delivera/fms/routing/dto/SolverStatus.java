@@ -2,7 +2,7 @@ package com.delivera.fms.routing.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(description = "Estado de disponibilidad del motor que implementa el solver", enumAsRef = true)
+@Schema(description = "Availability status of the engine implementing the solver", enumAsRef = true)
 public enum SolverStatus {
 
     // El motor responde correctamente a su sonda de salud.

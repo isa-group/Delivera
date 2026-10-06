@@ -7,22 +7,23 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
-@Schema(name = "Route", description = "Ruta asignada a un vehiculo con sus paradas y metricas")
+@Schema(name = "Route", description = "Route assigned to a vehicle, with its stops and metrics")
 public record RouteDto(
-        @Schema(description = "ID del vehiculo que realiza la ruta", example = "V-001")
+        @Schema(description = "ID of the vehicle driving the route", example = "V-001")
         @NotBlank String vehicleId,
 
-        @Schema(description = "ID del deposito de origen de la ruta", example = "DEP-1")
+        @Schema(description = "ID of the route's home depot", example = "DEP-1")
         String depotId,
 
-        @Schema(description = "Lista ordenada de IDs de clientes (paradas) de la ruta",
+        @Schema(description = "Ordered list of customer IDs (stops) of the route",
                 example = "[\"C-001\", \"C-003\", \"C-005\"]")
         @NotEmpty List<String> stops,
 
-        @Schema(description = "Distancia total recorrida en la ruta (en km)", example = "125.5")
+        @Schema(description = "Total distance travelled on the route, in the units of the distance matrix",
+                example = "125.5")
         @NotNull Double totalDistance,
 
-        @Schema(description = "Carga total transportada en la ruta (suma de demandas)", example = "85")
+        @Schema(description = "Total load carried on the route (sum of demands)", example = "85")
         @NotNull Integer totalLoad
 ) {
 }

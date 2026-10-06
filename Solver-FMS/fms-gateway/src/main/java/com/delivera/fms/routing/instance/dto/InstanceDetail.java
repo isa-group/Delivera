@@ -17,25 +17,25 @@ import java.util.List;
  * ruteo contra la instancia que la origino.
  */
 @Schema(name = "InstanceDetail",
-        description = "Instancia de benchmark MD-CVRP con sus nodos, en el modelo que recibe el motor")
+        description = "MD-CVRP benchmark instance with its nodes, in the model the engine receives")
 public record InstanceDetail(
 
-        @Schema(description = "Propiedades de la instancia, las mismas que devuelve el catalogo")
+        @Schema(description = "Instance properties, the same ones the catalogue returns")
         InstanceSummary summary,
 
         @ArraySchema(
-                arraySchema = @Schema(description = "Depositos, numerados por posicion empezando en 1"),
+                arraySchema = @Schema(description = "Depots, numbered by position starting at 1"),
                 schema = @Schema(implementation = DepotDto.class))
         List<DepotDto> depots,
 
         @ArraySchema(
-                arraySchema = @Schema(description = "Clientes a servir, con el identificador del fichero"),
+                arraySchema = @Schema(description = "Customers to serve, with the identifier from the file"),
                 schema = @Schema(implementation = CustomerDto.class))
         List<CustomerDto> customers,
 
         @ArraySchema(
-                arraySchema = @Schema(description = "Flota derivada de la instancia: "
-                        + "vehiclesPerDepot vehiculos por cada deposito"),
+                arraySchema = @Schema(description = "Fleet derived from the instance: "
+                        + "vehiclesPerDepot vehicles per depot"),
                 schema = @Schema(implementation = VehicleDto.class))
         List<VehicleDto> vehicles
 ) {

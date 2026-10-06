@@ -17,16 +17,15 @@ management:
 fms:
   instances:
     dir: instances-MD-CVRP-JSON
-  # Catalogo de motores y su metainformacion. Cada entrada alimenta a la vez el
-  # cliente HTTP, el despacho de problemas, los valores por defecto de los
-  # parametros y el endpoint GET /api/v1/fms/solvers. Para dar de alta un solver
-  # nuevo basta con añadir su constante al enum TypeSolver y un bloque aqui;
-  # ninguna clase Java cambia.
+  # Engine catalogue and its metadata. Each entry feeds at once the HTTP client,
+  # problem dispatching, the parameters' default values and the
+  # GET /api/v1/fms/solvers endpoint. Registering a new solver only takes adding
+  # its constant to the TypeSolver enum and a block here; no Java class changes.
   engines:
     random:
       url: http://random-engine:8092
-      display-name: Aleatorio
-      description: Asigna clientes a vehiculos de forma aleatoria respetando la capacidad. Sirve como linea base de comparacion
+      display-name: Random
+      description: Assigns customers to vehicles at random while honouring capacity. Serves as the comparison baseline
       strategy: Baseline
       technology: Java 22 / Spring Boot
       version: 1.0.0
@@ -35,19 +34,19 @@ fms:
       parameters:
         - name: seed
           description: >-
-            Semilla del generador aleatorio. Con la misma instancia y la misma semilla la
-            solucion es identica. Si no se envia, el motor sortea una y la devuelve en el
-            campo seed de la respuesta, de modo que cualquier ejecucion es repetible a posteriori.
-            El tope es 2^48-1 porque java.util.Random se queda con 48 bits: por encima de ahi
-            dos semillas distintas darian la misma secuencia
+            Random generator seed. With the same instance and the same seed the solution is
+            identical. If not sent, the engine draws one and returns it in the response's seed
+            field, so any run can be repeated afterwards. The upper bound is 2^48-1 because
+            java.util.Random keeps 48 bits: above it two different seeds would give the same
+            sequence
           type: INTEGER
           min: 0
           max: 281474976710655
     greedy:
       url: http://greedy-engine:8091
-      display-name: Voraz
-      description: Heuristica constructiva de vecino mas cercano con asignacion al deposito mas proximo
-      strategy: Heuristica constructiva
+      display-name: Greedy
+      description: Nearest-neighbour constructive heuristic with assignment to the closest depot
+      strategy: Constructive heuristic
       technology: Java 22 / Spring Boot
       version: 1.0.0
       deterministic: true
@@ -55,9 +54,9 @@ fms:
       parameters: []
     genetic:
       url: http://genetic-engine:8093
-      display-name: Algoritmo Genetico
-      description: Metaheuristica evolutiva con cruce BCRC, mutaciones intra e inter deposito, troceado optimo de Prins y busqueda local
-      strategy: Metaheuristica
+      display-name: Genetic Algorithm
+      description: Evolutionary metaheuristic with BCRC crossover, intra- and inter-depot mutations, Prins' optimal split and local search
+      strategy: Metaheuristic
       technology: Java 22 / Spring Boot + jMetal 6.6
       version: 2.0.0
       deterministic: false
@@ -65,126 +64,125 @@ fms:
       parameters:
         - name: populationSize
           description: >-
-            Individuos por generacion. Mas poblacion explora mas soluciones distintas
-            a costa de mas tiempo por generacion
+            Individuals per generation. A larger population explores more distinct solutions
+            at the cost of more time per generation
           type: INTEGER
           default-value: 150
           min: 10
           max: 2000
         - name: maxEvaluations
           description: >-
-            Tope de evaluaciones de la funcion objetivo. Rara vez llega a actuar: en la
-            practica la ejecucion termina antes por estancamiento, asi que subirlo no
-            mejora el coste por si solo
+            Cap on objective function evaluations. It rarely kicks in: in practice the run
+            ends earlier through stagnation, so raising it does not improve the cost on its own
           type: INTEGER
           default-value: 75000
           min: 1000
           max: 5000000
         - name: minGenerations
           description: >-
-            Generaciones que se ejecutan siempre antes de permitir un reinicio o la
-            parada anticipada. Evita cortar una busqueda que aun no ha arrancado
+            Generations always run before a restart or an early stop is allowed. Prevents
+            cutting short a search that has not taken off yet
           type: INTEGER
           default-value: 100
           min: 1
           max: 100000
         - name: crossoverProbability
           description: >-
-            Probabilidad de cruzar cada pareja seleccionada con BCRC, que reinserta los
-            clientes del otro padre en su mejor posicion. Bajarla conserva mas padres intactos
+            Probability of crossing each selected pair with BCRC, which reinserts the other
+            parent's customers in their best position. Lowering it keeps more parents intact
           type: DECIMAL
           default-value: 0.9
           min: 0
           max: 1
         - name: intraDepotMutationProbability
           description: >-
-            Probabilidad de reordenar clientes dentro de un mismo deposito. Afina rutas
-            ya asignadas sin cambiar el reparto entre depositos
+            Probability of reordering customers within the same depot. Refines already
+            assigned routes without changing the distribution among depots
           type: DECIMAL
           default-value: 0.2
           min: 0
           max: 1
         - name: interDepotMutationProbability
           description: >-
-            Probabilidad de mover clientes frontera a otro deposito. Es el unico operador
-            que cambia el reparto entre depositos, del que depende la calidad en instancias
-            con depositos proximos
+            Probability of moving border customers to another depot. It is the only operator
+            that changes the distribution among depots, on which quality depends in instances
+            with nearby depots
           type: DECIMAL
           default-value: 0.3
           min: 0
           max: 1
         - name: elitismCount
           description: >-
-            Mejores individuos distintos que pasan intactos a la siguiente generacion.
-            Protege del retroceso; subirlo demasiado reduce la diversidad
+            Best distinct individuals that pass intact to the next generation. Protects against
+            regression; raising it too much reduces diversity
           type: INTEGER
           default-value: 5
           min: 0
           max: 100
         - name: tournamentSize
           description: >-
-            Individuos que compiten en cada seleccion. Mas torneo es mas presion selectiva
-            y convergencia mas rapida, con mas riesgo de optimo local
+            Individuals competing in each selection. A larger tournament means more selective
+            pressure and faster convergence, with more risk of a local optimum
           type: INTEGER
           default-value: 3
           min: 2
           max: 20
         - name: localSearchFrequency
           description: >-
-            Cada cuantas generaciones se aplica 2-opt y relocate a los mejores individuos.
-            Un valor menor intensifica la busqueda y encarece cada generacion
+            Every how many generations 2-opt and relocate are applied to the best individuals.
+            A lower value intensifies the search and makes each generation more expensive
           type: INTEGER
           default-value: 10
           min: 1
           max: 1000
         - name: interDepotFrequency
           description: >-
-            Cada cuantas generaciones se aplica la mutacion inter deposito a una muestra
-            de la descendencia
+            Every how many generations the inter-depot mutation is applied to a sample of the
+            offspring
           type: INTEGER
           default-value: 5
           min: 1
           max: 1000
         - name: restartStagnantGenerations
           description: >-
-            Generaciones sin mejora que disparan un reinicio de poblacion conservando el
-            mejor individuo. Junto con maxRestarts es lo que de verdad termina la ejecucion
+            Generations without improvement that trigger a population restart keeping the best
+            individual. Together with maxRestarts, it is what really ends the run
           type: INTEGER
           default-value: 20
           min: 1
           max: 10000
         - name: maxRestarts
           description: >-
-            Reinicios de poblacion permitidos antes de parar. Es el parametro con mas
-            recorrido para mejorar el coste, a cambio de alargar la ejecucion
+            Population restarts allowed before stopping. It is the parameter with the most room
+            to improve the cost, at the expense of a longer run
           type: INTEGER
           default-value: 3
           min: 0
           max: 100
         - name: heuristicSeedRatio
           description: >-
-            Fraccion de la poblacion inicial construida con vecino mas cercano aleatorizado;
-            el resto se genera al azar. Arranca desde mejores soluciones a costa de diversidad
+            Fraction of the initial population built with randomised nearest neighbour; the rest
+            is generated at random. Starts from better solutions at the expense of diversity
           type: DECIMAL
           default-value: 0.2
           min: 0
           max: 1
         - name: seed
           description: >-
-            Semilla del generador aleatorio. Con la misma instancia, los mismos parametros y
-            la misma semilla la solucion es identica. Si no se envia, el motor sortea una y la
-            devuelve en el campo seed de la respuesta, de modo que cualquier ejecucion es
-            repetible a posteriori. El tope es 2^48-1 porque java.util.Random se queda con
-            48 bits: por encima de ahi dos semillas distintas darian la misma secuencia
+            Random generator seed. With the same instance, the same parameters and the same seed
+            the solution is identical. If not sent, the engine draws one and returns it in the
+            response's seed field, so any run can be repeated afterwards. The upper bound is
+            2^48-1 because java.util.Random keeps 48 bits: above it two different seeds would
+            give the same sequence
           type: INTEGER
           min: 0
           max: 281474976710655
 
     annealing:
       url: http://annealing-engine:8094
-      display-name: Recocido Simulado
-      description: Metaheuristica de solucion unica con criterio de Metropolis, vecindarios intra e inter deposito, troceado optimo de Prins y busqueda local periodica. Termina por presupuesto de tiempo y devuelve la curva anytime
-      strategy: Metaheuristica
+      display-name: Simulated Annealing
+      description: Single-solution metaheuristic with the Metropolis criterion, intra- and inter-depot neighbourhoods, Prins' optimal split and periodic local search. Stops on a time budget and returns the anytime curve
+      strategy: Metaheuristic
       technology: Java 22 / Spring Boot + jMetal 6.6
       version: 1.0.0
       deterministic: false
@@ -192,108 +190,109 @@ fms:
       parameters:
         - name: timeLimitMs
           description: >-
-            Presupuesto de tiempo en milisegundos. Es el criterio de parada principal: el motor
-            lo usa entero, recalentando cuantas veces haga falta, y devuelve la mejor solucion
-            factible vista. Las fases auxiliares pueden pasarse unas decimas
+            Time budget in milliseconds. It is the main stopping criterion: the engine uses all
+            of it, reheating as many times as needed, and returns the best feasible solution
+            seen. The auxiliary phases may overrun it by a few tenths of a second
           type: INTEGER
           default-value: 5000
           min: 100
           max: 300000
         - name: maxLevels
           description: >-
-            Tope de niveles de temperatura; 0 significa que solo manda el tiempo. Fijarlo es lo
-            que hace reproducible una ejecucion con semilla, porque con parada por tiempo el
-            numero de movimientos depende de la carga de la maquina
+            Cap on temperature levels; 0 means only time rules. Fixing it is what makes a seeded
+            run reproducible, because with time-based stopping the number of moves depends on
+            the machine load
           type: INTEGER
           default-value: 0
           min: 0
           max: 1000000
         - name: calibrationQuantile
           description: >-
-            Que cuantil de los empeoramientos sondeados al arrancar se toma como "empeoramiento
-            pequeno" para calibrar la temperatura. Es el parametro que mas cambia el resultado:
-            desde un optimo local casi todos los movimientos aleatorios empeoran mucho, y calibrar
-            con la mediana deja la busqueda demasiado caliente todo el tiempo
+            Which quantile of the worsenings sampled at start-up is taken as a "small
+            worsening" to calibrate the temperature. It is the parameter that changes the
+            result the most: from a local optimum almost every random move worsens a lot, and
+            calibrating with the median leaves the search too hot all the time
           type: DECIMAL
           default-value: 0.05
           min: 0.01
           max: 0.5
         - name: initialAcceptanceRate
           description: >-
-            Probabilidad con la que se acepta ese empeoramiento pequeno al arrancar. De aqui sale
-            la temperatura inicial, que por tanto se adapta a la escala de cada instancia
+            Probability with which that small worsening is accepted at start-up. The initial
+            temperature derives from it, so it adapts to the scale of each instance
           type: DECIMAL
           default-value: 0.4
           min: 0.01
           max: 0.99
         - name: finalAcceptanceRate
           description: >-
-            Probabilidad de aceptar ese mismo empeoramiento por debajo de la cual el sistema se
-            considera frio y se recalienta a la mitad de la temperatura inicial desde el mejor
-            conocido. Junto con coolingRate fija cuantos niveles dura un ciclo
+            Probability of accepting that same worsening below which the system is considered
+            cold and is reheated to half the initial temperature from the best known solution.
+            Together with coolingRate it sets how many levels a cycle lasts
           type: DECIMAL
           default-value: 0.001
           min: 0.000001
           max: 0.5
         - name: coolingRate
           description: >-
-            Factor geometrico de enfriamiento por nivel. Mas cerca de 1 enfria mas despacio:
-            ciclos mas largos y menos ciclos por presupuesto
+            Geometric cooling factor per level. Closer to 1 cools more slowly: longer cycles and
+            fewer cycles per budget
           type: DECIMAL
           default-value: 0.96
           min: 0.5
           max: 0.9999
         - name: movesPerTemperatureFactor
           description: >-
-            Movimientos por nivel y por cliente: un nivel son este valor por el numero de
-            clientes. Proporcional al tamano para que el equilibrio a cada temperatura no
-            dependa de la instancia
+            Moves per level and per customer: a level is this value times the number of
+            customers. Proportional to the size so that the equilibrium at each temperature
+            does not depend on the instance
           type: INTEGER
           default-value: 12
           min: 1
           max: 1000
         - name: interDepotMoveProbability
           description: >-
-            Fraccion de movimientos que cambian un cliente de deposito (reubicacion o
-            intercambio). Son los unicos que alteran el reparto entre depositos, del que
-            depende la calidad en instancias con depositos proximos
+            Fraction of moves that change a customer's depot (relocation or swap). They are the
+            only ones that alter the distribution among depots, on which quality depends in
+            instances with nearby depots
           type: DECIMAL
           default-value: 0.25
           min: 0
           max: 1
         - name: depotCandidateRatio
           description: >-
-            Cuanto mas lejos que el deposito mas cercano puede estar un deposito destino para
-            proponerlo. Mover un cliente al otro extremo del mapa no lo acepta ningun criterio
-            y solo gasta iteraciones
+            How much farther than the nearest depot a destination depot may be for it to be
+            proposed. Moving a customer to the other end of the map is accepted by no criterion
+            and only wastes iterations
           type: DECIMAL
           default-value: 1.3
           min: 1
           max: 100
         - name: localSearchFrequency
           description: >-
-            Cada cuantos niveles se aplica 2-opt y relocate a nivel de ruta sobre la solucion
-            actual. Con 0 solo se aplica en el pulido final y el motor es recocido puro: es la
-            ablacion que separa lo que aporta Metropolis de lo que aporta la busqueda local
+            Every how many levels route-level 2-opt and relocate are applied to the current
+            solution. With 0 it is applied only in the final polish and the engine is pure
+            annealing: it is the ablation that separates what Metropolis contributes from what
+            local search contributes
           type: INTEGER
           default-value: 8
           min: 0
           max: 10000
         - name: rebalanceFrequency
           description: >-
-            Cada cuantos niveles se reequilibra entre depositos (reparacion de flota y mejora),
-            ademas de al arrancar y al terminar. Con 0 solo en esos dos momentos
+            Every how many levels rebalancing between depots (fleet repair and improvement)
+            runs, besides at start-up and at the end. With 0, only at those two moments
           type: INTEGER
           default-value: 20
           min: 0
           max: 10000
         - name: seed
           description: >-
-            Semilla del generador aleatorio. Con la misma instancia, los mismos parametros, la
-            misma semilla y maxLevels fijado la solucion es identica; con parada por tiempo no,
-            porque el numero de movimientos depende de la maquina. Si no se envia, el motor
-            sortea una y la devuelve en el campo seed de la respuesta. El tope es 2^48-1 porque
-            java.util.Random se queda con 48 bits
+            Random generator seed. With the same instance, the same parameters, the same seed
+            and a fixed maxLevels the solution is identical; with time-based stopping it is
+            not, because the number of moves depends on the machine. If not sent, the engine
+            draws one and returns it in the response's seed field. The upper bound is 2^48-1
+            because java.util.Random keeps 48 bits
           type: INTEGER
           min: 0
           max: 281474976710655
