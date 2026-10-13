@@ -244,16 +244,6 @@ public class AdminService {
     }
 
     @Transactional
-    public void deleteOrder(UUID orderId) {
-        if (!orderRepository.existsById(orderId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
-        orderMessageRepository.deleteByOrderId(orderId);
-        orderEventRepository.deleteByOrderId(orderId);
-        orderRepository.deleteById(orderId);
-    }
-
-    @Transactional
     public void deleteUser(UUID userId) {
         // THIS IS PLANNED TO BE USED WITH LOYAL_USER NOT ORGANIZATIONS USER
         User user = userRepository.findById(userId)
@@ -269,6 +259,7 @@ public class AdminService {
         userRepository.delete(user);
     }
 
+    // TODO: SPACE
     @Transactional
     public void deleteWorker(UUID workerId) {
         Worker worker = workerRepository.findById(workerId)
