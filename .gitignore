@@ -69,6 +69,7 @@ Solver-FMS/instances-MD-CVRP/
 .env.local
 .env.*.local
 *.env
+*.env.local
 
 # =====================
 # SCRIPTS

@@ -151,7 +151,6 @@ export function useRoutes() {
             
             return resultEntry
         })
-        console.log(result)
         return result
     })
    
@@ -182,14 +181,12 @@ export function useRoutes() {
         }
 
         if (data.value) {
-            console.log(data.value)
             initialCustomerLayer =  initLayer()
             initalDepotLayer = initLayer()
             const {
                 customers,
                 depots
             } = data.value
-            console.log(customers)
             addCustomers({map: initialCustomerLayer, customers})
             addDepots({map: initalDepotLayer, depots})
             addlayer(layerOverlay,initialCustomerLayer,t("routes.layers.initialCustomers"))

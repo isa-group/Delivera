@@ -105,7 +105,6 @@ export function useRoutesData({
     }
 
     async function loadInitialData() {
-        console.log(deliveryWindowConfig.value)
         dataError.value = ""
         if (isBenchmark() && selectedBenchmark.value) {
             await executeLoad(dataApi,benchmarksUrl+`/${selectedBenchmark.value}`,data,dataError)

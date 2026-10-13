@@ -3,6 +3,7 @@ package com.delivera.client.config;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 import org.apache.catalina.connector.Connector;
@@ -92,12 +93,23 @@ public class MtlsServerAutoConfig implements
         }
 
         try {
+
+            if (location.startsWith("file:")) {
+                return Path.of(location.substring(5))
+                .toAbsolutePath()
+                .toString();
+            }
+
+            if (location.startsWith("/")) {
+                return Path.of(location)
+                .toAbsolutePath()
+                .toString();
+            }
+
             ResourceLoader resourceLoader = new DefaultResourceLoader();
             Resource resource = resourceLoader.getResource(location);
 
-            if ("file".equals(resource.getURL().getProtocol())) {
-                return resource.getFile().getAbsolutePath();
-            }
+            
 
             if (!useTempFile && location.startsWith("classpath:") ) {
                 try {

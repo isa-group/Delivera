@@ -65,10 +65,10 @@ delivera:
 
   mtls:
     enabled: true
-    key-store: ${DATA_KEY_STORE:classpath:certs/data-keystore.p12}
+    key-store: ${DATA_KEY_STORE:file:../docker/certs/data-service/data-service-keystore.p12}
     key-store-password: ${DATA_KEYSTORE_PASSWORD:delivera_data_password}
     key-store-type: ${DATA_KEY_STORE_TYPE:PKCS12}
-    trust-store: ${DATA_TRUST_STORE:classpath:certs/data-truststore.p12}
+    trust-store: ${DATA_TRUST_STORE:file:../docker/certs/data-service/data-service-truststore.p12}
     trust-store-password: ${DATA_TRUSTSTORE_PASSWORD:delivera_data_password}
     trust-store-type: ${DATA_TRUST_STORE_TYPE:PKCS12}
     server:
@@ -85,6 +85,7 @@ delivera:
 
       use-temp-file: false
 server:
+  port: 9092
   ssl:
     enabled: false
     key-store: ${delivera.mtls.key-store}

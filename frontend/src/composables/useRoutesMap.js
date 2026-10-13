@@ -11,9 +11,11 @@ import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM_REGION } from '@/constants/map'
 import L from 'leaflet'
 import { computed, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 
 export function useRoutesMap() {
 
+    const router = useRouter()
   
     const realCostBySlot = ref({})
     const markersByReference = ref({})
@@ -126,8 +128,10 @@ export function useRoutesMap() {
                 lat: elemet.lat,
                 lon: elemet.lng,
                 kind:name,
-                title: titlePrefix+"-"+index,
-                customColor: customColor? customColor :  name === "OWN_UNIT" ? '#000000' :"#6d6d6d"
+                title: `${t(`routes.${titlePrefix}`)}`+"-"+index,
+                customColor: customColor? customColor :  name === "OWN_UNIT" ? '#000000' :"#6d6d6d",
+                actionLabel: t('routes.viewDetail'),
+                navigateTo: getNavigate(titlePrefix, elemet.id) ,router
             })
             markersByReference.value = {
                 ... markersByReference.value,
@@ -137,6 +141,22 @@ export function useRoutesMap() {
             index++
         }
     }
+
+    function originNavigateTo(id) {
+        return `/units/${id}`
+      }
+    function orderNavigateTo(id) {
+        return `/orders/${id}`
+    }
+
+    function getNavigate(name, id) {
+        if ("depot" === name) {
+            return originNavigateTo(id)
+        } else {
+            return orderNavigateTo(id)
+        }
+    }
+     
 
     
     function addCustomers({map,customers, customColor = null}) {
@@ -164,9 +184,11 @@ export function useRoutesMap() {
                 lat: depotCoords.lat,
                 lon: depotCoords.lon,
                 kind: 'OWN_UNIT',
-                title: 'test',
-                subtitle: 'test',
-                customColor: getRouteColor(solverType)
+                title: `${t('routes.depot')}`,
+                subtitle: `${depotId}`,
+                customColor: getRouteColor(solverType),
+                actionLabel:  t('routes.viewDetail'),
+                navigateTo: originNavigateTo(depotId), router
             }).addTo(map)
         }
         for (let stop = 0; stop< route.stops.length ; stop++) {
@@ -179,10 +201,12 @@ export function useRoutesMap() {
                 lat: clientCoords.lat,
                 lon: clientCoords.lon,
                 kind: 'STOP',
-                title: 'test',
-                subtitle: 'test',
+                title: `${t('routes.customer')}` ,
+                subtitle: `${client}`,
                 stop: stop+1,
-                customColor: getRouteColor(solverType, dashed)
+                customColor: getRouteColor(solverType, dashed),
+                actionLabel:  t('routes.viewDetail'),
+                navigateTo: orderNavigateTo(client), router
             }).addTo(map)
         }
 
