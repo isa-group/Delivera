@@ -5,7 +5,9 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -88,5 +90,14 @@ public class AdminController {
     public ResponseEntity<List<RouteAdminEntry>> getActiveRoutes() {
         return ResponseEntity.ok(adminService.getActiveRoutes());
     }
+
+
+    @Operation(summary = "Eliminar pedido")
+    @DeleteMapping("/orders/{id}")
+    public ResponseEntity<Void> deleteOrder(@PathVariable UUID id) {
+        adminService.deleteOrder(id);
+        return ResponseEntity.noContent().build();
+    }
+
 
 }

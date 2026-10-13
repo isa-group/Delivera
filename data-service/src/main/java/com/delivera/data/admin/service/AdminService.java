@@ -118,6 +118,12 @@ public class AdminService {
         return orderRepository.findAllActiveWithPositions(Set.of(OrderStatus.PENDING, OrderStatus.IN_TRANSIT));
     }
 
+    
+    @Transactional
+    public  void deleteOrder(UUID orderId) {
+        orderRepository.deleteById(orderId);
+    }
+
     @Transactional
     public void deleteAllDataExcept(UUID companyId) {
         vehicleRepository.deleteAllExceptCompanyId(companyId);

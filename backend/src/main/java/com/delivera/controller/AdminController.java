@@ -96,12 +96,6 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Eliminar pedido")
-    @DeleteMapping("/orders/{id}")
-    public ResponseEntity<Void> deleteOrder(@PathVariable UUID id) {
-        adminService.deleteOrder(id);
-        return ResponseEntity.noContent().build();
-    }
 
     @Operation(summary = "Eliminar usuario")
     @DeleteMapping("/users/{id}")
