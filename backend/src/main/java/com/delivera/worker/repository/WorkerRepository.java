@@ -42,9 +42,10 @@ public interface WorkerRepository extends JpaRepository<Worker, UUID> {
         FROM Worker w
         JOIN FETCH w.company c
         JOIN FETCH c.organization
+        JOIN FETCH w.user u
         WHERE w.id = :workerId
     """)
-    Optional<Worker> findWorkerAndCompanyAndOrgDataByWorkerId(UUID workerId);
+    Optional<Worker> findEagerLoadingById(UUID workerId);
 
     @Query("SELECT w FROM Worker w JOIN FETCH w.company c JOIN c.organization o JOIN w.user u WHERE u.email = :email ORDER BY w.createdAt ASC")
     List<Worker> findByUserEmailOrderByCreatedAtAsc(@Param("email") String email);
@@ -139,4 +140,7 @@ public interface WorkerRepository extends JpaRepository<Worker, UUID> {
         @Param("orgId") UUID orgId, 
         @Param("companyId") UUID companyId 
     );
+
+
+    
 }

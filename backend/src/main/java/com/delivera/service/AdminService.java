@@ -5,6 +5,7 @@ import com.delivera.client.transaction.annotation.Compensable;
 import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.dto.admin.*;
 import com.delivera.exception.ForbiddenException;
+import com.delivera.exception.LastAdminException;
 import com.delivera.model.*;
 import com.delivera.order.model.OrderStatus;
 import com.delivera.order.repository.OrderRepository;
@@ -258,17 +259,28 @@ public class AdminService {
         userRepository.delete(user);
     }
 
-    // TODO: SPACE
+    @Compensable
     @Transactional
     public void deleteWorker(UUID workerId) {
-        Worker worker = workerRepository.findById(workerId)
+        Worker worker = workerRepository.findEagerLoadingById(workerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (worker.getRole() == WorkerRole.GLOBAL_ADMIN) {
             throw new ForbiddenException("FORBIDDEN");
         }
         unitWorkerClient.unassignWorkerOfAllUnits(workerId);
-        authClient.deleteUser(worker.getUser().getId());
+        
+        User user = worker.getUser();
         workerRepository.deleteById(workerId);
+
+        if (workerRepository.countByUser_Id(user.getId()) == 0) {
+            userRepository.delete(user);
+            authClient.deleteUser(user.getId()).block();
+            spaceWorkers.deleteWithRollBack(worker.getCompany().getOrganization().getId().toString());  
+        }
+
+        
+
+       
     }
 
     @Transactional
