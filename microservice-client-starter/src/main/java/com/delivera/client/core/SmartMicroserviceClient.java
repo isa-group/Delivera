@@ -45,11 +45,11 @@ public class SmartMicroserviceClient {
         if (builder.isLogEnabled()) {
             String protocol = resolveProtocol(builder);
             request = request.doOnSubscribe(sub ->
-                log.info("[{}] {} {}",protocol, builder.getMethod(), resolveUrl(builder))
+                log.debug("[{}] {} {}",protocol, builder.getMethod(), resolveUrl(builder))
             ).doOnSuccess(res ->
-                log.info("[{}] Response received", protocol)
+                log.debug("[{}] Response received", protocol)
             ).doOnError(err ->
-                log.error("[{}] Error -> {}",protocol, err.getMessage())
+                log.error("[{}] {} {} -> Error -> {}",protocol, builder.getMethod(), resolveUrl(builder), err.getMessage())
             );
 
         }

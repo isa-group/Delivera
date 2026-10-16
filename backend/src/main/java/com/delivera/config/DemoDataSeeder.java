@@ -123,69 +123,25 @@ public class DemoDataSeeder implements CommandLineRunner {
     @PersistenceContext
     private EntityManager em;
 
-    /* 
-    @Autowired
-    public DemoDataSeeder(UserRepository users,
-                          OrganizationRepository organizations,
-                          CompanyRepository companies,
-                          WorkerRepository workers,
-                          OperationalUnitRepository units,
-                          LoyalUserRepository loyalUsers,
-                          OrderRepository orders,
-                           OrderEventRepository orderEvents,
-                           ActivityTypeRepository activityTypes,
-                           SubscriptionPlanRepository plans,
-                           VehicleClient vehicleClient,
-                           UnitClient unitClient,
-                           SettingsClient settingsClient,
-                           OrderClient orderClient,
-                           AdminService adminService,
-                           SpaceManagment spaceManagment,
-                           SpaceCompanies spaceCompanies,
-                           SpaceWorkers spaceWorkers,
-                           SpaceLoyalUsers spaceLoyalUsers,
-                           AuthClient authClient) {
-        this.users = users;
-        this.organizations = organizations;
-        this.companies = companies;
-        this.workers = workers;
-        this.units = units;
-        this.loyalUsers = loyalUsers;
-        this.orders = orders;
-        this.orderEvents = orderEvents;
-        this.activityTypes = activityTypes;
-        this.plans = plans;
-        this.vehicleClient = vehicleClient;
-        this.unitClient = unitClient;
-        this.authClient = authClient;
-        this.settingsClient = settingsClient;
-        this.orderClient = orderClient;
-        this.spaceManagment = spaceManagment;
-        this.spaceCompanies = spaceCompanies;
-        this.spaceWorkers = spaceWorkers;
-        this.spaceLoyalUsers = spaceLoyalUsers;
-        this.adminService = adminService;
-    }
-*/
     @Override
     @Transactional
     public void run(String... args) {
         if (!demoPopulate){
             return;
-        }else if (resetOnStart) {
+        }else if (resetOnStart && users.count() > 0) {
             log.warn("DemoDataSeeder: app.demo.reset-on-start=true -> vaciando tablas de datos antes de re-sembrar.");
-            
             wipeData();
         } else if (users.count() > 0) {
             log.info("DemoDataSeeder: la BD ya tiene usuarios, se omite la carga de demo.");
             return;
-        }
+        } else if (users.count() == 0){
+            createAdminItems();
+        } 
         this.spaceContracts.removeAllContracts();
         log.info("DemoDataSeeder: cargando datos de demo...");
 
         // --- 1. Usuarios ---
-        User admin  = createUser(adminEmail,    "admin",   "Ana",    "Navarro",   "+34600000001",
-                "Paseo de la Castellana 100, Madrid", 40.4430, -3.6900);
+       
         User carlos = createUser("carlos@rapidlog.com",   "carlos",  "Carlos", "García",    "+34600000002",
                 "Calle Goya 60, Madrid",              40.4250, -3.6780);
         User lucia  = createUser("lucia@rapidlog.com",    "lucia",   "Lucía",  "Pérez",     "+34600000003",
@@ -214,7 +170,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "Gran Vía 25, Madrid", 40.4200, -3.7060);
 
         // --- 2. Organizaciones ---
-        Organization delivera   = createOrg("Delivera",    "delivera");   // org de sistema
+       
         Organization rapidlog   = createOrg("RapidLog",    "rapidlog");
         Organization transnorte = createOrg("TransNorte",  "transnorte");
         Organization distrisur  = createOrg("DistriSur",   "distrisur");
@@ -244,7 +200,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         SubscriptionPlan pro   = plans.findById("PRO").orElseThrow();
 
         // --- 4. Empresas ---
-        Company deliveraPlatform = createCompany(delivera,   "Delivera Platform",          distribution, free);
+       
         Company rlCentral = createCompany(rapidlog,   "RapidLog Central",           distribution, pro);
         Company rlRetail  = createCompany(rapidlog,   "RapidLog Retail",            retail,       basic);
         Company tnLog     = createCompany(transnorte, "TransNorte Logística",       transport,    pro);
@@ -253,9 +209,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         Company dsInd     = createCompany(distrisur,  "DistriSur Industrial",       industry,     free);
 
         // --- 5. Trabajadores ---
-        // GLOBAL_ADMIN — vinculado a la empresa de sistema, no a ninguna organización de cliente
-        createWorker(admin, deliveraPlatform, WorkerRole.GLOBAL_ADMIN);
-
+        
         // RapidLog Central — admin, analista y operador
         Worker carlosW = createWorker(carlos, rlCentral, WorkerRole.COMPANY_ADMIN);
         Worker luciaW  = createWorker(lucia,  rlCentral, WorkerRole.ANALYST);
@@ -368,7 +322,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         createVehicle(dsFood,    dsMalaga,    "DS-001", 1500);
         createVehicle(dsFood,    dsGranada,   "DS-002", 900);
         // DistriSur Industrial
-        createVehicle(dsInd,     dsFactory,   "DI-001", 2500);
+        createVehicle(dsInd,     dsFactory,   "º-001", 2500);
         createVehicle(dsInd,     dsCadizWh,   "DI-002", 1200);
 
         // --- 9. Fidelizados ---
@@ -467,7 +421,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         createB2CUnregistered(rlRetail, rlTiendaBcn, "ana.blanco@mail.com",    "Ana Blanco",
                 "Calle Valencia 200, Barcelona",      41.3950,  2.1640, OrderStatus.PENDING,    OrderPriority.NORMAL, 0,  carlos);
 
-        log.info("DemoDataSeeder: demo cargada — {} usuarios, {} empresas, {} unidades, {} pedidos.",
+        log.info("DemoDataSeeder: demo cargada - {} usuarios, {} empresas, {} unidades, {} pedidos.",
                 users.count(), companies.count(), units.count(), orders.count());
 
     }
@@ -697,13 +651,26 @@ public class DemoDataSeeder implements CommandLineRunner {
         }
     }
 
+    private void createAdminItems() {
+        ActivityType distribution = activityTypes.findById("DISTRIBUTION").orElseThrow();
+        SubscriptionPlan free  = plans.findById("FREE").orElseThrow();
+        User admin  = createUser(adminEmail,    "admin",   "Ana",    "Navarro",   "+34600000001",
+        "Paseo de la Castellana 100, Madrid", 40.4430, -3.6900);
+        Organization delivera   = createOrg("Delivera",    "delivera");   // org de sistema
+        Company deliveraPlatform = createCompany(delivera,   "Delivera Platform",          distribution, free);
+        createWorker(admin, deliveraPlatform, WorkerRole.GLOBAL_ADMIN);
+    }
+
     /**
      * Vacía las tablas de datos preservando configuración (activity_types, order_status_config,
      * order_priority_config, worker_role_config, subscription_plans) y el historial de Flyway.
      * Reinicia la secuencia de referencias de pedido.
      */
     private void wipeData() {
-        // TODO: RESET DB USES mTLS --> CAN'T COMUNICATE WHEN SERVER STARTS
-        //adminService.resetDatabase(adminEmail);
+        String baseDataUrl = dataHost+dataPrefix+"/internal/admin/data-service/";
+        String baseAuthUrl =  authHost+authPrefix+"/internal/admin/auth-service/";
+        System.out.println(baseDataUrl);
+        System.out.println(baseAuthUrl);
+        adminService.seederResetDatabase(adminEmail, baseDataUrl, baseAuthUrl);
     }
 }

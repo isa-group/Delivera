@@ -97,4 +97,18 @@ public class SettingsClient {
         .log()
         .executeBasicRequest(Void.class).block();
     }
+
+    public void seederCleanDataServiceDB(String url) {
+        client.request()
+        .url(url)
+        .method(HttpMethod.DELETE)
+        .http()
+        .internal()
+        .failOn4xx(true)
+        .failOn5xx(true)
+        .retry(RETRIRES)
+        .timeout(TIMEOUT)
+        .log()
+        .executeBasicRequest(Void.class).block();
+    }
 }

@@ -51,11 +51,6 @@ public class AdminController {
         return ResponseEntity.ok(companyService.getCompanyAndOrgNames());
     }
 
-    @Operation(summary = "Lista de pedidos")
-    @GetMapping("/orders")
-    public ResponseEntity<List<OrderAdminSummary>> listOrders() {
-        return ResponseEntity.ok(adminService.listOrders());
-    }
 
     @Operation(summary = "Lista de usuarios")
     @GetMapping("/users")

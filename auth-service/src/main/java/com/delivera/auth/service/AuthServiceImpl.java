@@ -79,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
         try {
             newCredential =  credentialRepository.save(credential);
 
-            log.info("Creating credentials for userId={}, email={}", credential.getUserId(), credential.getEmail());
+            log.debug("Creating credentials for userId={}, email={}", credential.getUserId(), credential.getEmail());
         } catch (DataIntegrityViolationException exception) {
             log.warn("Unexpected error creating credentials for userId={}", credential.getUserId(), exception);
             checkIfEmailExists(credential.getEmail());
