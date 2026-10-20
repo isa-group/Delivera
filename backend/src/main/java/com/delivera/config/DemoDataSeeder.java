@@ -322,7 +322,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         createVehicle(dsFood,    dsMalaga,    "DS-001", 1500);
         createVehicle(dsFood,    dsGranada,   "DS-002", 900);
         // DistriSur Industrial
-        createVehicle(dsInd,     dsFactory,   "º-001", 2500);
+        createVehicle(dsInd,     dsFactory,   "DI-001", 2500);
         createVehicle(dsInd,     dsCadizWh,   "DI-002", 1200);
 
         // --- 9. Fidelizados ---
