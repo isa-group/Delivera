@@ -40,7 +40,7 @@ Delivera uses a modular environment configuration system designed to simplify de
 > ```
 >
 > The application will not be able to communicate with Space services correctly if these values are not configured.
-``
+
 
 Once the setup is complete, start only the PostgreSQL containers with:
 
