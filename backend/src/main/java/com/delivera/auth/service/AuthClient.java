@@ -164,4 +164,20 @@ public class AuthClient {
         
     }
 
+    public void seederCleanAuthServiceDB(String url) {
+        client.request()
+        .url(url)
+        .method(HttpMethod.DELETE)
+        .http()
+        .internal()
+        .failOn4xx(true)
+        .failOn5xx(true)
+        .retry(RETRIES)
+        .timeout(TIMEOUT)
+        .log()
+        .executeBasicRequest(Void.class)
+        .block();
+        
+    }
+
 }

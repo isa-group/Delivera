@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -116,6 +117,14 @@ public class AdminService {
     @Transactional(readOnly = true)
     public List<RouteAdminEntry> getActiveRoutes() {
         return orderRepository.findAllActiveWithPositions(Set.of(OrderStatus.PENDING, OrderStatus.IN_TRANSIT));
+    }
+
+    
+    @Transactional
+    public  void deleteOrder(UUID orderId) {
+        orderMessageRepository.deleteByOrderId(orderId);
+        orderEventRepository.deleteByOrderId(orderId);
+        orderRepository.deleteById(orderId);
     }
 
     @Transactional

@@ -60,7 +60,7 @@ public class SpaceManagment {
         }else if (unexistingFeature){
             log.warn("FEATURE_NOT_FOUND: {} is not in the pricing",withConsumption.getError());
         } else if (isError) {
-            log.info("FEATURE_ERROR: {}",withConsumption.getError());
+            log.error("FEATURE_ERROR: {}",withConsumption.getError());
             throw new ServerException(503, "SERVICE_UNAVAILABLE");
         }
     }

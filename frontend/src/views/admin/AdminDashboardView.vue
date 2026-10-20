@@ -337,12 +337,21 @@ function confirmDelete(id) {
   deleteError.value = ''
 }
 
+
+function obtainApi(entity) {
+  const apiByEntity = {
+    "orders": dataApi
+  }
+  return apiByEntity[entity] ?? api
+
+}
+
 async function executeDelete() {
   if (!deleteConfirmId.value) return
   deleteLoading.value = true
   deleteError.value = ''
   try {
-    const res = await api.del(`/admin/${activeEntity.value}/${deleteConfirmId.value}`)
+    const res = await obtainApi(activeEntity.value).del(`/admin/${activeEntity.value}/${deleteConfirmId.value}`)
     if (res.ok || res.status === 204) {
       deleteConfirmId.value = null
       await loadEntity(activeEntity.value)

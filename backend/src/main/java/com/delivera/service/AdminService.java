@@ -1,13 +1,13 @@
 package com.delivera.service;
 
 import com.delivera.auth.service.AuthClient;
+import com.delivera.client.transaction.annotation.Compensable;
 import com.delivera.depot.repository.OperationalUnitRepository;
 import com.delivera.dto.admin.*;
 import com.delivera.exception.ForbiddenException;
+import com.delivera.exception.LastAdminException;
 import com.delivera.model.*;
 import com.delivera.order.model.OrderStatus;
-import com.delivera.order.repository.OrderEventRepository;
-import com.delivera.order.repository.OrderMessageRepository;
 import com.delivera.order.repository.OrderRepository;
 import com.delivera.org.model.Company;
 import com.delivera.org.model.Organization;
@@ -15,6 +15,10 @@ import com.delivera.org.repository.CompanyRepository;
 import com.delivera.org.repository.OrganizationRepository;
 import com.delivera.org.service.SettingsClient;
 import com.delivera.repository.*;
+import com.delivera.space.service.SpaceCompanies;
+import com.delivera.space.service.SpaceContracts;
+import com.delivera.space.service.SpaceLoyalUsers;
+import com.delivera.space.service.SpaceWorkers;
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.model.WorkerRole;
 import com.delivera.worker.repository.WorkerRepository;
@@ -49,14 +53,16 @@ public class AdminService {
     private final UserRepository userRepository;
     private final WorkerRepository workerRepository;
     private final OperationalUnitRepository unitRepository;
-    private final OrderMessageRepository orderMessageRepository;
-    private final OrderEventRepository orderEventRepository;
     private final LoyalUserCompanyRepository loyalUserCompanyRepository;
     private final LoyalUserRepository loyalUserRepository;
     private final ApiKeyRepository apiKeyRepository;
     private final UnitWorkerClient unitWorkerClient;
     private final AuthClient authClient;
     private final SettingsClient settingsClient;
+    private  final SpaceLoyalUsers spaceLoyalUsers;
+    private  final SpaceWorkers spaceWorkers;
+    private  final SpaceCompanies spaceCompanies;
+    private final SpaceContracts spaceContracts;
 
     // ── Listing ──────────────────────────────────────────────────────────────
 
@@ -101,19 +107,6 @@ public class AdminService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
-    public List<OrderAdminSummary> listOrders() {
-        return orderRepository.findAll().stream()
-                .map(o -> new OrderAdminSummary(
-                        o.getId(),
-                        o.getReference(),
-                        o.getStatus().name(),
-                        o.getOrderType().name(),
-                        o.getCompany().getName(),
-                        o.getCompany().getOrganization().getName(),
-                        o.getCreatedAt()))
-                .toList();
-    }
 
     @Transactional(readOnly = true)
     public List<UserSummary> listUsers() {
@@ -209,6 +202,7 @@ public class AdminService {
     }
     // ── Delete operations ─────────────────────────────────────────────────────
 
+    @Compensable
     @Transactional
     public void deleteOrganization(UUID orgId) {
         Organization org = organizationRepository.findById(orgId)
@@ -220,9 +214,12 @@ public class AdminService {
         Set<UUID> userIds = workerRepository.findWorkersAccounts(companyIds);
    
 
-        loyalUserCompanyRepository.deleteByCompanyIds(companyIds);
+        Integer loyalUsers =  loyalUserCompanyRepository.deleteByCompanyIds(companyIds);
+        spaceLoyalUsers.deleteAllWithRollBack(orgId.toString(), loyalUsers);
+
         apiKeyRepository.deleteByCompanyIds(companyIds);
-        workerRepository.deleteByCompanyIds(companyIds);
+        Integer workers = workerRepository.deleteByCompanyIds(companyIds);
+        spaceWorkers.deleteAllWithRollBack(orgId.toString(), workers);
 
         companyRepository.deleteByOrganizationId(orgId);
         organizationRepository.deleteById(orgId);
@@ -230,8 +227,11 @@ public class AdminService {
 
         settingsClient.deleteOrganization(orgId,companyIds);
         authClient.deleteUsers(userIds);
+
+        spaceContracts.removeContract(orgId.toString());
     }
 
+    @Compensable
     @Transactional
     public void deleteCompany(UUID companyId) {
         Company company = companyRepository.findById(companyId)
@@ -241,16 +241,6 @@ public class AdminService {
         }
         deleteCompanyCascade(company.getOrganization().getId(),companyId);
         companyRepository.deleteById(companyId);
-    }
-
-    @Transactional
-    public void deleteOrder(UUID orderId) {
-        if (!orderRepository.existsById(orderId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
-        orderMessageRepository.deleteByOrderId(orderId);
-        orderEventRepository.deleteByOrderId(orderId);
-        orderRepository.deleteById(orderId);
     }
 
     @Transactional
@@ -269,17 +259,66 @@ public class AdminService {
         userRepository.delete(user);
     }
 
+    @Compensable
     @Transactional
     public void deleteWorker(UUID workerId) {
-        Worker worker = workerRepository.findById(workerId)
+        Worker worker = workerRepository.findEagerLoadingById(workerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (worker.getRole() == WorkerRole.GLOBAL_ADMIN) {
             throw new ForbiddenException("FORBIDDEN");
         }
         unitWorkerClient.unassignWorkerOfAllUnits(workerId);
-        authClient.deleteUser(worker.getUser().getId());
+        
+        User user = worker.getUser();
         workerRepository.deleteById(workerId);
+
+        if (workerRepository.countByUser_Id(user.getId()) == 0) {
+            userRepository.delete(user);
+            authClient.deleteUser(user.getId()).block();
+            spaceWorkers.deleteWithRollBack(worker.getCompany().getOrganization().getId().toString());  
+        }
+
+        
+
+       
     }
+
+    @Transactional
+    public void seederResetDatabase(String adminEmail, String dataBaseUrl, String authBaseUrl) {
+        Worker adminWorker = workerRepository.findByUserEmailOrderByCreatedAtAsc(adminEmail).stream()
+                .filter(w -> w.getRole() == WorkerRole.GLOBAL_ADMIN)
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
+
+        UUID adminUserId = adminWorker.getUser().getId();
+        UUID adminCompanyId = adminWorker.getCompany().getId();
+        UUID adminOrgId = adminWorker.getCompany().getOrganization().getId();
+
+     
+
+        // Delete loyal user data
+        loyalUserCompanyRepository.deleteAllLinks();
+        loyalUserRepository.deleteAllLoyalUsers();
+
+        // Delete API keys except admin's company
+        apiKeyRepository.deleteAllExceptCompany(adminCompanyId);
+
+        // Delete workers except GLOBAL_ADMIN
+        workerRepository.deleteAllExceptRole(WorkerRole.GLOBAL_ADMIN);
+
+        // Delete companies except admin's
+        companyRepository.deleteAllExcept(adminCompanyId);
+
+        // Delete organizations except admin's
+        organizationRepository.deleteAllExcept(adminOrgId);
+
+        // Delete users except admin
+        userRepository.deleteAllExcept(adminUserId);
+
+        settingsClient.seederCleanDataServiceDB(dataBaseUrl+adminCompanyId);
+        authClient.seederCleanAuthServiceDB(authBaseUrl+adminUserId);
+    }
+
 
     @Transactional
     public void resetDatabase(String adminEmail) {
@@ -328,10 +367,17 @@ public class AdminService {
         };
     }
 
+ 
     private void deleteCompanyCascade(UUID orgId, UUID companyId) {
-        loyalUserCompanyRepository.deleteByCompanyId(companyId);
+        spaceCompanies.deleteWithRollBack(orgId.toString());
+
+        Integer loyalUsers = loyalUserCompanyRepository.deleteByCompanyId(companyId);
+        spaceLoyalUsers.deleteAllWithRollBack(orgId.toString(), loyalUsers);
+        
         apiKeyRepository.deleteByCompanyId(companyId);
         Set<UUID> userIds = workerRepository.findAccountsToDelete(orgId, companyId);
+        spaceWorkers.deleteAllWithRollBack(orgId.toString(), userIds.size());
+
         workerRepository.deleteByCompanyId(companyId);
         userRepository.deleteByUserIds(userIds);
         settingsClient.deleteAllByCompany(companyId, true);

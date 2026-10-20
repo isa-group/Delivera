@@ -13,11 +13,11 @@ public interface LoyalUserCompanyRepository extends JpaRepository<LoyalUserCompa
 
     @Modifying
     @Query("DELETE FROM LoyalUserCompany luc WHERE luc.id.companyId = :companyId")
-    void deleteByCompanyId(@Param("companyId") UUID companyId);
+    Integer deleteByCompanyId(@Param("companyId") UUID companyId);
 
     @Modifying
     @Query("DELETE FROM LoyalUserCompany luc WHERE luc.id.companyId IN :companyIds")
-    void deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
+    Integer deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
 
     @Modifying
     @Query("DELETE FROM LoyalUserCompany luc")

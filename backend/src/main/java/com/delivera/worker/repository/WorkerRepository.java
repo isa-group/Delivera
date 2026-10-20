@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import com.delivera.worker.dto.WorkerResponse;
+
 import com.delivera.worker.model.Worker;
 import com.delivera.worker.model.WorkerRole;
 
@@ -37,6 +37,15 @@ public interface WorkerRepository extends JpaRepository<Worker, UUID> {
 
     long countByCompanyIdAndRole(UUID companyId, WorkerRole role);
 
+    @Query("""
+        SELECT w
+        FROM Worker w
+        JOIN FETCH w.company c
+        JOIN FETCH c.organization
+        JOIN FETCH w.user u
+        WHERE w.id = :workerId
+    """)
+    Optional<Worker> findEagerLoadingById(UUID workerId);
 
     @Query("SELECT w FROM Worker w JOIN FETCH w.company c JOIN c.organization o JOIN w.user u WHERE u.email = :email ORDER BY w.createdAt ASC")
     List<Worker> findByUserEmailOrderByCreatedAtAsc(@Param("email") String email);
@@ -69,7 +78,7 @@ public interface WorkerRepository extends JpaRepository<Worker, UUID> {
 
     @Modifying
     @Query("DELETE FROM Worker w WHERE w.company.id IN :companyIds")
-    void deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
+    Integer deleteByCompanyIds(@Param("companyIds") Set<UUID> companyIds);
 
     boolean existsByUser_IdAndRole(UUID userId, WorkerRole role);
 
@@ -130,5 +139,8 @@ public interface WorkerRepository extends JpaRepository<Worker, UUID> {
     Set<UUID> findAccountsToDelete(
         @Param("orgId") UUID orgId, 
         @Param("companyId") UUID companyId 
-    );        
+    );
+
+
+    
 }
