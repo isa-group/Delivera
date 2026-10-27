@@ -193,6 +193,8 @@ def print_report(result):
         verdict = "SÍ, va por QAOA (si QAOA encuentra una solución factible)"
     elif not result["analyze"]["is_viable"]:
         verdict = "NO, la descarta el filtro de /analyze"
+    elif not prepared(result):
+        verdict = "NO, no se puede preparar ningún candidato"
     else:
         verdict = f"NO, ningún candidato cabe en {result['max_qubits']} qubits"
     print(f"  Vía cuántica: {verdict}")
