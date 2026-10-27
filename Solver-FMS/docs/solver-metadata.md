@@ -49,9 +49,11 @@ gateway applies when the client does not send it:
 }
 ```
 
-`type` is `INTEGER` or `DECIMAL`, and says whether the parameter admits decimals: that is what
-`min`/`max` cannot express, because `elitismCount` (0–100) and `crossoverProbability` (0–1) look
-the same in the descriptor and are not. A parameter without `defaultValue` and with
+`type` is `INTEGER`, `DECIMAL` or `BOOLEAN`. For numbers it says whether the parameter admits
+decimals: that is what `min`/`max` cannot express, because `elitismCount` (0–100) and
+`crossoverProbability` (0–1) look the same in the descriptor and are not. `BOOLEAN` is for
+switches without a range, such as `includeMtz` in `QISKIT`; it only accepts JSON `true`
+or `false`, not `1` or `"true"`. A parameter without `defaultValue` and with
 `required: true` forces the client to send it; without `defaultValue` and without `required`, the
 solver decides internally.
 
@@ -60,8 +62,9 @@ in automatically before dispatching to the engine, so that a run always starts f
 known configuration.
 
 What each engine accepts today: `GREEDY` none, `RANDOM` only `seed`, `GENETIC` fourteen,
-documented one by one in [engines/genetic-engine.md](engines/genetic-engine.md#parameters), and
-`ANNEALING` twelve, in [engines/annealing-engine.md](engines/annealing-engine.md#parameters).
+documented one by one in [engines/genetic-engine.md](engines/genetic-engine.md#parameters),
+`ANNEALING` twelve, in [engines/annealing-engine.md](engines/annealing-engine.md#parameters),
+`QISKIT` four and `DWAVE` one, both in [engines/quantum-engine.md](engines/quantum-engine.md#parameters).
 
 ## Parameter resolution
 
@@ -69,7 +72,8 @@ It happens in `EngineDispatcher`, before sending the problem to the engine:
 
 1. Parameters the request does not carry are filled with their `defaultValue`.
 2. One not declared by the solver is discarded with a log warning.
-3. One that is not a number, has decimals while being `INTEGER`, or falls outside `min`/`max`,
+3. One whose value does not match its type (not a number, decimals while being `INTEGER`, not
+   `true`/`false` while being `BOOLEAN`), or that falls outside `min`/`max`,
    returns **400**. A `12.7` on `populationSize` is rejected instead of truncated to 12: the engine
    must not run a configuration nobody asked for.
 4. A `required` one with neither default nor sent value returns **400**.
