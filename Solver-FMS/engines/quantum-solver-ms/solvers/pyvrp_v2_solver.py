@@ -6,7 +6,7 @@ from pyvrp.stop import MaxRuntime
 from typing import Any
 from abc import ABC, abstractmethod
 from services.vehicle_strategy_service import VehicleStrategy, VehicleAssignmentContext, HybridPresets, VehicleStrategies
-
+from api.adapter.specification import OpenSpecificationFactory, ParamSpecification, ParamTypes, OpenMetada
 from api.adapter.models import (
     CustomerStd,
     DepotStd,
@@ -17,8 +17,64 @@ from api.adapter.models import (
     NodeStd
 )
 
-
 SOLVER_TYPE = 'HGS-ADC'
+PARAM_SPECIFICATIONS = [
+    ParamSpecification(
+        name="seed",
+        type=ParamTypes.INTEGER,
+        minimum=0,
+        maximum=2**31-1,
+        default=42
+    ),
+    ParamSpecification(
+        name="max_runtime_sec",
+        type=ParamTypes.NUMBER,
+        minimum=0.1,
+        maximum=300,
+        default=0.1,
+        required=False
+    ),
+    ParamSpecification(
+        name="use_vehicle_repetition",
+        type=ParamTypes.BOOLEAN,
+        default=True,
+    ),
+    ParamSpecification(
+        name="max_vehicle_repetition",
+        type=ParamTypes.INTEGER,
+        minimum=1,
+        maximum=20,
+        default=1
+    ),
+        ParamSpecification(
+        name="vehicle_strategy_config",
+        type=ParamTypes.ENUM,
+        enum_type=HybridPresets,
+        default=HybridPresets.BALANCED
+    ),
+    ParamSpecification(
+        name="vehicle_strategy",
+        type=ParamTypes.ENUM,
+        enum_type=VehicleStrategies,
+        default=VehicleStrategies.FUTURE_HYBRID
+    )
+]
+
+# TODO
+def hgs_adc_manifest():
+    metadata = OpenMetada(
+        name="hgs-adc",
+        namespace="delivera.solvers",
+        version="1.0.0"
+    )    
+
+    return OpenSpecificationFactory.schema(
+        apiVersion="????",
+        kind="Engine",
+        metadata=metadata,
+        param_specifications=PARAM_SPECIFICATIONS
+    )
+
 
 def solve_hgs_adc(
     request: RoutingRequestStd,
