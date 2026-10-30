@@ -139,5 +139,6 @@ class TestAdapter(unittest.TestCase):
             "DEPOT"
         )
 
+   
 if __name__ == "__main__":
     unittest.main()
