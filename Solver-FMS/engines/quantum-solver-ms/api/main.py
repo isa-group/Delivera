@@ -5,11 +5,9 @@ from typing import Optional, Dict, Any
 
 from domain.models import RoutingRequest
 from api.adapter.models import PyvrpParameters, RoutingRequestStd, RoutingResponseStd
-from api.adapter.specification import ParamSpecification, ParamFactory, ParamTypes
 from api.adapter.specification import OpenSpecificationFactory, OpenMetada
 from api.adapter.adapter import Adapter
 from solvers.pyvrp_v2_solver import solve_hgs_adc, hgs_adc_manifest
-from solvers.pyvrp_v2_solver import PARAM_SPECIFICATIONS as HGS_ADC_PARAMS
 
 from services.evaluation_service import (
     QuantumPreparationError,

@@ -7,8 +7,9 @@ import time
 from pyvrp import Model, PenaltyParams, SolveParams
 from pyvrp.constants import MAX_VALUE
 from pyvrp.stop import MaxRuntime
-from api.adapter.specification import OpenSpecificationFactory, ParamSpecification, ParamTypes, OpenMetada
+from api.adapter.specification import OpenSpecificationFactory, OpenMetada
 from api.adapter.models import (
+    PyvrpParameters,
     RouteStd,
     RoutingRequestStd,
     RoutingResponseStd,
@@ -79,42 +80,7 @@ def use_matrix_or_default(model: Model, location_by_matrix_index: dict,
             )
     return matrix
 
-PARAM_SPECIFICATIONS = [
-    ParamSpecification(
-        name="seed",
-        type=ParamTypes.INTEGER,
-        minimum=0,
-        maximum=2**31-1,
-        default=42
-    ),
-    ParamSpecification(
-        name="maxRuntimeSec",
-        type=ParamTypes.NUMBER,
-        minimum=0.1,
-        maximum=300,
-        default=0.1,
-        required=False
-    ),
-    ParamSpecification(
-        name="maxVehicleRepetition",
-        type=ParamTypes.INTEGER,
-        minimum=1,
-        maximum=20,
-        default=1
-    ),
-        ParamSpecification(
-        name="vehicleStrategyConfig",
-        type=ParamTypes.ENUM,
-        enum_type=HybridPresets,
-        default=HybridPresets.BALANCED
-    ),
-    ParamSpecification(
-        name="vehicleStrategy",
-        type=ParamTypes.ENUM,
-        enum_type=VehicleStrategies,
-        default=VehicleStrategies.FUTURE_HYBRID
-    )
-]
+
 
 # TODO
 def hgs_adc_manifest():
@@ -125,11 +91,13 @@ def hgs_adc_manifest():
     )    
 
     return OpenSpecificationFactory.schema(
-        apiVersion="????",
+        apiVersion="???",
         kind="Engine",
-        metadata=metadata,
-        param_specifications=PARAM_SPECIFICATIONS
+        model=PyvrpParameters,
+        metadata=metadata
     )
+  
+
 
 
 def solve_hgs_adc(
