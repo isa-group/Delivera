@@ -1,11 +1,12 @@
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
 from typing import Optional, Dict, Any
 
 from domain.models import RoutingRequest
-from api.adapter.models import RoutingRequestStd, RoutingResponseStd
+from api.adapter.models import PyvrpParameters, RoutingRequestStd, RoutingResponseStd
 from api.adapter.adapter import Adapter
 from solvers.pyvrp_v2_solver import solve_hgs_adc
-from services.vehicle_strategy_service import HybridPresets, VehicleStrategies
 
 from services.evaluation_service import (
     QuantumPreparationError,
@@ -84,22 +85,27 @@ async def test_adapter(request: RoutingRequestStd) -> Dict[str, Any]:
     return Adapter.adapt_request(request)
 
 @app.post("/api/v1/HGS-ADC/solve", response_model=RoutingResponseStd)
-async def solve(
-    _request: RoutingRequestStd, 
-    x_classical_time_limit: float = Header(default=0.1, ge=0.1, le=300),
-    x_seed: int = Header(default=42, ge=0, le=2**31-1),
-    x_max_vehicle_repetition: int = Header(default=1, ge=1, le=10),
-    x_vehicle_strategy_config: HybridPresets = Header(default=HybridPresets.INTERURBAN),
-    x_vehicle_strategy: VehicleStrategies = Header(default=VehicleStrategies.FUTURE_HYBRID)
-):
-    return solve_hgs_adc(
-        request=_request, 
-        seed=x_seed, 
-        max_runtime_sec=x_classical_time_limit, 
-        max_vehicle_repetition=x_max_vehicle_repetition,
-        vehicle_strategy_config=x_vehicle_strategy_config,
-        vehicle_strategy=x_vehicle_strategy
-    )
+async def solve(_request: RoutingRequestStd):
+    """Lee las opciones de Delivera desde parameters, sin cabeceras de configuración."""
+    try:
+        options = PyvrpParameters.model_validate(_request.parameters)
+    except ValidationError as exc:
+        errors = [
+            {**error, "loc": ("body", "parameters", *error["loc"])}
+            for error in exc.errors(include_url=False)
+        ]
+        raise RequestValidationError(errors) from exc
+    try:
+        return solve_hgs_adc(
+            request=_request,
+            seed=options.seed,
+            max_runtime_sec=options.classical_time_limit,
+            max_vehicle_repetition=options.max_vehicle_repetition,
+            vehicle_strategy_config=options.vehicle_strategy_config,
+            vehicle_strategy=options.vehicle_strategy,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 

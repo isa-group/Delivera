@@ -114,6 +114,86 @@ El backend predeterminado es `qiskit`. Los valores admitidos son `qiskit`, `dwav
 
 El endpoint explora cuatro offsets (`0` a `3`). Permite ajustar el límite de qubits hasta un máximo de `24` y activar MTZ para Qiskit. Por defecto usa `24` qubits y MTZ desactivado.
 
+### PyVRP heterogéneo y reutilización de vehículos
+
+`POST /api/v1/HGS-ADC/solve` recibe el contrato de Delivera definido en
+`api/adapter/models.py` y utiliza `solvers/pyvrp_v2_solver.py`. Este endpoint es
+independiente del clásico y fallback del flujo cuántico, que siguen utilizando
+`solvers/pyvrp_solver.py`.
+
+El objetivo es minimizar la distancia total. Se permiten viajes adicionales
+cuando reducen la distancia, dentro del límite autorizado. No se minimiza primero
+el número de viajes y no se calcula un coste monetario.
+
+Todas las opciones elegibles por el usuario se reciben dentro de `parameters`.
+Las cabeceras `X-*` ya no configuran este endpoint. La API nativa
+`/api/v1/quantum-routing/solve` mantiene por ahora su contrato de cabeceras.
+
+| Campo de `parameters` | Valor predeterminado | Significado |
+|---|---|---|
+| `classicalTimeLimit` | `0.1` | Segundos de búsqueda PyVRP, admite decimales entre 0.1 y 300 |
+| `seed` | `42` | Semilla entera entre 0 y 2147483647. El límite por tiempo puede afectar a la reproducibilidad |
+| `maxVehicleRepetition` | `1` | Máximo de viajes por vehículo, incluido el primero. Entero de 1 a 10 |
+| `vehicleStrategy` | `future_hybrid` | Reparto entre vehículos del mismo depósito y capacidad |
+| `vehicleStrategyConfig` | `interurban` | Perfil de pesos de distancia y carga para el reparto híbrido |
+
+Fragmento de una petición:
+
+```json
+{
+  "parameters": {
+    "classicalTimeLimit": 0.5,
+    "seed": 42,
+    "maxVehicleRepetition": 2,
+    "vehicleStrategy": "distance",
+    "vehicleStrategyConfig": "balanced"
+  }
+}
+```
+
+Las opciones omitidas toman su valor predeterminado. Los valores inválidos y los
+nombres desconocidos devuelven HTTP 422 antes de ejecutar PyVRP. El campo de la
+petición se llama `parameters`, como en Delivera. Para que atraviesen el gateway,
+sus metadatos deberán declarar esos mismos nombres y tipos.
+
+Con un límite de 1, cada camión realiza como máximo un viaje. Con un límite de 2,
+puede realizar dos. Los vehículos se agrupan por depósito y capacidad, sin exigir
+homogeneidad de toda la flota. PyVRP genera las rutas con esa disponibilidad y la
+asignación posterior prioriza los vehículos sin usar. Las estrategias
+`robin_round`, `distance`, `load`, `hybrid` y `future_hybrid` solo consideran los
+camiones que todavía tienen viajes disponibles. Los pesos híbridos reparten
+trabajo, no cambian el objetivo de distancia del solver.
+
+La matriz sigue en `distanceMatrix`, fuera de `parameters`, porque describe el
+problema. Es opcional en este endpoint. Si se proporciona, debe ser cuadrada,
+finita, no negativa y con diagonal cero. `matrixIndex` debe identificar cada fila
+una sola vez. Una matriz incorrecta devuelve HTTP 422 y no activa una distancia
+alternativa. Si falta o es `null`, se calcula distancia euclídea sobre coordenadas
+cartesianas. No se interpretan grados geográficos como kilómetros.
+
+PyVRP recibe distancias enteras tras multiplicarlas por 1000, tanto si la matriz
+se proporciona como si se calcula. Así conserva tres decimales de la unidad de
+entrada durante la búsqueda. Las distancias de la respuesta se reconstruyen
+sobre la matriz original, en su unidad original y sin suponer que sea simétrica.
+`totalCost` es la suma de `totalDistance` de los viajes devueltos.
+
+Cada ruta incorpora `tripIndex`, que empieza en 1 por vehículo. `solverDetails`
+incluye el modo autorizado (`SINGLE_TRIP` o `MULTI_TRIP`), máximo por vehículo,
+viajes totales, vehículos utilizados y viajes adicionales. Un camión con tres
+viajes aporta dos adicionales, aunque otro camión quede sin usar.
+
+El resultado declara `objective: "DISTANCE"`, `distanceWeight: 1`, `timeCost: 0`
+y `departureCost: 0`. Los dos últimos campos reservan los componentes futuros de
+tiempo y salida. Son informativos y todavía no son parámetros configurables.
+`scheduleValidated: false` indica que no se calculan horarios, recargas ni duración
+acumulada de jornada. Por ello se rechazan `maxDuration` y `serviceDuration`
+distintos de cero, en lugar de ignorarlos. Pueden omitirse o ser `null` o cero.
+
+Si no se encuentra una solución completa dentro del tiempo y las restricciones,
+se devuelve `isFeasible: false`, `totalCost: null`, `routes: []` y el motivo en
+`solverDetails.failureReason`. Agotar la búsqueda no demuestra que el problema sea
+imposible. No se devuelven rutas parciales como una solución completada.
+
 ### `domain/models.py`
 
 Define los contratos de entrada y salida mediante Pydantic:
