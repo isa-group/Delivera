@@ -3,8 +3,11 @@ from typing import Optional, Dict, Any
 
 from domain.models import RoutingRequest
 from api.adapter.models import RoutingRequestStd, RoutingResponseStd
+from api.adapter.specification import ParamSpecification, ParamFactory, ParamTypes
+from api.adapter.specification import OpenSpecificationFactory, OpenMetada
 from api.adapter.adapter import Adapter
-from solvers.pyvrp_v2_solver import solve_hgs_adc
+from solvers.pyvrp_v2_solver import solve_hgs_adc, hgs_adc_manifest
+from solvers.pyvrp_v2_solver import PARAM_SPECIFICATIONS as HGS_ADC_PARAMS
 from services.vehicle_strategy_service import HybridPresets, VehicleStrategies
 
 from services.evaluation_service import (
@@ -83,15 +86,33 @@ async def test_adapter(request: RoutingRequestStd) -> Dict[str, Any]:
     """Analiza la viabilidad inicial sin ejecutar un solver de rutas."""
     return Adapter.adapt_request(request)
 
+# TODO: DELETE
+@app.post("/api/v1/manifest/test", response_model=Dict[str, Any])
+async def test_manifest() -> Dict[str, Any]:
+    """Muestra el manifiesto del servicio."""
+
+    return hgs_adc_manifest()
+
 @app.post("/api/v1/HGS-ADC/solve", response_model=RoutingResponseStd)
 async def solve(
     _request: RoutingRequestStd, 
     x_classical_time_limit: float = Header(default=0.1, ge=0.1, le=300),
     x_seed: int = Header(default=42, ge=0, le=2**31-1),
-    x_max_vehicle_repetition: int = Header(default=1, ge=1, le=10),
+    x_max_vehicle_repetition: int = Header(default=1, ge=1, le=20),
     x_vehicle_strategy_config: HybridPresets = Header(default=HybridPresets.INTERURBAN),
     x_vehicle_strategy: VehicleStrategies = Header(default=VehicleStrategies.FUTURE_HYBRID)
 ):
+    parsed_params =Adapter.adapt_params(
+        request=_request,
+        specifications=HGS_ADC_PARAMS
+    )
+    
+    # TODO: DELETE
+    print(parsed_params)
+
+
+    return solve_hgs_adc(request=_request, **parsed_params)
+'''
     return solve_hgs_adc(
         request=_request, 
         seed=x_seed, 
@@ -100,7 +121,7 @@ async def solve(
         vehicle_strategy_config=x_vehicle_strategy_config,
         vehicle_strategy=x_vehicle_strategy
     )
-
+'''
 
 
 @app.post("/api/v1/quantum-routing/solve", response_model=Dict[str, Any])
