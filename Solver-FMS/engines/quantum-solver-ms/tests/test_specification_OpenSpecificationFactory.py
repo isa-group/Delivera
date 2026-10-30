@@ -1,85 +1,34 @@
 import unittest
 
-from services.vehicle_strategy_service import VehicleStrategies
-from api.adapter.specification import  ParamSpecification, ParamTypes
-from api.adapter.specification import OpenSpecificationFactory
+from api.adapter.specification import (
+    OpenMetada,
+    OpenSpecificationFactory,
+)
 
-class TestSpecificationOpenSpecificationFactory(unittest.TestCase):
+from api.adapter.models import (
+    PyvrpParameters,
+)
+from services.vehicle_strategy_service import (
+    VehicleStrategies,
+    HybridPresets,
+)
 
-    def test_param_schema_enum(self):
-        schema = OpenSpecificationFactory.param_schema(
-            ParamSpecification(
-                name="strategy",
-                type=ParamTypes.ENUM,
-                enum_type=VehicleStrategies
-            )
+
+class TestOpenSpecificationFactory(unittest.TestCase):
+
+    def test_schema_builds_open_spec_from_model(self):
+
+        metadata = OpenMetada(
+            namespace="delivera.solvers",
+            name="hgs-adc",
+            version="1.0.0"
         )
 
-        self.assertIn("enum", schema)
-        self.assertIn("distance", schema["enum"])
-
-    def test_param_schema_number(self):
-        schema = OpenSpecificationFactory.param_schema(
-            ParamSpecification(
-                name="weight",
-                type=ParamTypes.NUMBER,
-                minimum=0,
-                maximum=1
-            )
-        )
-
-        self.assertEqual(
-            schema["type"],
-            ParamTypes.NUMBER
-        )
-
-        self.assertEqual(
-            schema["minimum"],
-            0
-        )
-
-        self.assertEqual(
-            schema["maximum"],
-            1
-        )
-    
-    def test_param_schema_default(self):
-        schema = OpenSpecificationFactory.param_schema(
-            ParamSpecification(
-                name="weight",
-                type=ParamTypes.NUMBER,
-                default=0.5
-            )
-        )
-
-        self.assertEqual(
-            schema["default"],
-            0.5
-        )
-    
-    def test_required_fields(self):
-        open_spec = {}
-
-        OpenSpecificationFactory.get_options_schema(
-            open_spec,
-            [
-                ParamSpecification(
-                    name="strategy",
-                    type=ParamTypes.STRING,
-                    required=True
-                )
-            ]
-        )
-
-        self.assertEqual(
-            open_spec["optionsSchema"]["required"],
-            ["strategy"]
-        )
-
-    def test_schema_builds_open_spec(self):
         result = OpenSpecificationFactory.schema(
+            model=PyvrpParameters,
             apiVersion="v1",
-            kind="solver"
+            kind="Engine",
+            metadata=metadata,
         )
 
         self.assertEqual(
@@ -89,10 +38,144 @@ class TestSpecificationOpenSpecificationFactory(unittest.TestCase):
 
         self.assertEqual(
             result["kind"],
-            "solver"
+            "Engine"
+        )
+
+        self.assertEqual(
+            result["metadata"],
+            metadata.model_dump()
         )
 
         self.assertIn(
             "spec",
             result
+        )
+    
+    def test_number_properties(self):
+
+        schema = OpenSpecificationFactory.get_options_schema(
+            PyvrpParameters
+        )
+
+        classical = schema["classicalTimeLimit"]
+
+        self.assertEqual(
+            classical["type"],
+            "number"
+        )
+
+        self.assertEqual(
+            classical["default"],
+            0.1
+        )
+
+        self.assertEqual(
+            classical["minimum"],
+            0.1
+        )
+
+        self.assertEqual(
+            classical["maximum"],
+            300
+        )
+    
+    def test_integer_properties(self):
+
+        schema = OpenSpecificationFactory.get_options_schema(
+            PyvrpParameters
+        )
+
+        seed = schema["seed"]
+
+        self.assertEqual(
+            seed["type"],
+            "integer"
+        )
+
+        self.assertEqual(
+            seed["default"],
+            42
+        )
+
+        self.assertEqual(
+            seed["minimum"],
+            0
+        )
+
+        self.assertEqual(
+            seed["maximum"],
+            2147483647
+        )
+    
+    def test_vehicle_strategy_enum(self):
+
+        schema = OpenSpecificationFactory.get_options_schema(
+            PyvrpParameters
+        )
+
+        strategy = schema["vehicleStrategy"]
+
+        self.assertEqual(
+            strategy["default"],
+            VehicleStrategies.FUTURE_HYBRID.value
+        )
+
+        self.assertEqual(
+            strategy["enum"],
+            [
+                e.value
+                for e in VehicleStrategies
+            ]
+        )
+    
+    def test_vehicle_strategy_config_enum(self):
+
+        schema = OpenSpecificationFactory.get_options_schema(
+            PyvrpParameters
+        )
+
+        preset = schema["vehicleStrategyConfig"]
+
+        self.assertEqual(
+            preset["default"],
+            HybridPresets.INTERURBAN.value
+        )
+
+        self.assertEqual(
+            preset["enum"],
+            [
+                e.value
+                for e in HybridPresets
+            ]
+        )
+    
+    def test_complete_options_schema(self):
+
+        schema = OpenSpecificationFactory.get_options_schema(
+            PyvrpParameters
+        )
+
+        self.assertIn(
+            "classicalTimeLimit",
+            schema
+        )
+
+        self.assertIn(
+            "seed",
+            schema
+        )
+
+        self.assertIn(
+            "maxVehicleRepetition",
+            schema
+        )
+
+        self.assertIn(
+            "vehicleStrategy",
+            schema
+        )
+
+        self.assertIn(
+            "vehicleStrategyConfig",
+            schema
         )
