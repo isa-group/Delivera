@@ -1,9 +1,7 @@
 from api.adapter.models import RoutingRequestStd, RoutingResponseStd, RouteStd
 from domain.models import RoutingRequest, RoutingResponse
 from api.adapter.mapper import DtoMapper
-from api.adapter.specification import ParamSpecification, ParamFactory, ParamException
-from fastapi import HTTPException
-import re
+
 
 class Adapter:
 
@@ -48,50 +46,3 @@ class Adapter:
                 for route in response.routes
             ],
         )
-    
-    @staticmethod
-    def specification_to_snake(specifications: list[ParamSpecification]) ->  list[ParamSpecification]:
-        snake_case_params = []
-        for param in specifications:
-            snake_param = param.model_copy()
-            snake_param.name = Adapter.camel_to_snake(param.name)
-            snake_case_params.append(snake_param)
-        return snake_case_params
-    
-    @staticmethod
-    def request_params_to_snake(request: RoutingRequestStd) -> dict[str, object]:
-        params = {}
-        for key, value in request.parameters.items():
-            params[Adapter.camel_to_snake(key)] = value
-        return params
-
-    @staticmethod
-    def adapt_params(
-        request: RoutingRequestStd,
-        specifications: list[ParamSpecification]
-    ) -> dict[str, object]:
-        snake_specification = Adapter.specification_to_snake(specifications)
-        
-        try:
-            return ParamFactory.claim_params(
-                params=Adapter.request_params_to_snake(request),
-                specifications=snake_specification
-            )
-        except ParamException as ex:
-            raise HTTPException(
-                status_code=ex.status_code,
-                detail=ex.message,
-            )
-       
-        
-        
-    
-    @staticmethod
-    def camel_to_snake(value: str) -> str:
-        # this ignore first uppercase letter 
-        # and find other uppercase letters to put "_" before it
-        return re.sub(
-            r"(?<!^)(?=[A-Z])",
-            "_",
-            value
-        ).lower()
