@@ -19,6 +19,7 @@ that algorithms can be compared on the same instances.
 | [engines/greedy-engine.md](engines/greedy-engine.md) | Greedy engine: nearest neighbour |
 | [engines/genetic-engine.md](engines/genetic-engine.md) | Genetic engine: representation, operators, split and parameters |
 | [engines/annealing-engine.md](engines/annealing-engine.md) | Simulated annealing engine: neighbourhoods, temperature calibration, feasibility and anytime curve |
+| [engines/quantum-engine.md](engines/quantum-engine.md) | Quantum engine: built from the quantum line's repository, configuration and pending changes |
 | [benchmark.md](benchmark.md) | How to measure against the Cordeau instances, compare the solvers, and current results |
 | [decision-tree.md](decision-tree.md) | Decision tree over those measurements: which solver suits which instance |
 | [decisions-and-fixes.md](decisions-and-fixes.md) | What was fixed in the genetic engine and why |
@@ -40,7 +41,8 @@ that algorithms can be compared on the same instances.
 ```
 
 The client chooses the engine with the `solverType` field (`RANDOM`, `GREEDY`, `GENETIC`,
-`ANNEALING`). The gateway validates the request, forwards it to the corresponding engine and
+`ANNEALING`; `QISKIT` and `DWAVE` are registered but cannot solve yet, see
+[engines/quantum-engine.md](engines/quantum-engine.md#in-the-gateway)). The gateway validates the request, forwards it to the corresponding engine and
 returns its response untouched. The two metaheuristic engines share `routing-core`, the objective
 function, so that their costs are comparable.
 

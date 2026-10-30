@@ -13,6 +13,8 @@ services:
       - FMS_ENGINES_RANDOM_URL=http://random-engine:8092
       - FMS_ENGINES_GENETIC_URL=http://genetic-engine:8093
       - FMS_ENGINES_ANNEALING_URL=http://annealing-engine:8094
+      - FMS_ENGINES_QISKIT_URL=http://quantum-engine:8095
+      - FMS_ENGINES_DWAVE_URL=http://quantum-engine:8095
       - FMS_INSTANCES_DIR=/app/instances-MD-CVRP-JSON
     volumes:
       - ./instances-MD-CVRP-JSON:/app/instances-MD-CVRP-JSON:ro
@@ -25,6 +27,11 @@ services:
         condition: service_healthy
       annealing-engine:
         condition: service_healthy
+      # Opcional: solo existe con el perfil "quantum". Sin él, el gateway
+      # arranca igual y muestra QISKIT y DWAVE como DOWN.
+      quantum-engine:
+        condition: service_healthy
+        required: false
     networks:
       - fms-network
     restart: unless-stopped
@@ -69,6 +76,31 @@ services:
     container_name: annealing-engine
     ports:
       - "8094:8094"
+    networks:
+      - fms-network
+    restart: unless-stopped
+
+  quantum-engine:
+    # Necesita el clon de cqvrp, así que solo se construye si se pide:
+    # docker compose --profile quantum up
+    profiles: ["quantum"]
+    build:
+      context: ./engines/quantum-engine
+      dockerfile: Dockerfile
+      # Código del solver cuántico. Por defecto, el clon local de cqvrp junto
+      # al de Delivera; CQVRP_CONTEXT admite también una URL git con commit,
+      # p. ej. https://github.com/prototipo/cqvrp.git#87b0f72:quantum-solver-ms
+      additional_contexts:
+        cqvrp: ${CQVRP_CONTEXT:-../../cqvrp/quantum-solver-ms}
+    container_name: quantum-engine
+    ports:
+      - "8095:8095"
+    environment:
+      # Capacidad cuántica disponible (Q_max)
+      - QUANTUM_MAX_QUBITS=24
+      # Token de D-Wave Leap para el backend DWAVE. Sin valor no se pasa nada:
+      # se toma del entorno o de un .env junto a este fichero (ignorado por Git).
+      - DWAVE_API_TOKEN
     networks:
       - fms-network
     restart: unless-stopped

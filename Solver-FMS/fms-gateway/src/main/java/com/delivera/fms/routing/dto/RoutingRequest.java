@@ -44,10 +44,12 @@ public record RoutingRequest(
                 "none, RANDOM only 'seed', GENETIC fourteen (populationSize, " +
                 "maxEvaluations, minGenerations, crossoverProbability, intraDepotMutationProbability, " +
                 "interDepotMutationProbability, elitismCount, tournamentSize, localSearchFrequency, " +
-                "interDepotFrequency, restartStagnantGenerations, maxRestarts, heuristicSeedRatio and seed) " +
-                "and ANNEALING twelve (timeLimitMs, maxLevels, calibrationQuantile, initialAcceptanceRate, " +
+                "interDepotFrequency, restartStagnantGenerations, maxRestarts, heuristicSeedRatio and seed), " +
+                "ANNEALING twelve (timeLimitMs, maxLevels, calibrationQuantile, initialAcceptanceRate, " +
                 "finalAcceptanceRate, coolingRate, movesPerTemperatureFactor, interDepotMoveProbability, " +
-                "depotCandidateRatio, localSearchFrequency, rebalanceFrequency and seed). " +
+                "depotCandidateRatio, localSearchFrequency, rebalanceFrequency and seed), " +
+                "QISKIT four (maxQubits, quantumTimeoutSeconds, classicalTimeLimit and includeMtz) " +
+                "and DWAVE one (classicalTimeLimit). " +
                 "'seed' fixes the random generator and makes the run reproducible; if not sent, " +
                 "the engine draws one and returns it in the response's 'seed' field. " +
                 "An undeclared parameter is ignored with a warning; one out of range rejects the request",

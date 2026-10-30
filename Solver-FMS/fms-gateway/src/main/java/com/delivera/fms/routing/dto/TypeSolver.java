@@ -14,5 +14,7 @@ public enum TypeSolver {
     RANDOM,
     GREEDY,
     GENETIC,
-    ANNEALING
+    ANNEALING,
+    QISKIT,
+    DWAVE
 }
