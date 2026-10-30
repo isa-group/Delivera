@@ -27,7 +27,7 @@ PARAM_SPECIFICATIONS = [
         default=42
     ),
     ParamSpecification(
-        name="max_runtime_sec",
+        name="maxRuntimeSec",
         type=ParamTypes.NUMBER,
         minimum=0.1,
         maximum=300,
@@ -35,25 +35,20 @@ PARAM_SPECIFICATIONS = [
         required=False
     ),
     ParamSpecification(
-        name="use_vehicle_repetition",
-        type=ParamTypes.BOOLEAN,
-        default=True,
-    ),
-    ParamSpecification(
-        name="max_vehicle_repetition",
+        name="maxVehicleRepetition",
         type=ParamTypes.INTEGER,
         minimum=1,
         maximum=20,
         default=1
     ),
         ParamSpecification(
-        name="vehicle_strategy_config",
+        name="vehicleStrategyConfig",
         type=ParamTypes.ENUM,
         enum_type=HybridPresets,
         default=HybridPresets.BALANCED
     ),
     ParamSpecification(
-        name="vehicle_strategy",
+        name="vehicleStrategy",
         type=ParamTypes.ENUM,
         enum_type=VehicleStrategies,
         default=VehicleStrategies.FUTURE_HYBRID
