@@ -6,6 +6,7 @@ import math
 # ==========================================
 
 from pydantic import BaseModel, ConfigDict
+from services.vehicle_strategy_service import HybridPresets, VehicleStrategies
 
 class BaseApiModel(BaseModel):
     # We can use , e.g matrix_index in the constructor, without this we can only create it with matrixIndex
@@ -32,7 +33,7 @@ class NodeStd(BaseApiModel):
 class CustomerStd(NodeStd):
     """It represents MD-CVRP customers."""
     demand: int = Field(..., description="Customer demand (units to deliver)(qi)")
-    service_duration: float = Field(..., 
+    service_duration: Optional[float] = Field(default=None, ge=0,
         description="""Service time at the customer, in the same units as the maximum route duration. Absent means 0)""",
          alias="serviceDuration"
     )
@@ -47,7 +48,7 @@ class CustomerStd(NodeStd):
 class DepotStd(NodeStd):
     """It represents MD-CVRP depots."""
     
-    max_duration: float = Field(..., description=(
+    max_duration: Optional[float] = Field(default=None, ge=0, description=(
         "Maximum duration of a route leaving from this depot, in the same "
         "units as the distance matrix. Absent or 0 means no limit)"),
         alias="maxDuration"
@@ -62,20 +63,39 @@ class VehicleStd(BaseApiModel):
     )
 
 
+class PyvrpParameters(BaseApiModel):
+    """Opciones del nuevo PyVRP recibidas dentro de request.parameters."""
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    classical_time_limit: float = Field(default=0.1, alias="classicalTimeLimit",
+        ge=0.1, le=300, strict=True, allow_inf_nan=False,
+        description="Segundos de búsqueda PyVRP, admite decimales")
+    seed: int = Field(default=42, ge=0, le=2**31-1, strict=True,
+        description="Semilla de la búsqueda")
+    max_vehicle_repetition: int = Field(default=1, alias="maxVehicleRepetition",
+        ge=1, le=10, strict=True,
+        description="Máximo de viajes por vehículo, incluido el primero")
+    vehicle_strategy: VehicleStrategies = Field(default=VehicleStrategies.FUTURE_HYBRID,
+        alias="vehicleStrategy", description="Estrategia de reparto entre vehículos compatibles")
+    vehicle_strategy_config: HybridPresets = Field(default=HybridPresets.INTERURBAN,
+        alias="vehicleStrategyConfig", description="Perfil de pesos de la estrategia híbrida")
+
+
 class RoutingRequestStd(BaseApiModel):
     """Standard request payload."""
     problem_id: str = Field(..., description="Unique identifier of the problem to solve", alias="problemId")
     depots: List[DepotStd] = Field(..., description="List of available depots")
     customers: List[CustomerStd] = Field(..., description="List of customers to serve")
     vehicles: List[VehicleStd] = Field(..., description="List of available vehicles (optional)")
-    distance_matrix: List[List[float]] = Field(..., description=(
-        "istance matrix between all nodes (depots + customers), " 
+    distance_matrix: Optional[List[List[float]]] = Field(default=None, description=(
+        "Optional distance matrix between all nodes (depots + customers). "
+        "If absent, the heterogeneous solver uses Cartesian Euclidean distances. "
         "indexed by matrixIndex. Rows are the origin node and columns the destination node: "
         "distanceMatrix[origin][destination]. It must be square, of size (depots + customers)."),
         alias="distanceMatrix"
     )
     solver_type: str = Field(..., description="Solver type to use", alias="solverType")
-    parameters: dict[str, Any] = Field(..., description=(
+    parameters: dict[str, Any] = Field(default_factory=dict, description=(
         "Solver invocation parameters, by name. Those not sent"
         "take their default value. Each solver publishes the ones it accepts, with their meaning, "
         "range and default value, at GET /api/v1/fms/solvers/{type}: GREEDY accepts "
@@ -88,7 +108,9 @@ class RoutingRequestStd(BaseApiModel):
         "depotCandidateRatio, localSearchFrequency, rebalanceFrequency and seed). "
         "'seed' fixes the random generator and makes the run reproducible; if not sent, "
         "the engine draws one and returns it in the response's 'seed' field. "
-        "An undeclared parameter is ignored with a warning; one out of range rejects the request")
+        "Gateway metadata resolves engine parameters. The heterogeneous PyVRP endpoint accepts "
+        "classicalTimeLimit, seed, maxVehicleRepetition, vehicleStrategy and vehicleStrategyConfig. "
+        "That endpoint rejects undeclared parameters and invalid values")
     )
 
     @property
@@ -108,6 +130,34 @@ class RouteStd(BaseApiModel):
     stops: List[str] = Field(..., description="Ordered list of customer IDs (stops) of the route")
     total_distance: float = Field(..., description="Total distance travelled on the route, in the units of the distance matrix", alias="totalDistance")
     total_load: int = Field(..., description="Total load carried on the route (sum of demands)", alias="totalLoad")
+    trip_index: Optional[int] = Field(default=None, ge=1, alias="tripIndex",
+        description="Orden del viaje de este vehículo, sin planificación horaria")
+
+
+class SolverDetailsStd(BaseApiModel):
+    # Provisional para PyVRP. Coordinar con David su encaje en los detalles de cada solver.
+    objective: str = Field(default="DISTANCE",
+        description="Criterio optimizado. Actualmente, distancia total")
+    distance_weight: float = Field(default=1, alias="distanceWeight",
+        description="Peso de la distancia, actualmente 1. No representa un precio por kilómetro")
+    time_cost: float = Field(default=0, alias="timeCost",
+        description="Componente futuro de coste por tiempo, actualmente desactivado (0)")
+    departure_cost: float = Field(default=0, alias="departureCost",
+        description="Componente futuro de coste por salida, actualmente desactivado (0)")
+    fleet_mode: str = Field(alias="fleetMode",
+        description="Modo autorizado: SINGLE_TRIP permite un viaje y MULTI_TRIP permite varios por vehículo")
+    max_trips_per_vehicle: int = Field(alias="maxTripsPerVehicle",
+        description="Máximo de viajes permitido por camión, incluido el primero")
+    trip_count: int = Field(default=0, alias="tripCount",
+        description="Número total de viajes de la solución devuelta")
+    additional_trips: int = Field(default=0, alias="additionalTrips",
+        description="Suma de los viajes posteriores al primero de cada vehículo")
+    vehicles_used: int = Field(default=0, alias="vehiclesUsed",
+        description="Número de vehículos físicos distintos utilizados")
+    schedule_validated: bool = Field(default=False, alias="scheduleValidated",
+        description="Indica si se han comprobado horarios y recargas. Actualmente siempre false")
+    failure_reason: Optional[str] = Field(default=None, alias="failureReason",
+        description="Motivo por el que no se devuelve solución factible, sin certificar imposibilidad")
 
 
 class RoutingResponseStd(BaseApiModel):
@@ -118,8 +168,8 @@ class RoutingResponseStd(BaseApiModel):
         description="Computation time in milliseconds",
         alias="computationTimeMs"
     )
-    total_cost: float = Field(..., description="Total cost of the solution (sum of the distances of all routes)", alias="totalCost")
-    is_feasible: bool = Field(..., description="Solution respects  the capacity", alias="isFeasible")
+    total_cost: Optional[float] = Field(..., description="Sum of route distances, or null when no feasible solution was found", alias="totalCost")
+    is_feasible: bool = Field(..., description="A complete solution respecting capacity, depot and trip limits was found", alias="isFeasible")
     seed: int = Field(..., description=(
             "Seed the solver ran with. Sending it back in "
             "'parameters' reproduces exactly this solution. Absent in deterministic "
@@ -127,6 +177,7 @@ class RoutingResponseStd(BaseApiModel):
         )
     )
     routes: List[RouteStd] = Field(..., description="List of routes that make up the solution")
+    solver_details: Optional[SolverDetailsStd] = Field(default=None, alias="solverDetails")
     # TODO: CHANGE
     qubits: Optional[int] = Field(None, description="Qubits del mayor QUBO generado")
     fallback_reason: Optional[str] = Field(None, description="Motivo de derivacion a solver clasico", alias="fallbackReason")

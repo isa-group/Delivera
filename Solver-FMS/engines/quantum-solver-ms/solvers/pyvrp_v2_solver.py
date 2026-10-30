@@ -1,23 +1,84 @@
-from dataclasses import dataclass
+"""PyVRP heterogéneo con viajes limitados por vehículo y objetivo de distancia."""
+
+from collections import Counter, defaultdict
+import math
 import time
-from collections import defaultdict
-from pyvrp import Model
+
+from pyvrp import Model, PenaltyParams, SolveParams
+from pyvrp.constants import MAX_VALUE
 from pyvrp.stop import MaxRuntime
-from typing import Any
-from abc import ABC, abstractmethod
-from services.vehicle_strategy_service import VehicleStrategy, VehicleAssignmentContext, HybridPresets, VehicleStrategies
 from api.adapter.specification import OpenSpecificationFactory, ParamSpecification, ParamTypes, OpenMetada
 from api.adapter.models import (
-    CustomerStd,
-    DepotStd,
     RouteStd,
     RoutingRequestStd,
     RoutingResponseStd,
-    VehicleStd,
-    NodeStd
+    SolverDetailsStd,
+)
+from services.vehicle_strategy_service import (
+    HybridPresets,
+    VehicleAssignmentContext,
+    VehicleStrategies,
+    VehicleStrategy,
 )
 
-SOLVER_TYPE = 'HGS-ADC'
+SOLVER_TYPE = "HGS-ADC"
+# El factor conserva tres decimales de la unidad recibida, sin suponer kilómetros.
+# Se aplica también a la matriz recibida en distanceMatrix, no solo a la calculada.
+DISTANCE_SCALE = 1000
+
+
+def _validate_request(request: RoutingRequestStd) -> None:
+    if not request.depots or not request.vehicles:
+        raise ValueError("La instancia debe incluir depósitos y una flota explícita.")
+    nodes = request.depots + request.customers
+    if len({depot.id for depot in request.depots}) != len(request.depots) or len(
+        {customer.id for customer in request.customers}
+    ) != len(request.customers):
+        raise ValueError("Los IDs deben ser únicos dentro de depósitos y dentro de clientes.")
+    if {node.matrix_index for node in nodes} != set(range(len(nodes))):
+        raise ValueError("matrixIndex debe identificar cada fila una sola vez, desde 0 hasta N-1.")
+    if len({vehicle.id for vehicle in request.vehicles}) != len(request.vehicles):
+        raise ValueError("Los IDs de los vehículos deben ser únicos.")
+    depot_ids = {depot.id for depot in request.depots}
+    for vehicle in request.vehicles:
+        if vehicle.start_depot_id not in depot_ids or vehicle.capacity <= 0:
+            raise ValueError("Cada vehículo necesita un depósito existente y capacidad positiva.")
+    if any(customer.demand <= 0 for customer in request.customers):
+        raise ValueError("La demanda de cada cliente debe ser positiva.")
+    if any(depot.max_duration for depot in request.depots) or any(
+        customer.service_duration for customer in request.customers
+    ):
+        raise ValueError("Este solver todavía no admite maxDuration ni serviceDuration distintos de cero.")
+
+
+def use_matrix_or_default(model: Model, location_by_matrix_index: dict,
+                          request: RoutingRequestStd) -> list[list[float]]:
+    """Usa la matriz recibida, o euclídea cartesiana solo cuando está ausente."""
+    nodes = request.depots + request.customers
+    size = len(nodes)
+    matrix = request.distance_matrix
+    if matrix is None:
+        ordered = sorted(nodes, key=lambda node: node.matrix_index)
+        matrix = [
+            [math.hypot(a.lng - b.lng, a.lat - b.lat) for b in ordered]
+            for a in ordered
+        ]
+    if len(matrix) != size or any(len(row) != size for row in matrix):
+        raise ValueError("distanceMatrix debe ser cuadrada y contener todos los nodos.")
+    for i, row in enumerate(matrix):
+        for j, distance in enumerate(row):
+            if not math.isfinite(distance) or distance < 0:
+                raise ValueError("Las distancias deben ser finitas y no negativas.")
+            if i == j and distance != 0:
+                raise ValueError("La diagonal de distanceMatrix debe ser cero.")
+            if distance > MAX_VALUE / DISTANCE_SCALE:
+                raise ValueError("Una distancia supera el rango admitido por PyVRP con esta escala.")
+            model.add_edge(
+                location_by_matrix_index[i], location_by_matrix_index[j],
+                distance=round(distance * DISTANCE_SCALE),
+            )
+    return matrix
+
 PARAM_SPECIFICATIONS = [
     ParamSpecification(
         name="seed",
@@ -78,232 +139,115 @@ def solve_hgs_adc(
     seed: int = 42,
     max_runtime_sec: float = 3,
     max_vehicle_repetition: int = 1,
-    
 ) -> RoutingResponseStd:
-    """
-    Resuelve un RoutingRequest utilizando el estado del arte clásico PyVRP (metaheurística HGS-ADC).
-    Devuelve la respuesta completa, incluyendo rutas y cargas.
-    """
+    """Minimiza distancia dentro del límite de viajes, sin minimizar su número."""
     start_time = time.perf_counter()
-    m = Model()
-    
-    # El contrato del proyecto ordena los vehículos por bloques de depósito.
-    # Cada bloque representa una flota homogénea, aunque dos depósitos pueden
-    # tener capacidades distintas entre sí.
-    if not request.depots:
-        raise ValueError("La instancia debe incluir al menos un depósito.")
-    if not request.vehicles:
-        raise ValueError("La instancia debe incluir al menos un vehículo.")
-    
-    # Add vehicles by depot
-
-    vehicles_by_depot = {}
+    if type(max_vehicle_repetition) is not int or max_vehicle_repetition < 1:
+        raise ValueError("El máximo de viajes por vehículo debe ser un entero positivo.")
+    if not math.isfinite(max_runtime_sec) or max_runtime_sec <= 0:
+        raise ValueError("El tiempo de búsqueda debe ser positivo y finito.")
+    vehicle_strategy = VehicleStrategies(vehicle_strategy)
+    vehicle_strategy_config = HybridPresets(vehicle_strategy_config)
+    _validate_request(request)
+    model = Model()
+    vehicles_by_depot = defaultdict(lambda: defaultdict(list)) # depot_id -> capacity -> list of vehicle ids
     for vehicle in request.vehicles:
-        start_depot_id = vehicle.start_depot_id
-        capacity = vehicle.capacity
-        if start_depot_id not in vehicles_by_depot:
-            vehicles_by_depot[start_depot_id] = {}
-        depot_types = vehicles_by_depot[start_depot_id]
-        if capacity not in depot_types:
-            depot_types[capacity] = []
-        vehicles_by_depot[start_depot_id][capacity].append(vehicle.id)
+        vehicles_by_depot[vehicle.start_depot_id][vehicle.capacity].append(vehicle.id)
 
-    # 1. Añadir depósitos al modelo
-    # PyVRP maneja internamente las distancias usando los objetos devueltos por add_location, add_depot y add_client.
-    #vehicle_ids_by_type: list[list[str]] = []
-    location_by_matrix_index = {}
-
-
-    model_depots = []
-    vehicle_type_mapping = {}
-    next_vehicle_type = 0
-    context_by_vehicle_type : dict[int, VehicleAssignmentContext] = {}
-    for depot in request.depots:
-        if depot.id in vehicles_by_depot:
-            loc = m.add_location(x=depot.lng, y=depot.lat)
-            location_by_matrix_index[depot.matrix_index] = loc
-            model_depot = m.add_depot(location=loc)
-            model_depots.append(model_depot)
-            for capacity, vehicle_ids in vehicles_by_depot[depot.id].items():
-                m.add_vehicle_type(
-                    num_available=len(vehicle_ids) * max_vehicle_repetition, # Multiple routes per vehicle 
-                    capacity=capacity,
-                    start_depot=model_depot,
-                    end_depot=model_depot,
-                )
-                # El índice de esta lista coincide con el tipo de vehículo que PyVRP
-                # devolverá en cada ruta mediante route.vehicle_type().
-                #vehicle_ids_by_type.append(vehicle_ids)
-
-                vehicle_type_mapping[next_vehicle_type] = vehicle_ids
-                wd, wl = VehicleStrategy.get_weights(presets=vehicle_strategy_config)
-                context_by_vehicle_type[next_vehicle_type] =  VehicleAssignmentContext(
-                    vehicle_ids=vehicle_ids,
-                    vehicle_position=0,
-                    route_distance=0,
-                    route_load=0,
-                    distance_by_vehicle={},
-                    load_by_vehicle={},
-                    distance_weight=wd,
-                    load_weight=wl,
-                )
-                
-                next_vehicle_type += 1
-
-             
-        
-    # 2. Añadir clientes al modelo
-    for customer in request.customers:
-        loc = m.add_location(x=customer.lng, y=customer.lat)
-        location_by_matrix_index[customer.matrix_index] = loc
-        m.add_client(location=loc, delivery=customer.demand)
-  
-
-        
-
-
-    use_matrix_or_default(
-        model=m,
-        location_by_matrix_index=location_by_matrix_index,
-        request=request
+    details = SolverDetailsStd(
+        fleet_mode="MULTI_TRIP" if max_vehicle_repetition > 1 else "SINGLE_TRIP",
+        max_trips_per_vehicle=max_vehicle_repetition,
     )
-            
-    # 5. Ejecutar la Búsqueda Genética Híbrida (HGS) de PyVRP (silenciado para orquestación)
-    res = m.solve(stop=MaxRuntime(max_runtime_sec), seed=seed, display=False)
-    
-    # Se mide el tiempo completo, incluida la construcción del modelo y la
-    # búsqueda de PyVRP, para devolverlo en la respuesta de la API.
-    execution_time_ms = round((time.perf_counter() - start_time) * 1000, 3)
 
-    # Sin una solución candidata no existen rutas que decodificar. El coste
-    # infinito permite a la capa superior reconocer el fallo de factibilidad.
-    if not res.best:
+    def response(routes: list[RouteStd], failure_reason: str | None = None) -> RoutingResponseStd:
+        counts = Counter(route.vehicle_id for route in routes)
         return RoutingResponseStd(
             problem_id=request.problem_id,
             solver_used=SOLVER_TYPE,
-            computation_time_ms= execution_time_ms,
-            total_cost=float("inf"),
+            computation_time_ms=round((time.perf_counter() - start_time) * 1000, 3),
+            total_cost=math.fsum(route.total_distance for route in routes) if failure_reason is None else None,
+            is_feasible=failure_reason is None,
             seed=seed,
-            is_feasible=False,
-            routes=[],
+            routes=routes,
+            solver_details=details.model_copy(update={
+                "trip_count": len(routes),
+                "vehicles_used": len(counts),
+                "additional_trips": sum(max(0, count - 1) for count in counts.values()),
+                "failure_reason": failure_reason,
+            }),
         )
 
-    # Convertimos la solución interna de PyVRP a los DTO públicos de la API.
-    routes = []
-    depot_by_index = {index: depot for index, depot in enumerate(request.depots)}
-    customer_by_index = {
-        index: customer
-        for index, customer in enumerate(request.customers)
-    }
-
-    # PyVRP identifica una ruta por su tipo de vehículo, no por el ID original
-    # de la entrada. Este contador asigna a cada ruta un ID distinto dentro de
-    # la misma flota homogénea, por ejemplo V1 y V2 para dos rutas del depósito.
-    used_vehicle_ids_by_type = defaultdict(int)
-    
-
-    for route in res.best.routes():
-        # Las actividades contienen clientes. Se añaden explícitamente los
-        # depósitos inicial y final para respetar el contrato de RouteDto.
-        activities = list(route)
-        start_depot = depot_by_index.get(route.start_depot(), request.depots[0])
-        stops = [start_depot.id]
-        for activity in activities:
-            if activity.is_client():
-                customer = customer_by_index[activity.idx]
-                stops.append(customer.id)
-        end_depot = depot_by_index.get(route.end_depot(), start_depot)
-        stops.append(end_depot.id)
-
-        # El tipo indica a qué depósito pertenece la ruta. La posición cuenta
-        # cuántas rutas anteriores ya han consumido IDs de ese mismo tipo.
-        vehicle_type = route.vehicle_type() # devuelve el tipo de vehículo de una flota no el índice del vehículo que hace la ruta
-        vehicle_ids = vehicle_type_mapping[vehicle_type]
-
-        vehicle_position = used_vehicle_ids_by_type[vehicle_type]
-       
-        total_distance = float(route.distance())
-        total_load = int(sum(route.delivery()))
-
-        ctx = context_by_vehicle_type[vehicle_type]        
-
-        ctx.route_distance = total_distance
-        ctx.route_load = total_load
-        ctx.vehicle_position = vehicle_position
-
-        vehicle_id = VehicleStrategy.decide(strategy=vehicle_strategy, ctx=ctx) # Multiple routes per vehicle 
-
-        used_vehicle_ids_by_type[vehicle_type] += 1
-        routes.append(
-            RouteStd(
-                vehicle_id=vehicle_id,
-                depot_id=stops[0],
-                stops=stops[1:-1],
-                total_distance=total_distance,
-                total_load=total_load,
+    locations = {}
+    contexts = {}
+    type_depots = {}
+    type_capacities = {}
+    wd, wl = VehicleStrategy.get_weights(vehicle_strategy_config)
+    # También se añaden los depósitos sin flota para conservar índices y matriz.
+    for depot in request.depots:
+        location = model.add_location(x=depot.lng, y=depot.lat)
+        locations[depot.matrix_index] = location
+        model_depot = model.add_depot(location=location)
+        for capacity, ids in sorted(vehicles_by_depot[depot.id].items()):
+            type_index = len(contexts)
+            vehicle_ids = sorted(ids)
+            model.add_vehicle_type(
+                num_available=min(len(request.customers), len(ids) * max_vehicle_repetition)
+                if request.customers else len(ids),
+                capacity=capacity,
+                start_depot=model_depot,
+                end_depot=model_depot,
             )
-        )
+            type_depots[type_index] = depot
+            type_capacities[type_index] = capacity
+            contexts[type_index] = VehicleAssignmentContext(
+                vehicle_ids=vehicle_ids, vehicle_position=0,
+                route_distance=0, route_load=0,
+                distance_by_vehicle={}, load_by_vehicle={},
+                distance_weight=wd, load_weight=wl,
+                max_trips_per_vehicle=max_vehicle_repetition,
+            )
+    for customer in request.customers:
+        location = model.add_location(x=customer.lng, y=customer.lat)
+        locations[customer.matrix_index] = location
+        model.add_client(location=location, delivery=customer.demand)
+    matrix = use_matrix_or_default(model, locations, request)
+    if not request.customers:
+        return response([])
 
-    # El coste y la factibilidad global proceden directamente de la mejor
-    # solución encontrada por PyVRP.
+    # Las penalizaciones de capacidad mantienen la proporción con la distancia escalada.
+    penalties = PenaltyParams()
+    params = SolveParams(penalty=PenaltyParams(
+        min_penalty=penalties.min_penalty * DISTANCE_SCALE,
+        max_penalty=penalties.max_penalty * DISTANCE_SCALE,
+    ))
+    result = model.solve(stop=MaxRuntime(max_runtime_sec), seed=seed, display=False, params=params)
+    if not result.is_feasible():
+        return response([], "No se encontró una solución factible con la flota, el límite de viajes y el tiempo indicados.")
 
-
-    return RoutingResponseStd(
-        problem_id=request.problem_id,
-        solver_used=SOLVER_TYPE,
-        computation_time_ms=execution_time_ms,
-        total_cost=float(res.cost()),
-        seed=seed,
-        is_feasible=all(route.is_feasible() for route in res.best.routes()),
-        routes=routes,
-    )
-
-
-
-def use_matrix_or_default(
-    model: Model,
-    location_by_matrix_index: dict[int,Any], 
-    request: RoutingRequestStd
-):
-    all_dtos: list[NodeStd]  = request.depots + request.customers
-    matrix: list[list[float]] = request.distance_matrix
-
-    not_one_row_per_node = len(matrix) != len(all_dtos)
-    not_all_rows_have_all_nodes =  any(len(row) != len(all_dtos) for row in matrix)
-    incorrect_indexed_nodes = len(location_by_matrix_index) != len(all_dtos)
-
-    use_fallback = (
-        not_one_row_per_node
-        or
-        not_all_rows_have_all_nodes
-        or
-        incorrect_indexed_nodes
-    )
-
-    if (use_fallback):
-        # Euclidean distance - fallback  
-        for from_node in all_dtos:
-            i = from_node.matrix_index
-            from_loc = location_by_matrix_index[i]
-
-            for to_node in all_dtos:
-                j = to_node.matrix_index
-
-                if  i == j: continue
-
-                to_loc = location_by_matrix_index[j]
-
-                dist = from_node.euclidean_distance(to_node)
-
-                model.add_edge(from_loc, to_loc, distance=dist)
-    else:
-        for node in all_dtos:
-            i = node.matrix_index
-            for j in range(0,len(all_dtos)):
-                if i == j: continue
-
-                from_loc = location_by_matrix_index[i]
-                to_loc = location_by_matrix_index[j]
-                dist =  matrix[i][j]
-
-                model.add_edge(from_loc, to_loc, distance=dist)
+    routes = []
+    visited = []
+    for route in result.best.routes():
+        type_index = route.vehicle_type()
+        depot = type_depots[type_index]
+        if route.start_depot() != route.end_depot() or request.depots[route.start_depot()].id != depot.id:
+            return response([], "La solución no conserva el depósito de los vehículos.")
+        customers = [request.customers[activity.idx] for activity in route if activity.is_client()]
+        load = sum(customer.demand for customer in customers)
+        if not customers or load > type_capacities[type_index]:
+            return response([], "La solución contiene un viaje vacío o que supera la capacidad.")
+        cycle = [depot.matrix_index] + [customer.matrix_index for customer in customers] + [depot.matrix_index]
+        distance = math.fsum(matrix[i][j] for i, j in zip(cycle, cycle[1:]))
+        ctx = contexts[type_index]
+        ctx.route_distance = distance
+        ctx.route_load = load
+        vehicle_id = VehicleStrategy.decide(ctx, vehicle_strategy)
+        routes.append(RouteStd(
+            vehicle_id=vehicle_id, depot_id=depot.id,
+            stops=[customer.id for customer in customers],
+            total_distance=distance, total_load=load,
+            trip_index=ctx.trip_count_by_vehicle[vehicle_id],
+        ))
+        visited.extend(customer.id for customer in customers)
+    if Counter(visited) != Counter(customer.id for customer in request.customers):
+        return response([], "La solución no visita todos los clientes exactamente una vez.")
+    return response(routes)
