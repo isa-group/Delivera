@@ -10,7 +10,7 @@ class ParamException(Exception):
         self,
         message: str,
         param_name: str | None = None,
-        status_code: int = 400,
+        status_code: int = 422,
     ):
         self.message = message
         self.param_name = param_name
@@ -176,6 +176,9 @@ class IntegerFactory(TypeFactory):
 
         try:
             value = int(param)
+
+            if str(value) != str(param):
+                raise ValueError()
 
         except (TypeError, ValueError):
             raise ParamException(
@@ -344,11 +347,7 @@ class OpenSpecificationFactory:
         specification: ParamSpecification
     ) -> dict[str, object]:
 
-        schema = {
-            #"type": specification.type, TODO: DELETE?
-            #"required": specification.required, TODO: DELETE?
-            "default": specification.default,
-        }
+        schema = {}
 
         is_enum = specification.type == ParamTypes.ENUM
         enum_types = specification.enum_type
@@ -362,18 +361,14 @@ class OpenSpecificationFactory:
                 e.value
                 for e in enum_types
             ]
+        
+        if specification.default is not None:
+            schema["default"] = specification.default
 
         if specification.minimum is not None:
             schema["minimum"] = specification.minimum
 
         if specification.maximum is not None:
             schema["maximum"] = specification.maximum
-        '''
-        if specification.enum_type is not None:
-            schema["options"] = [
-                e.value
-                for e in specification.enum_type
-            ]
-        '''
-
+       
         return schema
