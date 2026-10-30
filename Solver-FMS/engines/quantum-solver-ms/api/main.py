@@ -66,8 +66,8 @@ async def analyze_quantum_route(request: RoutingRequest) -> Dict[str, Any]:
     }
 
 
-@app.post("/api/v1/quantum-routing/analyze/test", response_model=Dict[str, Any])
-async def analyze_quantum_route_test(_request: RoutingRequestStd) -> Dict[str, Any]:
+@app.post("/api/v2/quantum-routing/analyze", response_model=Dict[str, Any])
+async def analyze_quantum_route_v2(_request: RoutingRequestStd) -> Dict[str, Any]:
     """Analiza la viabilidad inicial sin ejecutar un solver de rutas."""
     request = Adapter.adapt_request(_request)
     viability = evaluate_initial_quantum_viability(request)
