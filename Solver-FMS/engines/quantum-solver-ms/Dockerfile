@@ -1,8 +1,6 @@
-# syntax=docker/dockerfile:1
-#
-# Imagen del engine cuántico. El código no vive en Delivera: se toma del
-# repositorio de la línea cuántica (cqvrp, carpeta quantum-solver-ms) a través
-# del contexto de construcción con nombre "cqvrp", que define docker-compose.yml.
+# Imagen del engine cuántico (solvers QISKIT y DWAVE de la pasarela). Se construye
+# con el código de esta misma carpeta; docker-compose.yml la levanta con el perfil
+# "quantum".
 FROM python:3.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -11,14 +9,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     QUANTUM_MAX_QUBITS=24
 
 WORKDIR /app
-COPY --from=cqvrp requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY --from=cqvrp api/ api/
-COPY --from=cqvrp domain/ domain/
-COPY --from=cqvrp services/ services/
-COPY --from=cqvrp solvers/ solvers/
-COPY --from=cqvrp utils/ utils/
+COPY api/ api/
+COPY domain/ domain/
+COPY services/ services/
+COPY solvers/ solvers/
+COPY utils/ utils/
 
 RUN useradd --system --no-create-home quantum
 USER quantum

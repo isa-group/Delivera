@@ -81,17 +81,12 @@ services:
     restart: unless-stopped
 
   quantum-engine:
-    # Necesita el clon de cqvrp, así que solo se construye si se pide:
-    # docker compose --profile quantum up
+    # Imagen pesada (Qiskit, PyVRP, D-Wave) y experimental, así que solo se
+    # construye si se pide: docker compose --profile quantum up
     profiles: ["quantum"]
     build:
-      context: ./engines/quantum-engine
+      context: ./engines/quantum-solver-ms
       dockerfile: Dockerfile
-      # Código del solver cuántico. Por defecto, el clon local de cqvrp junto
-      # al de Delivera; CQVRP_CONTEXT admite también una URL git con commit,
-      # p. ej. https://github.com/prototipo/cqvrp.git#87b0f72:quantum-solver-ms
-      additional_contexts:
-        cqvrp: ${CQVRP_CONTEXT:-../../cqvrp/quantum-solver-ms}
     container_name: quantum-engine
     ports:
       - "8095:8095"

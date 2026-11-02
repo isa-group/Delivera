@@ -23,15 +23,20 @@ compare_solvers.py:
                                     instancia, el filtro y los qubits de cada región.
   viabilidad-cuantica-<fecha>.md    El informe legible, en español.
 
-Se ejecuta con el Python del entorno virtual de cqvrp, que tiene Qiskit y PyVRP, y
-con el engine levantado (Docker en 8095 o uvicorn en 8000):
+El código del engine se importa de engines/quantum-solver-ms, así que hace falta un
+Python con sus dependencias (engines/quantum-solver-ms/requirements.txt: Qiskit,
+PyVRP...) y el engine levantado (Docker en 8095 o uvicorn en 8000). Por ejemplo, con
+un entorno virtual en esa carpeta (su .gitignore lo excluye):
 
-    ..\\..\\cqvrp\\quantum-solver-ms\\.venv\\Scripts\\python.exe quantum_viability.py            # p01-p23
-    ..\\..\\cqvrp\\quantum-solver-ms\\.venv\\Scripts\\python.exe quantum_viability.py p01 p02 --include-mtz
-    ..\\..\\cqvrp\\quantum-solver-ms\\.venv\\Scripts\\python.exe quantum_viability.py mi_instancia.json --max-qubits 30
+    py -3.14 -m venv engines\\quantum-solver-ms\\.venv
+    engines\\quantum-solver-ms\\.venv\\Scripts\\pip install -r engines\\quantum-solver-ms\\requirements.txt
 
-Las instancias por nombre son las de cqvrp (tests/data); un .json usa el formato de
-/solve de cqvrp. Sin instancias, se analizan todas las pNN de cqvrp.
+    engines\\quantum-solver-ms\\.venv\\Scripts\\python.exe quantum_viability.py            # p01-p23
+    engines\\quantum-solver-ms\\.venv\\Scripts\\python.exe quantum_viability.py p01 p02 --include-mtz
+    engines\\quantum-solver-ms\\.venv\\Scripts\\python.exe quantum_viability.py mi_instancia.json --max-qubits 30
+
+Las instancias por nombre son las del engine (tests/data); un .json usa el formato de
+/solve de cqvrp. Sin instancias, se analizan todas las pNN.
 """
 
 import argparse
@@ -51,16 +56,16 @@ from datetime import datetime
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_CQVRP = BASE_DIR.parent.parent / "cqvrp" / "quantum-solver-ms"
+DEFAULT_CQVRP = BASE_DIR / "engines" / "quantum-solver-ms"
 DEFAULT_OUT_DIR = BASE_DIR / "results"
 CANDIDATE_OFFSETS = 4  # cqvrp prueba K_min..K_min+3 (max_k_offset=3, fijo en su API)
 
 
 def import_cqvrp(path):
-    """Hace importable el código de cqvrp sin copiarlo ni tocarlo."""
+    """Hace importable el código del engine sin copiarlo ni tocarlo."""
     if not (path / "services" / "evaluation_service.py").exists():
-        sys.exit(f"No encuentro cqvrp en {path}. Indica la ruta con --cqvrp o CQVRP_PATH.")
-    # Sin .pyc: importar no debe dejar ficheros nuevos dentro de cqvrp.
+        sys.exit(f"No encuentro el código del engine en {path}. Indica la ruta con --cqvrp o CQVRP_PATH.")
+    # Sin .pyc: importar no debe dejar ficheros nuevos dentro del engine.
     sys.dont_write_bytecode = True
     sys.path.insert(0, str(path))
     warnings.filterwarnings("ignore")
@@ -279,7 +284,7 @@ def write_report(path, meta, results, data_name):
         f"**Duración total:** {meta['duration_s']} s  ",
         f"**Engine cuántico:** `{meta['url']}`  ",
         f"**Commit del repositorio:** {commit_text(meta['commit'], meta['dirty'])}  ",
-        f"**Commit de cqvrp:** {commit_text(meta['cqvrp_commit'], meta['cqvrp_dirty'])}  ",
+        f"**Commit del código del engine:** {commit_text(meta['cqvrp_commit'], meta['cqvrp_dirty'])}  ",
         f"**Datos:** [`{data_name}`](./{data_name}) - {len(results)} instancias",
         "",
         "| Configuración | Valor |",
@@ -378,12 +383,12 @@ def cordeau_names(cqvrp_path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("instances", nargs="*",
-                        help="Nombres de cqvrp/tests/data (p01...) o ficheros .json. Por defecto, todas las pNN")
+                        help="Nombres de tests/data del engine (p01...) o ficheros .json. Por defecto, todas las pNN")
     parser.add_argument("--url", default="http://localhost:8095", help="Engine cuántico (por defecto el de Docker)")
     parser.add_argument("--max-qubits", type=int, default=24, help="Capacidad cuántica disponible (Q_max)")
     parser.add_argument("--include-mtz", action="store_true", help="Contar qubits con las restricciones MTZ")
     parser.add_argument("--cqvrp", type=Path, default=Path(os.getenv("CQVRP_PATH", DEFAULT_CQVRP)),
-                        help="Carpeta quantum-solver-ms de cqvrp")
+                        help="Carpeta con el código del engine (por defecto engines/quantum-solver-ms)")
     parser.add_argument("--out", default=str(DEFAULT_OUT_DIR),
                         help="Directorio donde dejar el informe y los datos (por defecto results/)")
     parser.add_argument("--label", default="", help="Etiqueta de la ejecución; va al nombre de los ficheros")

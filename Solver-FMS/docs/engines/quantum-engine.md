@@ -1,6 +1,6 @@
 # quantum-engine
 
-**Port 8095** · Python 3.14 / FastAPI + Qiskit + D-Wave Ocean · built from the quantum line's repository · solvers `QISKIT` and `DWAVE`
+**Port 8095** · Python 3.14 / FastAPI + Qiskit + D-Wave Ocean · code in [`engines/quantum-solver-ms`](../../engines/quantum-solver-ms) · solvers `QISKIT` and `DWAVE`
 
 ## What it is for
 
@@ -12,36 +12,27 @@ with 24 simulated qubits only very small instances reach the Qiskit part.
 
 ## Where the code lives
 
-The solver is not copied into Delivera. Its code lives in the quantum line's repository `cqvrp`
-(folder `quantum-solver-ms`, by Manuel García Gómez), and Delivera only keeps what is needed to
-build and run it:
-
-- [`engines/quantum-engine/Dockerfile`](../../engines/quantum-engine/Dockerfile): base image,
-  dependencies, port and health check. It copies the code from a build context named `cqvrp`.
-- The `quantum-engine` service in [`docker-compose.yml`](../../docker-compose.yml), which defines
-  that context and the engine's configuration.
-
-The `cqvrp` context comes from the `CQVRP_CONTEXT` variable:
-
-| Value | When to use it |
-| --- | --- |
-| Not set (default `../../cqvrp/quantum-solver-ms`) | Local development, with `cqvrp` cloned next to `Delivera` |
-| `https://github.com/prototipo/cqvrp.git#<commit>:quantum-solver-ms` | Reproducible builds pinned to a commit (the repository is private, so the build needs access to it) |
-
-With the local default the image is built from whatever is checked out in the clone, including
-uncommitted changes.
+The solver of the quantum line (`cqvrp`, by Manuel García Gómez) lives inside Solver-FMS, in
+[`engines/quantum-solver-ms`](../../engines/quantum-solver-ms), like the other engines. That folder
+holds its code, its tests and its [`Dockerfile`](../../engines/quantum-solver-ms/Dockerfile): base
+image, dependencies, port and health check. The `quantum-engine` service in
+[`docker-compose.yml`](../../docker-compose.yml) builds it from there.
 
 ## Endpoints
 
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/health` | Service details and supported backends; used by the Docker health check |
-| GET | `/actuator/health` | Gateway health probe. Not available yet in `cqvrp` (see below) |
-| POST | `/api/v1/quantum-routing/analyze` | Initial viability filter, without solving |
-| POST | `/api/v1/quantum-routing/solve` | Solves the instance and returns routes and metrics |
+| GET | `/actuator/health` | Gateway health probe. Not available yet (see below) |
+| POST | `/api/v1/quantum-routing/analyze` | Initial viability filter on a `cqvrp` request, without solving |
+| POST | `/api/v2/quantum-routing/analyze` | The same filter on a Delivera request, translated by the adapter |
+| POST | `/api/v1/quantum-routing/solve` | Solves a `cqvrp` request and returns routes and metrics |
+| POST | `/api/v1/HGS-ADC/solve` | Solves a Delivera request with PyVRP, reading the options from `parameters` |
+| POST | `/api/v1/adapter/test`, `/api/v1/manifest/test` | Debugging: the adapter's translation and the service manifest |
 
-The engine still uses the `cqvrp` contract (x/y coordinates, fleet per depot, options in `X-*`
-headers), not `/api/v1/engine/solve`. Adapting it to the Delivera contract is a separate task.
+The quantum path still uses the `cqvrp` contract (x/y coordinates, fleet per depot, options in
+`X-*` headers). The adapter in `api/adapter` already translates Delivera requests, but there is no
+`/api/v1/engine/solve` yet, which is the endpoint the gateway calls.
 
 ## In the gateway
 
@@ -108,14 +99,15 @@ gives up on an engine after 300 s.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `CQVRP_CONTEXT` | `../../cqvrp/quantum-solver-ms` | Where the solver code is taken from |
 | `QUANTUM_MAX_QUBITS` | 24 | Available quantum capacity (Q_max) |
+| `DWAVE_API_TOKEN` | not set | D-Wave Leap token for the `DWAVE` solver |
 
-## Pending changes in cqvrp
+## Pending changes in the engine
 
-A patch has been proposed to the quantum line. Until it is merged, the Qiskit path never returns
-a quantum solution, `/actuator/health` answers 404 (the gateway would report the engine as DOWN)
-and `QUANTUM_MAX_QUBITS` has no effect.
+A patch with these changes was proposed to the quantum line, and the code in
+`engines/quantum-solver-ms` does not include it yet. Until it does, the Qiskit path never returns
+a quantum solution, `/actuator/health` answers 404 (the gateway reports the engine as DOWN) and
+`QUANTUM_MAX_QUBITS` has no effect.
 
 Fixes to the Qiskit solver:
 
@@ -135,8 +127,9 @@ Changes to fit Solver-FMS:
 
 ## Running it
 
-The service belongs to the `quantum` profile, because building it needs the `cqvrp` clone. Without
-the profile the rest of Solver-FMS starts as before and the gateway lists `QISKIT` and `DWAVE` as `DOWN`.
+The service belongs to the `quantum` profile, because its image is heavy (Qiskit, PyVRP and D-Wave
+Ocean) and the engine is experimental. Without the profile the rest of Solver-FMS starts as before
+and the gateway lists `QISKIT` and `DWAVE` as `DOWN`.
 
 ```bash
 docker compose --profile quantum up --build
