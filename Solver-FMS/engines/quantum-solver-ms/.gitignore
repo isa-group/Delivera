@@ -1,0 +1,16 @@
+# Entornos y archivos locales de Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Credenciales y configuración local
+.env
+.env.*
+!.env.example
+
+# Instrucciones personales locales
+AGENTS.md
