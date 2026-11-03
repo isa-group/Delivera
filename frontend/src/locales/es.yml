@@ -688,6 +688,8 @@ routes:
     GENETIC: Genético
     GREEDY: Voraz
     ANNEALING: Recocido
+    QISKIT: Cuántico (Qiskit)
+    DWAVE: Cuántico (D-Wave)
   tables:
     group: Grupo
     slot: Ranura
@@ -718,6 +720,12 @@ routes:
     ANNEALING:
       name: Recocido simulado
       description: "Parte de una solución inicial y la mejora progresivamente mediante cambios aleatorios controlados. Puede escapar de óptimos locales y encontrar soluciones de alta calidad con un coste computacional moderado."
+    QISKIT:
+      name: Cuántico (Qiskit)
+      description: "Resolutor híbrido cuántico-clásico. Resuelve cada región con el algoritmo cuántico QAOA en un simulador local de Qiskit y recurre a un resolutor clásico cuando una región no cabe en los qubits disponibles. Experimental: hoy solo las instancias muy pequeñas llegan a la parte cuántica."
+    DWAVE:
+      name: Cuántico (D-Wave)
+      description: "Resolutor híbrido cuántico-clásico en la nube de D-Wave. Envía cada región al resolutor híbrido de Leap, que admite problemas mucho mayores que el simulador local. Necesita una cuenta de D-Wave; sin acceso, se usa un resolutor clásico. Experimental."
   slot:
     title: ¿Qué es una ranura de ejecución?
     p1: Una ranura representa una ejecución independiente del resolutor.

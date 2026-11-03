@@ -10,6 +10,8 @@ import com.delivera.data.vehicle.repository.VehicleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -142,6 +144,26 @@ class FmsRoutingServiceImplTest {
 
         assertThat(request.vehicles())
                 .hasSize(1);
+    }
+
+    // Los dos backends cuanticos viajan al gateway con el mismo nombre que alli.
+    @ParameterizedTest
+    @EnumSource(value = TypeSolver.class, names = {"QISKIT", "DWAVE"})
+    void coreCreateRequest_shouldKeepQuantumSolverType(TypeSolver solverType) {
+
+        prepareScenario();
+
+        RoutingRequest request =
+                service.coreCreateRequest(
+                        companyId,
+                        solverType,
+                        new DeliveryWindow(),
+                        false,
+                        false
+                );
+
+        assertThat(request.solverType())
+                .isEqualTo(solverType);
     }
 
     @Test

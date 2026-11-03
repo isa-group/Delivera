@@ -296,6 +296,89 @@ fms:
           type: INTEGER
           min: 0
           max: 281474976710655
+    # The two quantum backends of the quantum line's engine (cqvrp). Both point to the same
+    # service, which picks the backend per request. The defaults below mirror cqvrp's own (its
+    # X-* headers), so each descriptor matches the run that happens. The engine still speaks
+    # the cqvrp contract, not /api/v1/engine/solve, so solving through the gateway fails until
+    # that adapter exists; FMS_ENGINES_QISKIT_ENABLED=false or FMS_ENGINES_DWAVE_ENABLED=false
+    # hide them.
+    qiskit:
+      url: http://quantum-engine:8095
+      display-name: Quantum QAOA (Qiskit)
+      description: >-
+        Hybrid quantum-classical solver of the quantum line (cqvrp). It splits the instance by
+        depot, compresses each region into super-customers and solves every region as a QUBO
+        with QAOA on a local Qiskit simulator. Regions that do not fit in the available qubits,
+        or whose QAOA sample is infeasible, are solved with PyVRP instead
+      strategy: Hybrid quantum-classical (gate-based)
+      technology: Python 3.14 / FastAPI + Qiskit 2.5 (QAOA) + PyVRP 0.14
+      version: 1.0.0
+      deterministic: false
+      order: 50
+      parameters:
+        - name: maxQubits
+          description: >-
+            Largest QUBO, in logical qubits, that may go to the quantum simulator. A region that
+            needs more is solved with PyVRP. It is the Q_max of the quantum selector: 24 is the
+            current capacity, and cqvrp does not accept more until its limit becomes configurable
+            (QUANTUM_MAX_QUBITS in the engine)
+          type: INTEGER
+          default-value: 24
+          min: 1
+          max: 24
+        - name: quantumTimeoutSeconds
+          description: >-
+            Wall-clock limit for each QAOA run, in seconds. The run is killed when it expires and
+            that candidate is discarded. cqvrp tries up to four candidates (from K_min to
+            K_min+3 super-customers per region), so the quantum part can take up to four times
+            this value
+          type: DECIMAL
+          default-value: 30.0
+          min: 1
+          max: 300
+        - name: classicalTimeLimit
+          description: >-
+            Time budget, in seconds, of the PyVRP runs: the fallback when the quantum path is not
+            viable, and the classical reference used to report the relative degradation. PyVRP
+            stops only on time, so it always uses the full budget, even on tiny instances
+          type: INTEGER
+          default-value: 60
+          min: 1
+          max: 300
+        - name: includeMtz
+          description: >-
+            Adds the Miller-Tucker-Zemlin constraints, which rule out subtours disconnected from
+            the depot. They multiply the number of qubits. Without them the QUBO optimum can be a
+            subtour, which the decoder then rejects
+          type: BOOLEAN
+          default-value: false
+    dwave:
+      url: http://quantum-engine:8095
+      display-name: Quantum hybrid (D-Wave Leap)
+      description: >-
+        Hybrid quantum-classical solver of the quantum line (cqvrp) on D-Wave's cloud. It splits
+        the instance by depot and compresses each region into super-customers like the Qiskit
+        one, but models every region as a constrained quadratic model (CQM, with MTZ against
+        subtours) and sends it to D-Wave's Leap hybrid solver, which is not limited to the 24
+        qubits of the local simulator. It needs a Leap token (DWAVE_API_TOKEN in the engine),
+        network access and quota; without them, or if no sample is feasible, PyVRP solves the
+        instance
+      strategy: Hybrid quantum-classical (annealing)
+      technology: Python 3.14 / FastAPI + D-Wave Ocean (dimod 0.12, dwave-system 1.36) + PyVRP 0.14
+      version: 1.0.0
+      deterministic: false
+      order: 60
+      parameters:
+        - name: classicalTimeLimit
+          description: >-
+            Time budget, in seconds, of the PyVRP runs: the fallback when the quantum path is not
+            viable, and the classical reference used to report the relative degradation. PyVRP
+            stops only on time, so it always uses the full budget. The time D-Wave spends on
+            each region is Leap's default; cqvrp does not expose it
+          type: INTEGER
+          default-value: 60
+          min: 1
+          max: 300
 
 springdoc:
   api-docs:

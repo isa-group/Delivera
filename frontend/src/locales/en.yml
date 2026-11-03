@@ -700,7 +700,9 @@ routes:
     GENETIC: Genetic
     GREEDY: Greedy
     ANNEALING: Annealing
-  
+    QISKIT: Quantum (Qiskit)
+    DWAVE: Quantum (D-Wave)
+
   tables:
     group: Group
     slot: Slot
@@ -732,6 +734,12 @@ routes:
     ANNEALING:
       name: Simulated Annealing
       description: "Starts from an initial solution and gradually improves it through controlled random changes. It can escape local optima and achieve high-quality solutions with a moderate computational cost."
+    QISKIT:
+      name: Quantum (Qiskit)
+      description: "Hybrid quantum-classical solver. It solves each region with the QAOA quantum algorithm on a local Qiskit simulator, and uses a classical solver when a region does not fit in the available qubits. Experimental: today only very small instances reach the quantum part."
+    DWAVE:
+      name: Quantum (D-Wave)
+      description: "Hybrid quantum-classical solver on D-Wave's cloud. It sends each region to the Leap hybrid solver, which handles much larger problems than the local simulator. It needs a D-Wave account; without access, a classical solver is used. Experimental."
   slot:
     title: What is an execution slot?
     p1: A slot represents an independent solver execution.
