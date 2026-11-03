@@ -58,11 +58,15 @@ public class EngineDispatcher {
 
             log.info("Problem '{}' solved by {} engine. Total cost: {}",
                     request.problemId(), solverType, response.totalCost());
+            // Una resolucion correcta es la mejor prueba de salud: ahorra la proxima sonda.
+            registry.markHealthy(solverType);
             return response;
 
         } catch (WebClientResponseException ex) {
+            // El motor ha respondido, aunque sea con error: esta vivo y su estado no cambia.
             throw ex;
         } catch (Exception ex) {
+            registry.forgetHealth(solverType);
             throw new EngineUnavailableException(
                     "Failed to communicate with " + solverType + " engine: " + ex.getMessage(), ex);
         }
