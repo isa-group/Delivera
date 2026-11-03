@@ -17,6 +17,13 @@ management:
 fms:
   instances:
     dir: instances-MD-CVRP-JSON
+  # Health of the engines, cached per solver. A UP result is kept longer because
+  # a healthy engine rarely changes state; a DOWN one expires soon so a
+  # recovery is noticed and the catalogue stops reporting an available engine
+  # as down.
+  health-cache:
+    positive-ttl: 20s
+    negative-ttl: 5s
   # Engine catalogue and its metadata. Each entry feeds at once the HTTP client,
   # problem dispatching, the parameters' default values and the
   # GET /api/v1/fms/solvers endpoint. Registering a new solver only takes adding
