@@ -41,6 +41,31 @@ public class SpaceManagment {
         Boolean server,
         String resource
     ) {
+        genericFeatureConsumptionWithEvaluation(
+            userId, feature, 
+            expectedConsumption, details, 
+            server, resource
+        );
+    }
+
+
+     /**
+     * @apiNote To use this operation without problems you required a SPACE API-KEY of type "EVALUATE"
+     * @param userId
+     * @param feature
+     * @param expectedConsumption
+     * @param details
+     * @param server
+     * @param resource
+     */
+     public FeatureEvaluationResult genericFeatureConsumptionWithEvaluation(
+        String userId, 
+        String feature, 
+        Map<String, Number> expectedConsumption,
+        Boolean details,
+        Boolean server,
+        String resource
+    ) {
         String featureId = servicePrefix(feature);
 
         FeatureEvaluationResult withConsumption = spaceClient.features.evaluate(
@@ -63,7 +88,9 @@ public class SpaceManagment {
             log.error("FEATURE_ERROR: {}",withConsumption.getError());
             throw new ServerException(503, "SERVICE_UNAVAILABLE");
         }
+        return withConsumption;
     }
+
 
     /**
      * 
