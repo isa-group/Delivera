@@ -1,3 +1,63 @@
+:root {
+
+  --color-primary: #2563eb;
+
+  --color-background: #ffffff;
+
+  --color-surface: #ffffff;
+
+  --color-surface-secondary: #f8fafc;
+
+  --color-border: #e2e8f0;
+
+  --color-text-primary: #1e293b;
+
+  --color-text-secondary: #64748b;
+
+  --color-success: #2ac663;
+
+  --color-warning: #f5ad30;
+
+  --color-danger: #da2323;
+
+  --quota-card-background: #ffffff;
+
+  --quota-card-border: #e2e8f0;
+
+  --quota-card-title: #1e293b;
+
+}
+
+
+[data-theme="dark"] {
+
+  --color-background: #0f172a;
+
+  --color-surface: #1e293b;
+
+  --color-border: #334155;
+
+  --color-text-primary: #f8fafc;
+
+  --color-text-secondary: #94a3b8;
+
+  --quota-card-background: #191919;
+
+  --quota-card-border: #585858;
+
+  --quota-card-title: #d9d9d9;
+
+
+  --color-success: #0fa027;
+  --color-warning: #fbbf24;
+  --color-danger: #eb3939;
+
+  
+  
+}
+
+
+
 /* === Reset y base === */
 *,
 *::before,
