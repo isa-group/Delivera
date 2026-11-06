@@ -1,6 +1,6 @@
 import { useI18n } from "vue-i18n"
 import { useSelections } from "./useSelections"
-import { computed, ref, watch } from "vue"
+import { computed, onMounted, ref, watch } from "vue"
 import { useLoad } from "./useLoad"
 import { useServices } from "./useServices"
 import { addlayer, initSolverLayer } from "./useDeliveraMap"
@@ -29,7 +29,7 @@ export function useRoutesSolver(
         selectOnlyOne,
         toggleSelection
     } = useSelections()
-    const {post} = useLoad()
+    const {post, executeLoad} = useLoad()
     const dataApi = useServices('data-service')
     const routesBySolver = ref({})
 
@@ -40,29 +40,47 @@ export function useRoutesSolver(
 
     const slotRows = computed(() => setSlotRows())
 
+    const userSolvers = ref({})
+
+    const errorLoadingUserSolvers = ref('')
+
+    onMounted(() => {
+        executeLoad(
+            dataApi, 
+            "/fms/routing/available/solvers", 
+            userSolvers, 
+            errorLoadingUserSolvers,
+            null, (data) => new Set(data)
+        ).then(() => {
+            console.log(userSolvers.value)
+            console.log(solvers.value)
+        })
+
+    })
     
-    
-    const solvers = [
-        {
-            id:1,
-            name: t("routes.solvers.GREEDY.name"),
-            description: t("routes.solvers.GREEDY.description"),
-            icon: "pi pi-bolt",
-            type: "GREEDY"
-        },{
-            id:2,
-            name: t("routes.solvers.GENETIC.name"),
-            description: t("routes.solvers.GENETIC.description"),
-            icon: "pi pi-share-alt",
-            type: "GENETIC"
-        }, {
-            id:3,
-            name: t("routes.solvers.ANNEALING.name"),
-            description: t("routes.solvers.ANNEALING.description"),
-            icon: "pi pi-sparkles",
-            type: "ANNEALING"
-        } 
-    ]
+    const solvers = computed(() => {  
+        return [
+            {
+                id:1,
+                name: t("routes.solvers.GREEDY.name"),
+                description: t("routes.solvers.GREEDY.description"),
+                icon: "pi pi-bolt",
+                type: "GREEDY"
+            },{
+                id:2,
+                name: t("routes.solvers.GENETIC.name"),
+                description: t("routes.solvers.GENETIC.description"),
+                icon: "pi pi-share-alt",
+                type: "GENETIC"
+            }, {
+                id:3,
+                name: t("routes.solvers.ANNEALING.name"),
+                description: t("routes.solvers.ANNEALING.description"),
+                icon: "pi pi-sparkles",
+                type: "ANNEALING"
+            } 
+        ].filter(solver => userSolvers.value.has(solver.type.toLowerCase()) )
+    })
 
     const translateSolver = {
         "GREEDY":"GREEDY",
@@ -185,7 +203,7 @@ export function useRoutesSolver(
 
     function forExistingSelectedSolvers(executeFunction) {
         for (const id of selections.value) {
-            const solver = solvers.find(_solver => _solver.id === id)
+            const solver = solvers.value.find(_solver => _solver.id === id)
             if (solver.type) {
                 executeFunction(solver)
             }
@@ -280,9 +298,10 @@ export function useRoutesSolver(
     function disableSelection(slotId,solverName) {
         const slot = slotRows.value.find(slot => slot.id === slotId)
         let disable = true
-        if (isComparisonMode()) {
+        if (isComparisonMode() && userSolvers.value?.has(solverName?.toLowerCase())) {
             disable = false
         } else if (isCustomMode()) {
+            // TODO
             let anyActive = ""
             for (const name of getSolverNames()) {
                 if (slot[name]) {

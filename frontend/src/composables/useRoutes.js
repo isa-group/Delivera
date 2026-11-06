@@ -22,6 +22,7 @@ import {  useRoutesData } from "./useRoutesData"
 import { useRoutesSolver } from "./useRoutesSolver"
 import { useRoutesGrouping } from "./useRoutesGrouping"
 import { useNumberFormat } from "./useNumberFormat"
+import { useSpaceJwt } from "./useSpaceJwt"
 
 
 
@@ -58,6 +59,9 @@ export function useRoutes() {
 
     const maxPerExecution = ref(20)
 
+    const {
+        featureContexts
+    } = useSpaceJwt()
     const wizard = useRoutesWizard()
     const {goToPhase} = wizard
     const mapUtils = useRoutesMap()
@@ -326,6 +330,7 @@ export function useRoutes() {
         ...solverUtils,
         mapEl,
         computedMetricsBySlot,
+        featureContexts,
         runSolvers,
         runInitialData,
         runGrouping,

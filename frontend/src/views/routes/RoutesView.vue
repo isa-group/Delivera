@@ -4,6 +4,7 @@ import { Checkbox, Column, DataTable, DatePicker, Select, Step, StepList, Steppe
 import { useI18n } from 'vue-i18n';
 import OptionsGrid from './OptionsGrid.vue';
 import { getLocaleFormat } from '@/composables/useDateRange.js';
+import QuotaUsage from '@/components/quotaUsage/QuotaUsage.vue';
 
 
 
@@ -37,6 +38,7 @@ const {
         fromDate,
         includeNullsFromDate,
         includeNullsToDate,
+        featureContexts,
         selectPhase,
         showGroupDatatable,
         canGoToPhase,
@@ -76,12 +78,12 @@ const {
 
    
 
-    
+   // <QuotaUsage :features="featureContexts"/> 
 </script>
 
 <template>
     <div class="background">
-        <h1>{{t('routes.title')}}</h1>
+        <h1>{{t('routes.title')}}</h1>       
         <Stepper class="stepper" :value="currentPhase">
             <StepList>
                 <Step 
