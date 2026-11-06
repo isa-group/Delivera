@@ -1,0 +1,56 @@
+.usage-card {
+
+    color: black;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 0.5rem;
+
+    padding: 0.5rem;
+
+    border-radius: 0.75rem;
+
+    background: var(--quota-card-background);
+
+    border: 0.1rem solid var(--quota-card-border);
+
+    color: var(--color-text-primary);
+
+
+}
+
+:deep(.success .p-progressbar-value) {
+    background: var(--color-success);
+}
+
+:deep(.warning .p-progressbar-value) {
+    background: var(--color-warning);
+}
+
+:deep(.danger .p-progressbar-value) {
+    background: var(--color-danger);
+}
+
+.usage-card-info {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+}
+
+.usage-card h4 {
+
+    min-height: 4rem;
+
+    display: flex;
+
+    align-items: flex-start;
+
+    line-height: 1.25;
+
+}
