@@ -1,5 +1,6 @@
 package com.delivera.data.fms.service;
 
+import com.delivera.client.config.properties.SecurityUtils;
 import com.delivera.data.depot.dto.RoutableUnit;
 import com.delivera.data.depot.repository.OperationalUnitRepository;
 import com.delivera.data.fms.dto.*;
@@ -41,6 +42,12 @@ class FmsRoutingServiceImplTest {
 
     @Mock
     private OrderRepository orderRepository;
+
+    @Mock
+    private FmsAvailableSolvers fmsAvailableSolvers;
+
+    @Mock
+    private SecurityUtils securityUtils;
 
     @Mock
     private VehicleRepository vehicleRepository;
