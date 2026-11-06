@@ -739,3 +739,391 @@ routes:
   depot: Unidad
   customer: Cliente
   viewDetail: Ver detalle
+
+usageCard:
+  remaining: Restantes
+
+vocabulary:
+
+  # QUANTIFIER
+
+  amount: cantidad
+
+  capacity: capacidad
+
+  limit: límite
+
+  max: máximo
+  maximum: máximo
+
+  min: mínimo
+  minimum: mínimo
+
+  quota: cuota
+
+  threshold: umbral
+
+  total: total
+
+
+  # USAGE
+
+  allocated: asignadas
+
+
+  consumed: consumidas
+
+  free: libres
+
+  remaining: restantes
+
+  reserved: reservadas
+
+  spent: consumidas
+
+  usage: uso
+
+  used: usadas
+
+
+  # ACTION
+
+  call: llamada
+  calls: llamadas
+
+  deployment: despliegue
+  deployments: despliegues
+
+  execution: ejecución
+  executions: ejecuciones
+
+  job: trabajo
+  jobs: trabajos
+
+  operation: operación
+  operations: operaciones
+
+  request: solicitud
+  requests: solicitudes
+
+  run: ejecución
+  runs: ejecuciones
+
+  solve: resolución
+  solves: resoluciones
+
+  task: tarea
+  tasks: tareas
+
+
+  # RESOURCE
+
+  account: cuenta
+  accounts: cuentas
+
+  company: empresa
+  companies: empresas
+
+  customer: cliente
+  customers: clientes
+
+  depot: almacén
+  depots: almacenes
+
+  driver: conductor
+  drivers: conductores
+
+  license: licencia
+  licenses: licencias
+
+  order: pedido
+  orders: pedidos
+
+  organization: organización
+  organizations: organizaciones
+
+  project: proyecto
+  projects: proyectos
+
+  route: ruta
+  routes: rutas
+
+  solver: optimizador
+  solvers: optimizadores
+
+  subscription: suscripción
+  subscriptions: suscripciones
+
+  token: token
+  tokens: tokens
+
+  unit: unidad
+  units: unidades
+
+  user: usuario
+  users: usuarios
+
+  vehicle: vehículo
+  vehicles: vehículos
+
+  worker: trabajador
+  workers: trabajadores
+
+
+  # STATE
+
+  active: activas
+
+  available: disponibles
+
+  completed: completadas
+
+  disabled: deshabilitadas
+
+  enabled: habilitadas
+
+  error: error
+
+  expired: expiradas
+
+  failed: fallidas
+
+  healthy: saludables
+
+  inactive: inactivas
+
+  invalid: inválidas
+
+  offline: fuera de línea
+
+  online: en línea
+
+  pending: pendientes
+
+  running: ejecutándose
+
+  unavailable: no disponibles
+
+  unhealthy: degradadas
+
+  valid: válidas
+
+
+  # QUALIFIER
+
+  noise: ruido
+
+  per: por
+
+  basic: básicas
+
+  classical: clásico
+
+  custom: personalizadas
+
+  default: predeterminadas
+
+  final: final
+
+  global: globales
+
+  initial: inicial
+
+  inter: inter
+
+  intra: intra
+
+  local: local
+
+  loyal: fidelizados
+
+  operational: operativas
+
+  premium: premium
+
+  priority: prioritarias
+
+  private: privadas
+
+  public: públicas
+
+  stagnant: estancadas
+
+  standard: estándar
+
+  temporary: temporales
+
+
+  # TECHNOLOGY
+
+  annealing: recocido
+
+  dwave: d-wave
+
+  genetic: genético
+
+  greedy: voraz
+
+  hgs: hgs
+
+  neural: neuronal
+
+  ortools: or-tools
+
+  pyvrp: pyvrp
+
+  qiskit: qiskit
+
+  quantum: cuántico
+
+
+  # PARAMETER
+
+  acceptance: aceptación
+
+  calibration: calibración
+
+  candidate: candidato
+
+  child: descendiente
+
+  cluster: clúster
+
+  config: configuración
+
+  constraint: restricción
+  constraints: restricciones
+
+  cooling: enfriamiento
+
+  crossover: cruce
+
+  elitism: elitismo
+
+  evaluation: evaluación
+  evaluations: evaluaciones
+
+  fitness: aptitud
+
+  generation: generación
+  generations: generaciones
+
+  heuristic: heurística
+
+  improvement: mejora
+
+  learning: aprendizaje
+
+  metaheuristic: metaheurística
+
+  move: movimiento
+  moves: movimientos
+
+  mutation: mutación
+
+  neighborhood: vecindario
+
+  objective: objetivo
+
+  offspring: descendencia
+
+  optimization: optimización
+  optimizations: optimizaciones
+
+  parent: progenitor
+
+  penalty: penalización
+
+  population: población
+
+  preset: perfil
+
+  profile: perfil
+
+  quantile: cuantil
+
+  rebalance: rebalanceo
+
+  repair: reparación
+
+  restart: reinicio
+  restarts: reinicios
+
+  search: búsqueda
+
+  seed: semilla
+
+  selection: selección
+
+  strategy: estrategia
+
+  temperature: temperatura
+
+  tournament: torneo
+
+  training: entrenamiento
+
+  window: ventana
+
+
+  # MEASURE
+
+  budget: presupuesto
+
+  cost: coste
+
+  count: cantidad
+
+  distance: distancia
+
+  duration: duración
+
+  factor: factor
+
+  frequency: frecuencia
+
+  interval: intervalo
+
+  latency: latencia
+
+  percentage: porcentaje
+
+  percent: porcentaje
+
+  probability: probabilidad
+
+  rate: tasa
+
+  ratio: proporción
+
+  score: puntuación
+
+  size: tamaño
+
+  step: paso
+  steps: pasos
+
+  time: tiempo
+
+  timeout: tiempo límite
+
+  weight: peso
+
+  level: nivel
+  levels: niveles
+
+  repetition: repetición
+  repetitions: repeticiones
+
+  radius: radio
+
+  # MISC
+
+  credits: créditos
+
+  qubit: qubit
+  qubits: qubits
+
+  ms: ms
+
+  km: km

@@ -753,3 +753,391 @@ routes:
   depot: Unit
   customer: Client
   viewDetail: View detail
+
+usageCard:
+  remaining: Remaining
+
+vocabulary:
+
+  # QUANTIFIER
+
+  amount: amount
+
+  capacity: capacity
+
+  limit: limit
+
+  max: maximum
+  maximum: maximum
+
+  min: minimum
+  minimum: minimum
+
+  quota: quota
+
+  threshold: threshold
+
+  total: total
+
+
+  # USAGE
+
+  allocated: allocated
+
+
+  consumed: consumed
+
+  free: free
+
+  remaining: remaining
+
+  reserved: reserved
+
+  spent: spent
+
+  usage: usage
+
+  used: used
+
+
+  # ACTION
+
+  call: call
+  calls: calls
+
+  deployment: deployment
+  deployments: deployments
+
+  execution: execution
+  executions: executions
+
+  job: job
+  jobs: jobs
+
+  operation: operation
+  operations: operations
+
+  request: request
+  requests: requests
+
+  run: run
+  runs: runs
+
+  solve: solve
+  solves: solves
+
+  task: task
+  tasks: tasks
+
+
+  # RESOURCE
+
+  account: account
+  accounts: accounts
+
+  company: company
+  companies: companies
+
+  customer: customer
+  customers: customers
+
+  depot: depot
+  depots: depots
+
+  driver: driver
+  drivers: drivers
+
+  license: license
+  licenses: licenses
+
+  order: order
+  orders: orders
+
+  organization: organization
+  organizations: organizations
+
+  project: project
+  projects: projects
+
+  route: route
+  routes: routes
+
+  solver: solver
+  solvers: solvers
+
+  subscription: subscription
+  subscriptions: subscriptions
+
+  token: token
+  tokens: tokens
+
+  unit: unit
+  units: units
+
+  user: user
+  users: users
+
+  vehicle: vehicle
+  vehicles: vehicles
+
+  worker: worker
+  workers: workers
+
+
+  # STATE
+
+  active: active
+
+  available: available
+
+  completed: completed
+
+  disabled: disabled
+
+  enabled: enabled
+
+  error: error
+
+  expired: expired
+
+  failed: failed
+
+  healthy: healthy
+
+  inactive: inactive
+
+  invalid: invalid
+
+  offline: offline
+
+  online: online
+
+  pending: pending
+
+  running: running
+
+  unavailable: unavailable
+
+  unhealthy: unhealthy
+
+  valid: valid
+
+
+  # QUALIFIER
+
+  noise: noise
+
+  per: per
+
+  basic: basic
+
+  classical: classical
+
+  custom: custom
+
+  default: default
+
+  final: final
+
+  global: global
+
+  initial: initial
+
+  inter: inter
+
+  intra: intra
+
+  local: local
+
+  loyal: loyal
+
+  operational: operational
+
+  premium: premium
+
+  priority: priority
+
+  private: private
+
+  public: public
+
+  stagnant: stagnant
+
+  standard: standard
+
+  temporary: temporary
+
+
+  # TECHNOLOGY
+
+  annealing: annealing
+
+  dwave: dwave
+
+  genetic: genetic
+
+  greedy: greedy
+
+  hgs: hgs
+
+  neural: neural
+
+  ortools: ortools
+
+  pyvrp: pyvrp
+
+  qiskit: qiskit
+
+  quantum: quantum
+
+
+  # PARAMETER
+
+  acceptance: acceptance
+
+  calibration: calibration
+
+  candidate: candidate
+
+  child: child
+
+  cluster: cluster
+
+  config: configuration
+
+  constraint: constraint
+  constraints: constraints
+
+  cooling: cooling
+
+  crossover: crossover
+
+  elitism: elitism
+
+  evaluation: evaluation
+  evaluations: evaluations
+
+  fitness: fitness
+
+  generation: generation
+  generations: generations
+
+  heuristic: heuristic
+
+  improvement: improvement
+
+  learning: learning
+
+  metaheuristic: metaheuristic
+
+  move: move
+  moves: moves
+
+  mutation: mutation
+
+  neighborhood: neighborhood
+
+  objective: objective
+
+  offspring: offspring
+
+  optimization: optimization
+  optimizations: optimizations
+
+  parent: parent
+
+  penalty: penalty
+
+  population: population
+
+  preset: preset
+
+  profile: profile
+
+  quantile: quantile
+
+  rebalance: rebalance
+
+  repair: repair
+
+  restart: restart
+  restarts: restarts
+
+  search: search
+
+  seed: seed
+
+  selection: selection
+
+  strategy: strategy
+
+  temperature: temperature
+
+  tournament: tournament
+
+  training: training
+
+  window: window
+
+  level: level
+  levels: levels
+
+  repetition: repetition
+  repetitions: repetitions
+
+
+  # MEASURE
+
+  budget: budget
+
+  cost: cost
+
+  count: count
+
+  distance: distance
+
+  duration: duration
+
+  factor: factor
+
+  frequency: frequency
+
+  interval: interval
+
+  latency: latency
+
+  percentage: percentage
+
+  percent: percent
+
+  probability: probability
+
+  rate: rate
+
+  ratio: ratio
+
+  score: score
+
+  size: size
+
+  step: step
+  steps: steps
+
+  time: time
+
+  timeout: timeout
+
+  weight: weight
+
+  radius: radius
+
+  # MISC
+
+  credits: credits
+
+  qubit: qubit
+  qubits: qubits
+
+  ms: ms
+
+  km: km
