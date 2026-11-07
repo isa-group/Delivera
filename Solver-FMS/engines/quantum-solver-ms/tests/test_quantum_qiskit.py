@@ -1,0 +1,122 @@
+import unittest
+from unittest.mock import patch
+import json
+import subprocess
+import sys
+
+from domain.models import CustomerDto, DepotDto, RoutingRequest, VehicleDto
+from solvers.quantum_qiskit import (
+    QuantumExecutionTimeoutError, _model_timeout, _simulation_pass_manager,
+    solve_with_qiskit, solve_with_qiskit_with_timeout,
+)
+
+
+class TestQiskitResultDecoding(unittest.TestCase):
+    def setUp(self):
+        self.request = RoutingRequest(
+            instance_name="qiskit-result-contract",
+            depots=[DepotDto(id="D", x=0, y=0)],
+            customers=[CustomerDto(id="C1", x=1, y=0, demand=1),
+                       CustomerDto(id="C2", x=2, y=0, demand=1)],
+            vehicles=[VehicleDto(id="V", capacity=5)],
+        )
+
+    def result_factory(self, active_arcs):
+        def build_result(problem):
+            from qiskit_optimization.algorithms import (
+                OptimizationResult, OptimizationResultStatus,
+            )
+            active = {*active_arcs, "y_C1_V", "y_C2_V"}
+            # Es el tipo real de resultado de la librería. Solo se sustituye
+            # la búsqueda, para comprobar el contrato sin ejecutar QAOA.
+            return OptimizationResult(
+                x=[int(variable.name in active) for variable in problem.variables],
+                fval=4, variables=problem.variables, status=OptimizationResultStatus.SUCCESS,
+            )
+        return build_result
+
+    def test_decodes_optimization_result_by_variable_name(self):
+        with patch("qiskit_optimization.algorithms.MinimumEigenOptimizer.solve",
+                   side_effect=self.result_factory({"x_D_C1_V", "x_C1_C2_V", "x_C2_D_V"})):
+            response = solve_with_qiskit([self.request])
+        self.assertTrue(response.is_feasible)
+        self.assertEqual(len(response.routes), 1)
+        self.assertEqual(response.routes[0].stops, ["D", "C1", "C2", "D"])
+        self.assertEqual(response.routes[0].load, 2)
+        self.assertEqual(response.total_distance, 4)
+
+    def test_inconsistent_assignments_are_still_rejected(self):
+        with patch("qiskit_optimization.algorithms.MinimumEigenOptimizer.solve",
+                   side_effect=self.result_factory({"x_D_C1_V", "x_C1_D_V"})):
+            with self.assertRaisesRegex(ValueError, "subtour desconectado"):
+                solve_with_qiskit([self.request])
+
+    def test_transpilation_preserves_the_state_and_removes_matrix_evolutions(self):
+        from qiskit.circuit.library import QAOAAnsatz
+        from qiskit.quantum_info import SparsePauliOp, Statevector
+        original = QAOAAnsatz(SparsePauliOp.from_list([("ZZI", 1), ("IZI", 2)]), reps=1)
+        simplified = _simulation_pass_manager(42).run(original)
+        self.assertNotIn("PauliEvolution", simplified.count_ops())
+        self.assertTrue(Statevector(original.assign_parameters([0.2, 0.4])).equiv(
+            Statevector(simplified.assign_parameters([0.2, 0.4])),
+        ))
+
+    def test_infeasible_qaoa_sample_is_rejected_instead_of_returning_empty_success(self):
+        from qiskit_optimization.algorithms import OptimizationResult, OptimizationResultStatus
+        def infeasible(problem):
+            return OptimizationResult(x=[0] * problem.get_num_vars(), fval=0,
+                                      variables=problem.variables, status=OptimizationResultStatus.INFEASIBLE)
+        with patch("qiskit_optimization.algorithms.MinimumEigenOptimizer.solve", side_effect=infeasible):
+            with self.assertRaisesRegex(ValueError, "muestra factible"):
+                solve_with_qiskit([self.request])
+
+    def test_child_reports_model_size_for_automatic_budget(self):
+        # Se sustituye únicamente el programa hijo para comprobar el protocolo IPC.
+        real_popen = subprocess.Popen
+        result = {"status": "ok", "result": {"instance_name": "ipc", "solver_used": "test",
+                  "execution_time_ms": 0, "total_distance": 0, "is_feasible": True, "routes": []}}
+        code = ("import sys; sys.stdin.read(); "
+                "print('{\"status\":\"model_ready\",\"qubits\":10}',flush=True); "
+                f"print({json.dumps(result)!r},flush=True)")
+        def launch(command, **kwargs):
+            return real_popen([sys.executable, "-B", "-c", code], **kwargs)
+        for explicit in [None, 2.0]:
+            with self.subTest(explicit=explicit), patch("solvers.quantum_qiskit.subprocess.Popen", side_effect=launch), patch(
+                "solvers.quantum_qiskit._model_timeout", return_value=60,
+            ) as budget:
+                response = solve_with_qiskit_with_timeout([self.request], timeout_sec=explicit)
+                self.assertEqual(response.instance_name, "ipc")
+                if explicit is None:
+                    budget.assert_called_once_with(10, 20, 1)
+                else:
+                    budget.assert_not_called()
+
+    def test_explicit_timeout_terminates_and_reaps_child(self):
+        real_popen = subprocess.Popen
+        children = []
+        def launch(command, **kwargs):
+            child = real_popen([sys.executable, "-B", "-c", "import time; time.sleep(5)"], **kwargs)
+            children.append(child)
+            return child
+        with patch("solvers.quantum_qiskit.subprocess.Popen", side_effect=launch):
+            with self.assertRaises(QuantumExecutionTimeoutError):
+                solve_with_qiskit_with_timeout([self.request], timeout_sec=0.1)
+        self.assertIsNotNone(children[0].poll())
+
+    def test_automatic_budget_grows_with_model_size_and_effort_but_is_bounded(self):
+        budgets = [_model_timeout(n, 20, 1) for n in [6, 10, 14, 18, 21, 24]]
+        self.assertEqual(budgets, sorted(budgets))
+        self.assertGreater(_model_timeout(14, 60, 1), _model_timeout(14, 20, 1))
+        self.assertGreater(_model_timeout(14, 20, 2), _model_timeout(14, 20, 1))
+        self.assertLessEqual(_model_timeout(24, 1000, 5), 270)
+
+    def test_invalid_qaoa_options_fail_before_starting_a_child(self):
+        with patch("solvers.quantum_qiskit.subprocess.Popen") as launch:
+            for options in [{"maxiter": 0}, {"reps": 0}, {"shots": 0}, {"timeout_sec": float("nan")}]:
+                with self.subTest(options=options), self.assertRaises(ValueError):
+                    solve_with_qiskit_with_timeout([self.request], **options)
+        launch.assert_not_called()
+
+
+if __name__ == "__main__":
+    unittest.main()

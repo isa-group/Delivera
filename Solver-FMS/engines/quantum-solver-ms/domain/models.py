@@ -21,8 +21,8 @@ class CustomerDto(NodeDto):
     demand: int = Field(..., description="Demanda del cliente (qi)")
     
     # Campo opcional para almacenar el sub-grafo interno si este nodo es un Súper-Cliente.
-    # Esto es vital para el Coarse-Graining: nos permite calcular a posteriori el C_interno (el TSP local)
-    # sin perder la información topológica original del diagrama de Voronoi.
+    # Permite reconstruir la ruta sobre los clientes originales después del coarse-graining,
+    # sin intentar recuperar sus IDs a partir del nombre compuesto del Súper-Cliente.
     internal_nodes: Optional[List['CustomerDto']] = Field(default=None, description="Nodos internos si este es un Súper-Cliente")
 
 class DepotDto(NodeDto):
@@ -64,12 +64,12 @@ class RoutingResponse(BaseModel):
         ...,
         description="Tiempo de procesamiento en ms, redondeado a tres decimales",
     )
-    total_distance: float = Field(..., description="Costo total objetivo de todas las rutas")
+    total_distance: float = Field(..., description="Suma de las distancias de las rutas completas sobre clientes originales")
     is_feasible: bool = Field(..., description="Indica si la solución respeta la capacidad")
     routes: List[RouteDto] = Field(..., description="Desglose de las rutas calculadas")
     internal_routes: List[RouteDto] = Field(
         default_factory=list,
-        description="Rutas internas de los superclientes, si existen",
+        description="Campo legado. En las respuestas expandidas queda vacío porque routes ya contiene todos los clientes",
     )
     qubits: Optional[int] = Field(None, description="Qubits del mayor QUBO generado")
     fallback_reason: Optional[str] = Field(None, description="Motivo de derivacion a solver clasico")

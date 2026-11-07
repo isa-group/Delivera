@@ -1,8 +1,12 @@
 import json
+import math
+import queue
 import subprocess
 import sys
+import tempfile
+import threading
 import time
-from typing import List
+from typing import Callable, List
 
 from domain.models import RoutingRequest, RoutingResponse, RouteDto
 
@@ -11,11 +15,41 @@ class QuantumExecutionTimeoutError(TimeoutError):
     """Indica que Qiskit no terminó dentro del límite de tiempo configurado."""
 
 
+def _model_timeout(qubits: int, maxiter: int, reps: int) -> float:
+    """Presupuesto orientativo según el QUBO real comunicado por el proceso hijo."""
+    base = next(seconds for limit, seconds in [(10, 30), (14, 60), (18, 120), (21, 180), (math.inf, 270)]
+                if qubits <= limit)
+    return min(270.0, base * max(1, maxiter / 20) * reps)
+
+
+def _simulation_pass_manager(seed: int | None = None):
+    from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+    # Evita que StatevectorSampler convierta PauliEvolutionGate en una matriz
+    # exponencial completa. Simula las mismas evoluciones con puertas básicas.
+    return generate_preset_pass_manager(
+        optimization_level=1, basis_gates=["rz", "sx", "x", "cx"], seed_transpiler=seed,
+    )
+
+
+def _validate_options(maxiter: int, reps: int, shots: int) -> None:
+    if type(maxiter) is not int or maxiter < 4:
+        raise ValueError("maxiter debe ser un entero mayor o igual que 4.")
+    if type(reps) is not int or reps < 1:
+        raise ValueError("reps debe ser un entero positivo.")
+    if type(shots) is not int or shots < 1:
+        raise ValueError("shots debe ser un entero positivo.")
+
+
 def solve_with_qiskit_with_timeout(
     sub_requests: List[RoutingRequest],
     max_qubits: int = 24,
     include_mtz: bool = False,
-    timeout_sec: float = 30.0,
+    timeout_sec: float | None = None,
+    *,
+    maxiter: int = 20,
+    reps: int = 1,
+    shots: int = 1024,
+    seed: int | None = None,
 ) -> RoutingResponse:
     """Ejecuta Qiskit con límite de tiempo real y termina el proceso si vence.
 
@@ -23,60 +57,89 @@ def solve_with_qiskit_with_timeout(
     segura desde un hilo. Un proceso aislado permite detener una ejecución
     lenta y devolver el control a evaluation_service para activar PyVRP.
     """
-    if timeout_sec <= 0:
-        raise ValueError("El límite temporal de Qiskit debe ser mayor que cero.")
+    if timeout_sec is not None and (not math.isfinite(timeout_sec) or timeout_sec <= 0):
+        raise ValueError("El límite temporal de Qiskit debe ser positivo y finito.")
+    _validate_options(maxiter, reps, shots)
 
     # subprocess inicia un intérprete independiente. A diferencia de un hilo,
     # se puede terminar desde Windows aunque Qiskit o SciPy sigan calculando.
-    # La entrada y la salida usan JSON por stdin/stdout, sin crear ficheros
-    # temporales que puedan estar bloqueados por políticas de Windows.
+    # La entrada y los resultados usan JSON por stdin/stdout. Los mensajes
+    # de diagnóstico de stderr se drenan por separado.
     request_payload = json.dumps(
         {
             "sub_requests": [request.model_dump(mode="json") for request in sub_requests],
             "max_qubits": max_qubits,
             "include_mtz": include_mtz,
+            "maxiter": maxiter, "reps": reps, "shots": shots, "seed": seed,
         }
     )
-    process = subprocess.Popen(
-        [sys.executable, "-m", "solvers.quantum_qiskit_proc_isolate"], # -m significa que se ejecuta como módulo, no como script,
-                                                                 # para que los imports relativos funcionen
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE, # stederr se usa para capturar errores y mensajes de depuración del proceso hijo
-        text=True,
-    )
-    try:
-        stdout, stderr = process.communicate(
-            input=request_payload,
-            timeout=timeout_sec,
+    events = queue.Queue()
+    started = time.monotonic()
+    budget = timeout_sec if timeout_sec is not None else 30.0
+    # stderr se drena a un archivo temporal para no bloquear el proceso hijo
+    # mientras stdout comunica los tamaños de modelo y el resultado final.
+    with tempfile.TemporaryFile(mode="w+t", encoding="utf-8", errors="replace") as errors:
+        process = subprocess.Popen(
+            [sys.executable, "-B", "-m", "solvers.quantum_qiskit_proc_isolate"],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=errors,
+            text=True, encoding="utf-8",
         )
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.communicate() # sirve para limpiar los buffers de stdout y stderr del proceso hijo
-        raise QuantumExecutionTimeoutError(
-            f"Qiskit superó el límite de {timeout_sec:g} segundos."
-        )
-
-    if not stdout:
-        detail = stderr.strip() or "sin detalle adicional"
-        raise RuntimeError(
-            "El proceso de Qiskit terminó sin devolver un resultado: "
-            f"{detail}"
-        )
-    payload = json.loads(stdout) # cargamos el JSON devuelto por el proceso hijo a un diccionario de Python
-    status = payload["status"]
-
-    if status == "error":
-        raise RuntimeError(payload["detail"])
-
-    # Aseguramos que el resultado cumple con el modelo de datos esperado
-    return RoutingResponse.model_validate(payload["result"])
+        def read_messages():
+            try:
+                for line in process.stdout:
+                    events.put(line)
+            finally:
+                events.put(None)
+        reader = threading.Thread(target=read_messages, daemon=True)
+        reader.start()
+        try:
+            process.stdin.write(request_payload)
+            process.stdin.close()
+            while True:
+                remaining = started + budget - time.monotonic() # started + budget es el tiempo límite absoluto, time.monotonic() es el tiempo actual
+                try:
+                    if remaining <= 0:
+                        raise queue.Empty
+                    line = events.get(timeout=max(0, remaining))
+                except queue.Empty:
+                    raise QuantumExecutionTimeoutError(
+                        f"Qiskit superó el límite de {budget:g} segundos."
+                    ) from None
+                if line is None:
+                    process.wait()
+                    errors.seek(0) # seek(0) mueve el cursor al inicio del archivo temporal para leer los mensajes de error
+                    detail = errors.read().strip() or "sin detalle adicional"
+                    raise RuntimeError(f"El proceso de Qiskit terminó sin devolver un resultado: {detail}")
+                payload = json.loads(line)
+                if payload["status"] == "model_ready": # El proceso hijo informa que el modelo está listo y comunica el número de qubits que necesita
+                    if timeout_sec is None:
+                        # Se suman presupuestos por subproblema, con 30 s de
+                        # arranque y un máximo de 300 s para todo el candidato.
+                        budget = min(300.0, budget + _model_timeout(payload["qubits"], maxiter, reps))
+                    continue
+                if payload["status"] == "error":
+                    raise RuntimeError(payload["detail"])
+                return RoutingResponse.model_validate(payload["result"])
+        finally:
+            if process.poll() is None:
+                process.kill()
+            process.wait()
+            reader.join(timeout=1)
+            process.stdout.close()
+            if not process.stdin.closed:
+                process.stdin.close()
 
 
 def solve_with_qiskit(
     sub_requests: List[RoutingRequest],
     max_qubits: int = 24,
     include_mtz: bool = False,
+    *,
+    maxiter: int = 20,
+    reps: int = 1,
+    shots: int = 1024,
+    seed: int | None = None,
+    on_model_ready: Callable[[int], None] | None = None,
 ) -> RoutingResponse:
     """Resuelve subproblemas CVRP mediante QAOA.
 
@@ -89,12 +152,17 @@ def solve_with_qiskit(
     from qiskit_algorithms import QAOA
     from qiskit_algorithms.optimizers import COBYLA
     from qiskit_optimization import QuadraticProgram
-    from qiskit_optimization.algorithms import MinimumEigenOptimizer
+    from qiskit_optimization.algorithms import MinimumEigenOptimizer, OptimizationResultStatus
     from qiskit_optimization.converters import QuadraticProgramToQubo
 
+    _validate_options(maxiter, reps, shots)
+    if seed is not None:
+        from qiskit_algorithms.utils import algorithm_globals
+        algorithm_globals.random_seed = seed
+
     # El solver devuelve solo rutas globales entre el deposito y los
-    # superclientes. Las rutas internas de cada supercliente se calculan
-    # aparte con PyVRP y se agregan despues en evaluation_service.
+    # superclientes. evaluation_service expande después cada grupo con PyVRP
+    # y recalcula la distancia de la ruta completa sobre clientes originales.
     start_time = time.perf_counter()
     all_routes = []
     total_distance = 0.0
@@ -103,10 +171,13 @@ def solve_with_qiskit(
     # StatevectorSampler es el simulador local compatible con QAOA en la
     # version actual de Qiskit; BasicSimulator no acepta la operacion QAOA sin
     # una transpilation adicional.
-    sampler = StatevectorSampler()
+    sampler = StatevectorSampler(default_shots=shots, seed=seed)
     # COBYLA ajusta los parametros de QAOA. Reps=1 usa una sola capa para
     # mantener bajo el coste del experimento local.
-    qaoa = QAOA(sampler=sampler, optimizer=COBYLA(maxiter=20), reps=1)
+    qaoa = QAOA(
+        sampler=sampler, optimizer=COBYLA(maxiter=maxiter), reps=reps,
+        transpiler=_simulation_pass_manager(seed),
+    )
     optimizer = MinimumEigenOptimizer(qaoa)
 
     for request in sub_requests:
@@ -285,18 +356,24 @@ def solve_with_qiskit(
                 f"el limite configurado es {max_qubits}."
             )
 
+        if on_model_ready is not None:
+            on_model_ready(qubit_count)
         # MinimumEigenOptimizer convierte el problema, ejecuta QAOA y devuelve
         # valores 0/1 para las variables originales del QuadraticProgram.
+        # OptimizationResult permite consultarlas con result[nombre_variable].
         result = optimizer.solve(problem)
+        if result.status != OptimizationResultStatus.SUCCESS:
+            raise ValueError("QAOA no encontró una muestra factible. No se certifica infactibilidad.")
         request_distance = 0.0
+        request_visits = []
 
         # Reconstruir la ruta desde los arcos binarios permite validar que la
         # solucion cubre exactamente los clientes asignados a cada vehiculo.
         for vehicle_id in vehicle_ids:
             active_arcs = {
-                (origin.id, destination.id): result.get_variable_value(
+                (origin.id, destination.id): result[
                     f"x_{origin.id}_{destination.id}_{vehicle_id}"
-                )
+                ]
                 for origin in nodes
                 for destination in nodes
                 if origin.id != destination.id
@@ -341,7 +418,7 @@ def solve_with_qiskit(
             assigned_customers = {
                 customer.id
                 for customer in customers
-                if result.get_variable_value(f"y_{customer.id}_{vehicle_id}") > 0.5
+                if result[f"y_{customer.id}_{vehicle_id}"] > 0.5
             }
             if set(route[1:-1]) != assigned_customers: # el slicing route[1:-1] excluye los depositos inicial y final, 
                                                        # dejando solo los clientes visitados
@@ -358,11 +435,12 @@ def solve_with_qiskit(
             route_load = sum(
                 demands[customer.id]
                 for customer in customers
-                if result.get_variable_value(f"y_{customer.id}_{vehicle_id}") > 0.5 # y[cliente.id, k] nos dice si el cliente fue asignado al vehículo k
+                if result[f"y_{customer.id}_{vehicle_id}"] > 0.5 # y[cliente.id, k] nos dice si el cliente fue asignado al vehículo k
             )
 
             # Acumulamos la distancia total de la subrequest y guardamos la ruta reconstruida.
             request_distance += route_distance
+            request_visits.extend(route[1:-1])
             all_routes.append(
                 RouteDto(
                     vehicle_id=vehicle_id,
@@ -372,6 +450,8 @@ def solve_with_qiskit(
                 )
             )
 
+        if sorted(request_visits) != sorted(customer.id for customer in customers):
+            raise ValueError("QAOA produjo una solución que pierde o repite clientes.")
         # Acumulamos la distancia total de todas las subrequests para el informe final.
         total_distance += request_distance
 

@@ -67,7 +67,7 @@ def evaluate_instance(
 	max_qubits: int = 24,
 	include_mtz: bool = False,
 	classical_time_limit: int = 60,
-	quantum_time_limit: float = 30.0,
+	quantum_time_limit: float | None = None,
 ) -> Dict[str, Any]:
 	"""Ejecuta una instancia como si fuera una llamada al microservicio.
 
@@ -185,8 +185,8 @@ def build_parser() -> argparse.ArgumentParser:
 	parser.add_argument(
 		"--quantum-time-limit",
 		type=float,
-		default=30.0,
-		help="Límite en segundos para una ejecución Qiskit antes del fallback",
+		default=None,
+		help="Segundos por candidato Qiskit. Si se omite se adapta al tamaño del QUBO",
 	)
 	parser.add_argument(
 		"--include-mtz",

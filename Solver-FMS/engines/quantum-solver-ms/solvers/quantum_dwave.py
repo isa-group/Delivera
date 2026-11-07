@@ -157,7 +157,7 @@ def solve_with_dwave(sub_requests: List[RoutingRequest]) -> RoutingResponse:
 
     execution_time_ms = round((time.perf_counter() - t0) * 1000, 3) # Tiempo total de ejecución en milisegundos
 
-    # Las rutas internas de los superclientes se agregan en evaluation_service.
+    # evaluation_service expande los grupos y recalcula las rutas sobre clientes originales.
     return RoutingResponse(
         instance_name="Delivera_Quantum_DWave_Global",
         solver_used="D-Wave Leap Hybrid Solver",
