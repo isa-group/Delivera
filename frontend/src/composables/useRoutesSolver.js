@@ -79,7 +79,7 @@ export function useRoutesSolver(
                 icon: "pi pi-sparkles",
                 type: "ANNEALING"
             } 
-        ].filter(solver => userSolvers.value.has(solver.type.toLowerCase()) )
+        ].filter(solver => userSolvers.value?.has?.(solver.type.toLowerCase()) )
     })
 
     const translateSolver = {

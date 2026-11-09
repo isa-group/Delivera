@@ -57,11 +57,21 @@ export function useRoutes() {
     // =====================================
     const {numberI18n} = useNumberFormat()
 
+    const maxActiveOrdersLabel = "maxActiveOrders"
+
     const maxPerExecution = ref(20)
 
     const {
         featureContexts
     } = useSpaceJwt()
+
+    watch(featureContexts, () => {
+        const activeOrderslimit = featureContexts.value.find(
+            faeture => faeture.name === maxActiveOrdersLabel
+        ).limit
+        maxPerExecution.value = activeOrderslimit ?? 20
+    })
+
     const wizard = useRoutesWizard()
     const {goToPhase} = wizard
     const mapUtils = useRoutesMap()

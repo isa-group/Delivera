@@ -35,7 +35,7 @@ export function useRoutesGrouping({
         dbscan: true,
         maxRadiusKm: 50,
         maxDepotRadiusKm: 150,
-        minClusterSize: 3,
+        minClusterSize: 1,
         maxClusterSize: 20,
         noiseClusterMaxDistanceKm: 150,
         noiseMaxDistanceKm: 30
