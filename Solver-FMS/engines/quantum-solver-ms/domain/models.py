@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Any, List, Optional
 import math
 
 # ==========================================
@@ -40,6 +40,10 @@ class RoutingRequest(BaseModel):
     depots: List[DepotDto] = Field(..., description="Lista de depósitos (Semillas de Voronoi)")
     customers: List[CustomerDto] = Field(..., description="Clientes asignados a este sub-clúster")
     vehicles: List[VehicleDto] = Field(..., description="Vehículos disponibles para este clúster")
+    parameters: dict[str, Any] = Field(default_factory=dict, description=(
+        "Opciones de ejecución. parameters.fallback configura exclusivamente el fallback PyVRP2, "
+        "incluidos maxVehicleRepetition, vehicleStrategy, vehicleStrategyConfig, seed y classicalTimeLimit"
+    ))
 
     @property
     def total_demand(self) -> int:
@@ -55,6 +59,8 @@ class RouteDto(BaseModel):
     stops: List[str] = Field(..., description="Lista ordenada de IDs de nodos visitados")
     distance: float = Field(..., description="Distancia total recorrida en esta ruta")
     load: int = Field(..., description="Carga total transportada en la ruta")
+    trip_index: Optional[int] = Field(default=None, ge=1,
+        description="Orden del viaje del vehículo en el fallback, sin planificación horaria")
 
 class RoutingResponse(BaseModel):
     request_id: Optional[str] = Field(None, description="ID opcional para trazabilidad")
@@ -64,7 +70,7 @@ class RoutingResponse(BaseModel):
         ...,
         description="Tiempo de procesamiento en ms, redondeado a tres decimales",
     )
-    total_distance: float = Field(..., description="Suma de las distancias de las rutas completas sobre clientes originales")
+    total_distance: Optional[float] = Field(..., description="Distancia de las rutas completas, o null si el fallback no encuentra solución factible")
     is_feasible: bool = Field(..., description="Indica si la solución respeta la capacidad")
     routes: List[RouteDto] = Field(..., description="Desglose de las rutas calculadas")
     internal_routes: List[RouteDto] = Field(
@@ -73,6 +79,9 @@ class RoutingResponse(BaseModel):
     )
     qubits: Optional[int] = Field(None, description="Qubits del mayor QUBO generado")
     fallback_reason: Optional[str] = Field(None, description="Motivo de derivacion a solver clasico")
+    seed: Optional[int] = Field(None, description="Semilla utilizada por el fallback clásico")
+    solver_details: Optional[dict[str, Any]] = Field(None,
+        description="Detalles del fallback, incluidos el límite de viajes y los viajes adicionales")
 
 
 # Resolución de referencias circulares para Pydantic V2

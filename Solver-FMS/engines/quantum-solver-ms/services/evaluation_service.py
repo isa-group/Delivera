@@ -1,4 +1,5 @@
 import math
+import time
 from typing import Any, Dict, List, Tuple
 
 from domain.models import RoutingRequest, RoutingResponse
@@ -6,6 +7,8 @@ from domain.spatial_partitioner import SpatialPartitioner
 from services.graph_analyzer import GraphAnalyzer
 from solvers.pyvrp_solver import solve_with_pyvrp
 from services.route_expansion_service import expand_quantum_routes
+from api.adapter.fallback_adapter import PyvrpFallbackAdapter, fallback_parameters
+from solvers.pyvrp_v2_solver import solve_hgs_adc
 
 
 class QuantumPreparationError(ValueError):
@@ -231,22 +234,23 @@ def evaluate_quantum_metrics(
         for route in response.routes
         if route.vehicle_id in capacities and route.load > capacities[route.vehicle_id]
     ]
-    if classical_cost is None:
+    # Un fallback fallido no debe lanzar otra búsqueda para obtener una referencia.
+    if classical_cost is None and response.is_feasible:
         classical_response = (
             solve_with_pyvrp(request, max_runtime_sec=classical_time_limit)
             if request.customers
             else None
         )
         classical_cost = classical_response.total_distance if classical_response else 0.0
-    quantum_cost = response.total_distance
-    total_cost = quantum_cost
+    total_cost = response.total_distance
     degradation = (
         (total_cost - classical_cost) / classical_cost
-        if classical_cost != 0 and math.isfinite(classical_cost)
+        if total_cost is not None and classical_cost is not None
+        and classical_cost != 0 and math.isfinite(classical_cost)
         else None
     )
     return {
-        "quantum_total_distance": quantum_cost,
+        "quantum_total_distance": total_cost,
         "internal_cost": internal_cost,
         "total_cost": total_cost,
         "classical_reference_distance": classical_cost,
@@ -263,26 +267,22 @@ def evaluate_quantum_metrics(
 def solve_with_classical_fallback(
     request: RoutingRequest,
     reason: str,
-    max_runtime_sec: int = 60,
+    max_runtime_sec: float = 60,
 ) -> RoutingResponse:
-    """Devuelve una respuesta clasica cuando la via cuantica no es viable."""
-    if not request.customers:
-        return RoutingResponse(
-            instance_name=request.instance_name,
-            solver_used="PyVRP classical fallback",
-            execution_time_ms=0.0,
-            total_distance=0.0,
-            is_feasible=True,
-            routes=[],
-            fallback_reason=reason,
-        )
-    response = solve_with_pyvrp(request, max_runtime_sec=max_runtime_sec)
-    return response.model_copy(
-        update={
-            "solver_used": "PyVRP classical fallback",
-            "fallback_reason": reason,
-        }
+    """Resuelve los clientes originales con PyVRP2 y viajes autorizados para el fallback."""
+    started = time.perf_counter()
+    options = fallback_parameters(request, max_runtime_sec)
+    response = solve_hgs_adc(
+        PyvrpFallbackAdapter.to_request(request),
+        vehicle_strategy_config=options.vehicle_strategy_config,
+        vehicle_strategy=options.vehicle_strategy,
+        seed=options.seed,
+        max_runtime_sec=options.classical_time_limit,
+        max_vehicle_repetition=options.max_vehicle_repetition,
     )
+    native_response = PyvrpFallbackAdapter.to_response(response, reason)
+    native_response.execution_time_ms = round((time.perf_counter() - started) * 1000, 3)
+    return native_response
 
 
 def solve_with_classical(

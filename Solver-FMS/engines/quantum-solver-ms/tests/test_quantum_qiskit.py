@@ -6,7 +6,7 @@ import sys
 
 from domain.models import CustomerDto, DepotDto, RoutingRequest, VehicleDto
 from solvers.quantum_qiskit import (
-    QuantumExecutionTimeoutError, _model_timeout, _simulation_pass_manager,
+    QuantumExecutionTimeoutError, _model_timeout, _simulation_pass_manager, _simulation_sampler,
     solve_with_qiskit, solve_with_qiskit_with_timeout,
 )
 
@@ -60,6 +60,43 @@ class TestQiskitResultDecoding(unittest.TestCase):
         self.assertTrue(Statevector(original.assign_parameters([0.2, 0.4])).equiv(
             Statevector(simplified.assign_parameters([0.2, 0.4])),
         ))
+
+    def test_sampler_uses_reference_for_small_qubo_and_cpu_aer_from_eighteen(self):
+        from qiskit.primitives import StatevectorSampler
+        from qiskit_aer.primitives import SamplerV2
+        with patch("qiskit_aer.AerSimulator.available_devices", return_value=("CPU",)) as devices:
+            self.assertIsInstance(_simulation_sampler(10, 1024, 42), StatevectorSampler)
+            self.assertIsInstance(_simulation_sampler(17, 1024, 42), StatevectorSampler)
+            devices.assert_not_called()
+            sampler = _simulation_sampler(18, 1024, 42)
+            devices.assert_called_once_with()
+        self.assertIsInstance(sampler, SamplerV2)
+        self.assertEqual(sampler.default_shots, 1024)
+        self.assertEqual(sampler.seed, 42)
+        self.assertEqual(sampler.options.backend_options,
+                         {"method": "statevector", "device": "CPU", "max_parallel_threads": 4})
+
+    def test_sampler_selects_gpu_when_aer_reports_it_available(self):
+        from qiskit_aer.primitives import SamplerV2
+        # Comprueba la selección sin requerir una GPU en el equipo de pruebas.
+        with patch("qiskit_aer.AerSimulator.available_devices", return_value=("CPU", "GPU")):
+            sampler = _simulation_sampler(18, 1024, 42)
+        self.assertIsInstance(sampler, SamplerV2)
+        self.assertEqual(sampler.options.backend_options["device"], "GPU")
+        self.assertEqual(sampler.options.backend_options["method"], "statevector")
+        self.assertEqual(sampler.default_shots, 1024)
+        self.assertEqual(sampler.seed, 42)
+
+    def test_aer_and_reference_preserve_the_same_state_for_a_qaoa_circuit(self):
+        from qiskit.circuit.library import QAOAAnsatz
+        from qiskit.quantum_info import SparsePauliOp, Statevector
+        from qiskit_aer import AerSimulator
+        circuit = QAOAAnsatz(SparsePauliOp.from_list([("ZZI", 1), ("IZI", 2)]), reps=1)
+        circuit = _simulation_pass_manager(42).run(circuit).assign_parameters([0.2, 0.4])
+        expected = Statevector(circuit)
+        circuit.save_statevector()
+        actual = AerSimulator(method="statevector", device="CPU", max_parallel_threads=4).run(circuit).result()
+        self.assertTrue(expected.equiv(actual.get_statevector()))
 
     def test_infeasible_qaoa_sample_is_rejected_instead_of_returning_empty_success(self):
         from qiskit_optimization.algorithms import OptimizationResult, OptimizationResultStatus

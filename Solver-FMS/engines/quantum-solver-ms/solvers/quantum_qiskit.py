@@ -31,6 +31,20 @@ def _simulation_pass_manager(seed: int | None = None):
     )
 
 
+def _simulation_sampler(qubits: int, shots: int, seed: int | None):
+    # En los casos medidos de 6 y 10 qubits Aer no mejora el tiempo de forma consistente.
+    # Desde 18 qubits Aer usa GPU si la instalación la ofrece. Si no, usa CPU.
+    if qubits < 18:
+        from qiskit.primitives import StatevectorSampler
+        return StatevectorSampler(default_shots=shots, seed=seed)
+    from qiskit_aer import AerSimulator
+    from qiskit_aer.primitives import SamplerV2
+    device = "GPU" if "GPU" in AerSimulator().available_devices() else "CPU"
+    return SamplerV2(default_shots=shots, seed=seed, options={
+        "backend_options": {"method": "statevector", "device": device, "max_parallel_threads": 4},
+    })
+
+
 def _validate_options(maxiter: int, reps: int, shots: int) -> None:
     if type(maxiter) is not int or maxiter < 4:
         raise ValueError("maxiter debe ser un entero mayor o igual que 4.")
@@ -148,7 +162,6 @@ def solve_with_qiskit(
     """
     # Estos imports solo se ejecutan en quantum_qiskit_proc_isolate. Así SciPy y
     # Qiskit no pueden bloquear el proceso principal antes del timeout.
-    from qiskit.primitives import StatevectorSampler
     from qiskit_algorithms import QAOA
     from qiskit_algorithms.optimizers import COBYLA
     from qiskit_optimization import QuadraticProgram
@@ -167,18 +180,6 @@ def solve_with_qiskit(
     all_routes = []
     total_distance = 0.0
     largest_qubo = 0
-
-    # StatevectorSampler es el simulador local compatible con QAOA en la
-    # version actual de Qiskit; BasicSimulator no acepta la operacion QAOA sin
-    # una transpilation adicional.
-    sampler = StatevectorSampler(default_shots=shots, seed=seed)
-    # COBYLA ajusta los parametros de QAOA. Reps=1 usa una sola capa para
-    # mantener bajo el coste del experimento local.
-    qaoa = QAOA(
-        sampler=sampler, optimizer=COBYLA(maxiter=maxiter), reps=reps,
-        transpiler=_simulation_pass_manager(seed),
-    )
-    optimizer = MinimumEigenOptimizer(qaoa)
 
     for request in sub_requests:
         if not request.customers or not request.depots or not request.vehicles:
@@ -358,6 +359,14 @@ def solve_with_qiskit(
 
         if on_model_ready is not None:
             on_model_ready(qubit_count)
+        # Se elige el simulador con el tamaño real del QUBO, después del límite.
+        # COBYLA ajusta los parámetros de QAOA. reps=1 mantiene una sola capa.
+        qaoa = QAOA(
+            sampler=_simulation_sampler(qubit_count, shots, seed),
+            optimizer=COBYLA(maxiter=maxiter), reps=reps,
+            transpiler=_simulation_pass_manager(seed),
+        )
+        optimizer = MinimumEigenOptimizer(qaoa)
         # MinimumEigenOptimizer convierte el problema, ejecuta QAOA y devuelve
         # valores 0/1 para las variables originales del QuadraticProgram.
         # OptimizationResult permite consultarlas con result[nombre_variable].

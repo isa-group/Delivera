@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from api.adapter.models import RoutingRequestStd, RoutingResponseStd, RouteStd
 from domain.models import RoutingRequest, RoutingResponse
 from api.adapter.mapper import DtoMapper
@@ -9,6 +11,7 @@ class Adapter:
     def adapt_request(request: RoutingRequestStd) -> RoutingRequest:
         return RoutingRequest(
             instance_name=request.problem_id,
+            parameters=deepcopy(request.parameters),
             depots=[
                 DtoMapper.to_depot(depot)
                 for depot in request.depots
