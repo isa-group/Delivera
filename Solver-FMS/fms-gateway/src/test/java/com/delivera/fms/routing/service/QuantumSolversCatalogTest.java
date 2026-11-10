@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.delivera.fms.routing.config.EngineProperties;
+import com.delivera.fms.routing.config.HealthCacheProperties;
 import com.delivera.fms.routing.dto.ParameterType;
 import com.delivera.fms.routing.dto.SolverInfo;
 import com.delivera.fms.routing.dto.SolverParameter;
@@ -42,7 +43,8 @@ class QuantumSolversCatalogTest {
 
     @BeforeEach
     void setUp() {
-        registry = new SolverRegistry(properties, WebClient.builder());
+        registry = new SolverRegistry(properties, WebClient.builder(),
+                new HealthStatusCache(new HealthCacheProperties()));
     }
 
     @Test
