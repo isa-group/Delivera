@@ -61,13 +61,27 @@ export function useRoutesSolver(
             description: t("routes.solvers.ANNEALING.description"),
             icon: "pi pi-sparkles",
             type: "ANNEALING"
-        } 
+        }, {
+            id:4,
+            name: t("routes.solvers.QISKIT.name"),
+            description: t("routes.solvers.QISKIT.description"),
+            icon: "pi pi-microchip",
+            type: "QISKIT"
+        }, {
+            id:5,
+            name: t("routes.solvers.DWAVE.name"),
+            description: t("routes.solvers.DWAVE.description"),
+            icon: "pi pi-cloud",
+            type: "DWAVE"
+        }
     ]
 
     const translateSolver = {
         "GREEDY":"GREEDY",
         "GENETIC":"GENETIC",
         "ANNEALING": "ANNEALING",
+        "QISKIT": "QISKIT",
+        "DWAVE": "DWAVE",
     }
     
     function getSolverNames() {

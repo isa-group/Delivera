@@ -30,7 +30,7 @@ parameter map that was sent plus the solver's `version`.
 | `technology` | What it is implemented with. Informative: the gateway depends only on the HTTP contract |
 | `version` | Solver version. Pinning it is what makes a benchmark result citable |
 | `deterministic` | Whether two runs on the same input give the same solution |
-| `status` | Engine health, only when requested with `includeStatus=true` |
+| `status` | Engine health, only when requested with `includeStatus=true`. Results are cached: `UP` for `fms.health-cache.positive-ttl` (30s by default) and `DOWN` for `negative-ttl` (5s) |
 
 ### 2. Parameters
 
@@ -49,9 +49,11 @@ gateway applies when the client does not send it:
 }
 ```
 
-`type` is `INTEGER` or `DECIMAL`, and says whether the parameter admits decimals: that is what
-`min`/`max` cannot express, because `elitismCount` (0–100) and `crossoverProbability` (0–1) look
-the same in the descriptor and are not. A parameter without `defaultValue` and with
+`type` is `INTEGER`, `DECIMAL` or `BOOLEAN`. For numbers it says whether the parameter admits
+decimals: that is what `min`/`max` cannot express, because `elitismCount` (0–100) and
+`crossoverProbability` (0–1) look the same in the descriptor and are not. `BOOLEAN` is for
+switches without a range, such as `includeMtz` in `QISKIT`; it only accepts JSON `true`
+or `false`, not `1` or `"true"`. A parameter without `defaultValue` and with
 `required: true` forces the client to send it; without `defaultValue` and without `required`, the
 solver decides internally.
 
@@ -60,8 +62,9 @@ in automatically before dispatching to the engine, so that a run always starts f
 known configuration.
 
 What each engine accepts today: `GREEDY` none, `RANDOM` only `seed`, `GENETIC` fourteen,
-documented one by one in [engines/genetic-engine.md](engines/genetic-engine.md#parameters), and
-`ANNEALING` twelve, in [engines/annealing-engine.md](engines/annealing-engine.md#parameters).
+documented one by one in [engines/genetic-engine.md](engines/genetic-engine.md#parameters),
+`ANNEALING` twelve, in [engines/annealing-engine.md](engines/annealing-engine.md#parameters),
+`QISKIT` four and `DWAVE` one, both in [engines/quantum-engine.md](engines/quantum-engine.md#parameters).
 
 ## Parameter resolution
 
@@ -69,7 +72,8 @@ It happens in `EngineDispatcher`, before sending the problem to the engine:
 
 1. Parameters the request does not carry are filled with their `defaultValue`.
 2. One not declared by the solver is discarded with a log warning.
-3. One that is not a number, has decimals while being `INTEGER`, or falls outside `min`/`max`,
+3. One whose value does not match its type (not a number, decimals while being `INTEGER`, not
+   `true`/`false` while being `BOOLEAN`), or that falls outside `min`/`max`,
    returns **400**. A `12.7` on `populationSize` is rejected instead of truncated to 12: the engine
    must not run a configuration nobody asked for.
 4. A `required` one with neither default nor sent value returns **400**.
@@ -77,6 +81,30 @@ It happens in `EngineDispatcher`, before sending the problem to the engine:
 The engine therefore always receives the complete configuration. It lives in the dispatcher and not
 in the controller because it is an invariant: any entry path (direct request or instance load)
 reaches the engine with the same contract.
+
+## Health cache
+
+`includeStatus=true` probes each engine's `/actuator/health` and caches the result in the gateway.
+There are two TTLs, configured under `fms.health-cache`:
+
+- **Positive (`positive-ttl`, 30s):** an engine that answered correctly is not probed again during
+  that window. Healthy engines rarely change state, so this removes most of the latency.
+- **Negative (`negative-ttl`, 5s):** a failed probe is cached for less time, so an engine that comes
+  back is detected quickly and the catalogue stops reporting it as `DOWN`.
+
+Entries are keyed by the engine's URL and created on demand, so an engine added to `fms.engines` is
+cached automatically the first time its status is requested; there is no per-solver registration.
+Keying by URL means that solvers sharing an engine, like `QISKIT` and `DWAVE`, share one probe and
+one entry.
+
+- **Only expired entries are probed.** A catalogue request costs at most one health check per
+  engine without a valid entry.
+- **No duplicate probes.** While a probe is running, any other request for that engine (another
+  catalogue call, or another solver of the same engine) waits for it instead of starting its own.
+- **Solving updates the cache.** A successful solve marks the engine `UP`. A failure to reach the
+  engine discards its entry, so the next request probes it again; it is not marked `DOWN`, because
+  the failure may belong to that request (a solve that exceeds the timeout) and not to the engine.
+  An error response from the engine leaves the entry as it is: the engine answered.
 
 ## Registering a solver
 
