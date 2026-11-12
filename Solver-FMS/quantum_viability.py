@@ -99,22 +99,10 @@ def call_analyze(base_url, request):
 
 
 def qubits_needed(subrequest, include_mtz):
-    """Qubits del QUBO de una región, sin ejecutar QAOA.
+    """Usa el contador compartido con el solver, sin ejecutar QAOA."""
+    from solvers.quantum_qiskit import count_qiskit_qubits
 
-    cqvrp no expone el cálculo por separado: construye el QUBO y lo compara con el
-    límite antes de simular. Con límite 0 siempre lo supera y el error trae el
-    número. Si cqvrp cambia ese mensaje, este cálculo deja de funcionar.
-    """
-    from solvers.quantum_qiskit import solve_with_qiskit
-
-    try:
-        solve_with_qiskit([subrequest], max_qubits=0, include_mtz=include_mtz)
-    except ValueError as error:
-        match = re.search(r"necesita (\d+) qubits", str(error))
-        if match:
-            return int(match.group(1))
-        raise
-    return 0
+    return count_qiskit_qubits(subrequest, include_mtz=include_mtz)
 
 
 def qubit_requirements(request, max_qubits, include_mtz):
@@ -366,9 +354,9 @@ def write_report(path, meta, results, data_name):
         "",
         "## Limitaciones",
         "",
-        "- Los qubits se obtienen de forma indirecta: cqvrp no expone su cálculo, así que se llama "
-        "a su solver con un límite de 0 qubits y se lee el número del error, que salta antes de "
-        "simular. Si cqvrp cambia ese mensaje, el cálculo deja de funcionar.",
+        "- Los qubits se cuentan construyendo el mismo QUBO que utiliza el solver local, "
+        "incluidas las variables auxiliares. El código del servicio consultado por HTTP debe "
+        "coincidir con el código local para comparar el filtro y el tamaño del modelo.",
         "- No se ejecuta QAOA: que una instancia quepa no garantiza que QAOA encuentre una "
         "solución factible.",
         "",

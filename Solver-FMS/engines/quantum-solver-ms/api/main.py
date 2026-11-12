@@ -7,6 +7,7 @@ from domain.models import RoutingRequest
 from api.adapter.models import PyvrpParameters, RoutingRequestStd, RoutingResponseStd
 from api.adapter.specification import OpenSpecificationFactory, OpenMetada
 from api.adapter.adapter import Adapter
+from api.adapter.fallback_adapter import fallback_parameters
 from solvers.pyvrp_v2_solver import solve_hgs_adc, hgs_adc_manifest
 
 from services.evaluation_service import (
@@ -122,7 +123,8 @@ async def solve_quantum_route(
     #_request: RoutingRequestStd, 
     request: RoutingRequest,
     x_target_quantum_backend: Optional[str] = Header(default="qiskit"),
-    x_quantum_timeout_seconds: float = Header(default=30.0, gt=0, le=300),
+    x_quantum_timeout_seconds: Optional[float] = Header(default=None, gt=0, le=300,
+        description="Segundos por candidato Qiskit. Si se omite, se adapta al QUBO hasta 300 s"),
     x_classical_time_limit: int = Header(default=60, ge=1, le=300),
     x_max_qubits: int = Header(default=24, ge=1, le=24),
     x_include_mtz: bool = Header(default=False),
@@ -135,6 +137,17 @@ async def solve_quantum_route(
     """
     # TODO:  request =  Adapter.adapt_request(_request)
     backend = _get_backend(x_target_quantum_backend)
+    # Se valida antes de ejecutar Qiskit, aunque finalmente no haga falta fallback.
+    try:
+        fallback_parameters(request, x_classical_time_limit)
+    except ValidationError as exc:
+        errors = [
+            {**error, "loc": ("body", "parameters", "fallback", *error["loc"])}
+            for error in exc.errors(include_url=False)
+        ]
+        raise RequestValidationError(errors) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     if backend == "classical":
         # PyVRP es una ejecución explícita de la instancia global. No se
@@ -183,11 +196,14 @@ async def solve_quantum_route(
 
         classical_cost = None
         if preparation_error:
-            raw_response = solve_with_classical_fallback(
-                request,
-                preparation_error,
-                max_runtime_sec=x_classical_time_limit,
-            )
+            try:
+                raw_response = solve_with_classical_fallback(
+                    request,
+                    preparation_error,
+                    max_runtime_sec=x_classical_time_limit,
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
             # El fallback ya ha resuelto la instancia global con PyVRP. Reusar
             # su coste evita ejecutar PyVRP una segunda vez al crear métricas.
             classical_cost = raw_response.total_distance

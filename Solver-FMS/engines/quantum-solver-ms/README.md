@@ -43,7 +43,10 @@ Validación de capacidad de Súper-Clientes y número de qubits
         +--> PyVRP si el filtro, la formulación o el backend fallan
         |
         v
-Coste global + coste interno de Súper-Clientes
+Expansión de Súper-Clientes con PyVRP en una pasada
+        |
+        v
+Clientes originales y coste del recorrido completo
         |
         v
 RoutingResponse + métricas
@@ -62,9 +65,12 @@ quantum-solver-ms/
 │   └── spatial_partitioner.py
 ├── services/
 │   ├── evaluation_service.py
-│   └── graph_analyzer.py
+│   ├── graph_analyzer.py
+│   └── route_expansion_service.py
 ├── solvers/
 │   ├── pyvrp_solver.py
+│   ├── pyvrp_v2_solver.py
+│   ├── pyvrp_path_solver.py
 │   ├── quantum_dwave.py
 │   ├── quantum_qiskit.py
 │   └── quantum_qiskit_proc_isolate.py
@@ -74,6 +80,8 @@ quantum-solver-ms/
 │   ├── test_evaluate_quantum_viability.py
 │   ├── test_api.py
 │   ├── test_quantum_preparation.py
+│   ├── test_route_expansion.py
+│   ├── test_quantum_qiskit.py
 │   └── data/
 │       ├── p01 ... p23
 │       ├── quantum_demo.txt
@@ -94,9 +102,13 @@ Crea la aplicación FastAPI y expone:
 GET  /health
 POST /api/v1/quantum-routing/analyze
 POST /api/v1/quantum-routing/solve
+POST /api/v2/quantum-routing/analyze
+POST /api/v1/HGS-ADC/solve
 ```
 
 `GET /health` expone el estado mínimo del servicio y los backends disponibles, por lo que puede utilizarse en monitores, contenedores y orquestadores. `POST /api/v1/quantum-routing/analyze` devuelve el filtro de `GraphAnalyzer` y sus features sin ejecutar ningún solver.
+
+La versión `/api/v2/quantum-routing/analyze` recibe `RoutingRequestStd`, el contrato de Delivera. La resolución cuántica conserva por ahora el DTO nativo y las cabeceras HTTP. Su adaptación completa a Delivera, incluida la conservación de la matriz y de `startDepotId`, sigue pendiente.
 
 El endpoint `solve`:
 
@@ -105,12 +117,13 @@ El endpoint `solve`:
 3. Resuelve directamente con PyVRP cuando el backend es `classical`.
 4. Aplica el filtro inicial de `GraphAnalyzer` para `qiskit` y `dwave`.
 5. Prepara regiones, Súper-Clientes y candidatos `K_min..K_min+3` para los backends cuánticos.
-6. Ejecuta Qiskit o D-Wave.
-7. Usa PyVRP como fallback cuando no hay candidato cuántico viable o el solver falla.
-8. Calcula las métricas comunes.
-9. Devuelve un diccionario con `routing_response` y `metrics`.
+6. Ejecuta Qiskit o D-Wave para cada candidato y expande sus grupos con PyVRP sobre los clientes originales.
+7. Valida la cobertura, flota y capacidad, y elige el candidato con menor distancia expandida.
+8. Usa PyVRP como fallback cuando no queda un candidato válido, también si falla la expansión.
+9. Calcula las métricas comunes sin volver a sumar los tramos internos.
+10. Devuelve un diccionario con `routing_response` y `metrics`.
 
-El backend predeterminado es `qiskit`. Los valores admitidos son `qiskit`, `dwave` y `classical`. Un valor distinto devuelve HTTP 422. Qiskit se ejecuta en un proceso aislado con un límite temporal de 30 segundos por candidato. Si vence, el candidato se descarta. Si no queda ningún candidato viable, la instancia se deriva a PyVRP. Como se exploran hasta cuatro candidatos, el límite total de una solicitud puede ser mayor.
+El backend predeterminado es `qiskit`. Los valores admitidos son `qiskit`, `dwave` y `classical`. Un valor distinto devuelve HTTP 422. Qiskit se ejecuta en un proceso aislado. Si no se fija un timeout, adapta su presupuesto al QUBO real, hasta 300 segundos por candidato. Si vence, el candidato se descarta. Si no queda ninguno válido, se usa PyVRP. Como se exploran hasta cuatro candidatos, el tiempo total puede ser mayor.
 
 El endpoint explora cuatro offsets (`0` a `3`). Permite ajustar el límite de qubits hasta un máximo de `24` y activar MTZ para Qiskit. Por defecto usa `24` qubits y MTZ desactivado.
 
@@ -118,8 +131,9 @@ El endpoint explora cuatro offsets (`0` a `3`). Permite ajustar el límite de qu
 
 `POST /api/v1/HGS-ADC/solve` recibe el contrato de Delivera definido en
 `api/adapter/models.py` y utiliza `solvers/pyvrp_v2_solver.py`. Este endpoint es
-independiente del clásico y fallback del flujo cuántico, que siguen utilizando
-`solvers/pyvrp_solver.py`.
+independiente del contrato nativo del flujo cuántico. Ese flujo reutiliza ahora
+PyVRP2 como fallback mediante un adaptador. Su clásico directo y la referencia
+de las soluciones cuánticas siguen utilizando `solvers/pyvrp_solver.py`.
 
 El objetivo es minimizar la distancia total. Se permiten viajes adicionales
 cuando reducen la distancia, dentro del límite autorizado. No se minimiza primero
@@ -194,6 +208,58 @@ se devuelve `isFeasible: false`, `totalCost: null`, `routes: []` y el motivo en
 `solverDetails.failureReason`. Agotar la búsqueda no demuestra que el problema sea
 imposible. No se devuelven rutas parciales como una solución completada.
 
+### Opciones exclusivas del fallback cuántico
+
+`POST /api/v1/quantum-routing/solve` acepta un campo opcional `parameters` en el
+cuerpo nativo. Por ahora solo admite el apartado `fallback`, con las mismas
+opciones validadas de PyVRP2. Ejemplo de ese fragmento del cuerpo:
+
+```json
+{
+  "parameters": {
+    "fallback": {
+      "maxVehicleRepetition": 2,
+      "vehicleStrategy": "distance",
+      "vehicleStrategyConfig": "balanced",
+      "seed": 42
+    }
+  }
+}
+```
+
+Si no se especifican opciones, se permite un solo viaje por vehículo, con
+estrategia `future_hybrid`, perfil `interurban` y semilla `42`. El tiempo procede
+de `X-Classical-Time-Limit`, salvo que se envíe `parameters.fallback.classicalTimeLimit`.
+Este último admite de 0.1 a 300 segundos y solo cambia el tiempo del fallback.
+Las opciones inválidas se rechazan con HTTP 422 antes de ejecutar solvers.
+`Adapter.adapt_request()` conserva `parameters` al convertir la petición de
+Delivera al contrato nativo, con una copia independiente de las opciones anidadas.
+`solve_with_classical_fallback()` lee sus opciones de esa petición, sin recibir
+otra configuración por separado. La API valida antes de resolver y el fallback
+valida al leerlas, también cuando se invoca directamente desde Python.
+
+Estas opciones se aplican exclusivamente cuando falla o se descarta la vía
+cuántica de Qiskit o D-Wave. No modifican QAOA, la expansión de Súper-Clientes,
+la referencia de una solución cuántica ni el backend explícito `classical`.
+Permitir varios viajes no valida horarios ni recargas. El frontend y los
+metadatos del gateway todavía deben conectar esta configuración.
+
+`api/adapter/fallback_adapter.py` convierte los clientes originales al contrato
+de Delivera y la respuesta de PyVRP2 al contrato nativo. Mantiene la distancia
+euclídea redondeada y la flota por bloques uniformes de depósito. No recupera una
+matriz ni asignaciones que no existan en el DTO nativo. Dentro de cada bloque,
+el fallback sí puede utilizar vehículos con capacidades diferentes.
+
+La salida identifica `solver_used: "HGS-ADC classical fallback"` y conserva
+`fallback_reason`, `seed`, el `trip_index` de cada ruta y `solver_details` con los
+campos de PyVRP2, como `maxTripsPerVehicle`, `additionalTrips` y `scheduleValidated`.
+Las paradas nativas incluyen el depósito en ambos extremos. Si no se encuentra
+solución, devuelve `is_feasible: false`, `routes: []`, `total_distance: null` y el
+motivo en `solver_details.failureReason`. Las métricas no vuelven a ejecutar
+el clásico para ese fallo y dejan la referencia y la degradación a `null`.
+Si el fallback sí resuelve, su propio coste se reutiliza como referencia. Una
+degradación cero en ese caso no representa una comparación cuántico-clásica.
+
 ### `domain/models.py`
 
 Define los contratos de entrada y salida mediante Pydantic:
@@ -202,11 +268,11 @@ Define los contratos de entrada y salida mediante Pydantic:
 - `CustomerDto`: nodo de cliente con `demand`. Puede incluir `internal_nodes` cuando representa un Súper-Cliente.
 - `DepotDto`: especialización de `NodeDto` para depósitos.
 - `VehicleDto`: identificador y capacidad.
-- `RoutingRequest`: instancia, depósitos, clientes y vehículos.
-- `RouteDto`: vehículo, paradas, distancia y carga.
-- `RoutingResponse`: solver utilizado, tiempo, distancia total, factibilidad, rutas globales, rutas internas, qubits y motivo de fallback.
+- `RoutingRequest`: instancia, depósitos, clientes, vehículos y opciones opcionales en `parameters.fallback`.
+- `RouteDto`: vehículo, paradas, distancia, carga y orden de viaje opcional `trip_index`.
+- `RoutingResponse`: solver utilizado, tiempo, distancia total, factibilidad, rutas completas, qubits y motivo de fallback. Conserva `internal_routes` como campo legado.
 
-`RoutingResponse.internal_routes` contiene rutas PyVRP internas de los Súper-Clientes cuando existen. `RoutingResponse.total_distance` representa la distancia de las rutas globales. El coste combinado se expone en las métricas como `total_cost`. Swagger UI muestra los schemas de entrada utilizados por la API. Las respuestas se mantienen como diccionarios para no duplicar DTOs de salida y conservar flexible la estructura de métricas.
+En la respuesta pública, `routes` visita los clientes originales y `total_distance` es la suma de las distancias de esas rutas completas. `internal_routes` queda vacío porque sus entregas ya están integradas en `routes`. No se generan `deliveryZones` para representar las entregas. Swagger UI muestra los schemas de entrada utilizados por la API. La API cuántica mantiene el diccionario exterior con `routing_response` y `metrics`.
 
 ### `domain/spatial_partitioner.py`
 
@@ -261,12 +327,11 @@ Funciones principales:
 
 - `validate_superclients()`: comprueba que ningún Súper-Cliente supere `Q` y que la demanda regional quepa en la flota asignada.
 - `prepare_quantum_subrequests()`: ejecuta GAP una vez, calcula `K_i`, aplica el offset, crea los Súper-Clientes, construye las subrequests y las valida.
-- `calculate_internal_results()`: resuelve con PyVRP el TSP interno de cada Súper-Cliente y devuelve coste y rutas internas.
-- `solve_best_quantum_candidate()`: explora `K_min`, `K_min+1`, `K_min+2` y `K_min+3`, evita repetir una configuración idéntica y elige el menor coste global + coste interno entre candidatos válidos.
+- `solve_best_quantum_candidate()`: explora `K_min`, `K_min+1`, `K_min+2` y `K_min+3`, evita repetir una configuración idéntica, expande cada respuesta y elige la menor distancia completa entre candidatos válidos.
 - `evaluate_initial_quantum_viability()`: aplica el filtro de `GraphAnalyzer`.
-- `evaluate_quantum_metrics()`: calcula coste global, coste interno, coste total, referencia clásica, degradación, cargas, capacidades, violaciones y factibilidad.
+- `evaluate_quantum_metrics()`: toma la distancia completa de la respuesta y calcula referencia clásica, degradación, cargas, capacidades, violaciones y factibilidad. Conserva el coste interno como desglose informativo, sin sumarlo de nuevo.
 - `solve_with_classical()`: resuelve directamente la instancia global con PyVRP cuando se solicita el backend `classical`.
-- `solve_with_classical_fallback()`: resuelve con PyVRP y conserva rutas, distancia, carga, tiempo y motivo del fallback cuántico.
+- `solve_with_classical_fallback()`: adapta los clientes originales para PyVRP2 y conserva rutas, viajes, detalles y motivo del fallback cuántico.
 
 Los imports de Qiskit y D-Wave se realizan cuando se solicita el backend correspondiente. Esto evita que el modo clásico o el arranque de la ayuda del runner dependan de extensiones nativas de D-Wave.
 
@@ -275,9 +340,38 @@ Los imports de Qiskit y D-Wave se realizan cuando se solicita el backend corresp
 Contiene la referencia clasica:
 
 - `solve_with_pyvrp()` construye un modelo PyVRP, añade depósitos, clientes, flota y matriz de distancias, ejecuta HGS-ADC con una semilla fija y devuelve una `RoutingResponse` completa.
-- `solve_internal_tsp()` crea un depósito artificial en el centroide de un Súper-Cliente y resuelve sus clientes internos con un vehículo de capacidad muy grande. Devuelve la ruta interna y su coste.
 
-PyVRP se utiliza para cuatro objetivos: backend clásico directo de la API, referencia clásica, fallback operativo y estimación del coste interno perdido por el coarse-graining.
+Este módulo sigue proporcionando el backend clásico directo de la API nativa y la referencia clásica de las soluciones cuánticas. El fallback utiliza `solvers/pyvrp_v2_solver.py`. El antiguo circuito `solve_internal_tsp()` se ha retirado. La expansión utiliza el recorrido entre extremos de `solvers/pyvrp_path_solver.py`.
+
+### Expansión de Súper-Clientes
+
+`services/route_expansion_service.py` reconstruye cada ruta reducida en una sola pasada. Conserva el vehículo, el depósito y el orden de los grupos decidido por Qiskit o D-Wave. Los miembros se recuperan desde `internal_nodes`, sin separar los IDs `SC_...` por guiones bajos.
+
+Para cada grupo, `solvers/pyvrp_path_solver.py` construye un modelo auxiliar con un único vehículo y capacidad suficiente para visitar todos sus miembros:
+
+- El origen es el último cliente original ya añadido. Para el primer grupo, es el depósito.
+- El destino provisional es el centroide del grupo siguiente, el cliente individual siguiente o el depósito si termina la ruta.
+- PyVRP elige la entrada, el orden interno y la salida del grupo entre esos extremos.
+- Solo se añaden los clientes originales del grupo. El destino provisional se utilizará como orientación, sin añadir una parada ficticia a la ruta.
+
+Ejemplo de la transformación:
+
+```text
+Ruta reducida: D → SC_A → SC_B → D
+Modelo local A: D → clientes de A → centroide de B
+Modelo local B: último cliente de A → clientes de B → D
+Ruta completa: D → A2 → A1 → B1 → B2 → D
+```
+
+El presupuesto predeterminado es de `0.1` segundos de búsqueda por grupo y candidato, con semilla local `42`. La construcción del modelo y las validaciones añaden tiempo. Los grupos de cero o un cliente no requieren búsqueda. El argumento Python `expansion_time_limit_sec` permite ajustar el presupuesto desde `solve_best_quantum_candidate()`. Todavía no se recibe desde una cabecera, el frontend o `parameters`, y `X-Classical-Time-Limit` no lo modifica.
+
+`DistanceFunction = Callable[[NodeDto, NodeDto], float]` describe una función que recibe dos nodos y devuelve su distancia. Se pasa al modelo local y al recálculo final para que ambos usen la misma métrica. Por defecto se conserva la distancia euclídea redondeada de la vía cuántica. Poder pasar otra función no significa que la matriz de Delivera ya esté integrada. Esa función también tendría que definir distancias coherentes hasta los centroides provisionales.
+
+PyVRP busca con distancias multiplicadas por `1000` y redondeadas a enteros. La respuesta se recalcula con la función original. Antes de aceptar el candidato se comprueba que cada cliente y grupo aparezca exactamente una vez, que el vehículo pertenezca al depósito y que la carga no supere su capacidad. El flujo cuántico actual admite un viaje por vehículo. Si falla una comprobación o la búsqueda local no encuentra un recorrido completo, se rechaza el candidato.
+
+El tiempo de expansión se añade al tiempo del backend de ese candidato. El desglose de `metrics.preparation` incluye `compressed_cost`, `global_cost`, `internal_cost`, `total_cost`, `expanded_superclients`, `expansion_time_ms` y `expansion_time_limit_sec`.
+
+Esta expansión es una heurística. Conserva el orden de los grupos y no vuelve a optimizar sus conexiones en varias pasadas. Superar `GraphAnalyzer` no garantiza un radio máximo pequeño por grupo ni una pérdida de distancia acotada.
 
 ### `solvers/quantum_qiskit.py`
 
@@ -299,7 +393,27 @@ El modelo restringido se convierte a QUBO con `QuadraticProgramToQubo`. Un QUBO 
 
 Por defecto `include_mtz=False` para reducir el QUBO. En ese modo la reconstrucción sigue los arcos desde el depósito y comprueba que los clientes alcanzables coincidan con los clientes asignados por `y`. Esto detecta soluciones con clientes en ciclos desconectados, aunque no sustituye a MTZ como restricción formal.
 
-El simulador actual es `StatevectorSampler`. QAOA utiliza `COBYLA(maxiter=20)` y `reps=1`, una configuración experimental de bajo nivel de profundidad, no una garantía de rendimiento óptimo. `quantum_qiskit_proc_isolate.py` ejecuta este cálculo en un intérprete independiente, recibe la entrada por JSON y permite terminarlo si vence el límite temporal.
+La decodificación consulta las variables originales mediante `result[nombre_variable]`, el acceso admitido por [OptimizationResult de Qiskit Optimization 0.7.0](https://qiskit-community.github.io/qiskit-optimization/stubs/qiskit_optimization.algorithms.OptimizationResult.html).
+
+`count_qiskit_qubits(request, include_mtz=False)` permite contar los qubits de una región sin ejecutar QAOA. Comparte la construcción del modelo con el solver y cuenta las variables binarias del QUBO final, incluidas las auxiliares. `Solver-FMS/quantum_viability.py` usa esta función en lugar de leer el número de un mensaje de error. El código local del contador debe coincidir con la versión del servicio consultado. Caber en qubits no garantiza que QAOA encuentre una solución factible.
+
+El simulador se elige por el tamaño real del QUBO. Por debajo de 18 qubits se conserva `StatevectorSampler`. Desde 18 se utiliza `qiskit_aer.primitives.SamplerV2`, con método `statevector`. Se consulta `AerSimulator().available_devices()` y se selecciona GPU si Aer la ofrece. En caso contrario se usa CPU, con un máximo de cuatro hilos. No requiere GPU ni un parámetro en la petición. Es un umbral conservador basado en los tamaños medidos, no un umbral óptimo demostrado. Las [opciones oficiales de Aer](https://qiskit.github.io/qiskit-aer/stubs/qiskit_aer.primitives.SamplerV2.html) se fijan dentro de `backend_options`.
+
+Para habilitar GPU hace falta una instalación de Aer con soporte GPU y hardware NVIDIA, CUDA y controladores compatibles. El paquete precompilado `qiskit-aer-gpu` está disponible para Linux x86_64 y sustituye a `qiskit-aer`. La instalación estándar de este proyecto conserva `qiskit-aer` y no instala dependencias de GPU. Véase la [guía oficial de instalación](https://qiskit.github.io/qiskit-aer/getting_started.html). La selección automática no garantiza una mejora de tiempo en todos los equipos. El rendimiento en GPU queda pendiente de medir.
+
+QAOA utiliza `COBYLA(maxiter=20)` y `reps=1`, una configuración experimental de bajo nivel de profundidad, no una garantía de rendimiento óptimo. `quantum_qiskit_proc_isolate.py` ejecuta este cálculo en un intérprete independiente, recibe la entrada por JSON y permite terminarlo si vence el límite temporal. La selección del sampler no cambia la formulación, el límite de qubits ni el presupuesto adaptativo.
+
+El circuito se transpila a puertas básicas antes de simularlo para evitar exponenciales de matrices completas. Se mantienen 1024 shots. Si QAOA no obtiene una muestra factible, el candidato se rechaza. Una respuesta vacía no se presenta como un éxito.
+
+Comparación local del 10 de noviembre de 2026, Windows, Intel i7-14650HX y Aer 0.18.2. Se hicieron 18 ejecuciones en procesos separados, alternando samplers, con semillas 7, 42 y 2026, MTZ desactivado y la misma transpilación, 1024 shots, `reps=1` y un máximo de 20 evaluaciones. Los tiempos son medianas e incluyen el arranque del proceso y la expansión de grupos. Se limitó cada prueba a 90 segundos:
+
+| Qubits y caso | StatevectorSampler | Aer CPU | Soluciones válidas, referencia / Aer |
+|---|---:|---:|---:|
+| 6, dos clientes agrupados | 5.86 s | 6.00 s | 3/3 / 3/3 |
+| 10, dos clientes directos | 6.43 s | 6.84 s | 1/3 / 1/3 |
+| 18, tres clientes directos | Timeout en las tres pruebas (>90 s) | 9.37 s | 0/3 / 0/3 |
+
+La mejora observada de Aer es de tiempo de simulación para el caso de 18 qubits. No demuestra mejor calidad, mayor tasa de éxito ni ventaja cuántica. Las tres ejecuciones Aer de ese caso finalizaron, pero sus muestras fueron rechazadas. Una misma semilla no implica muestras idénticas entre samplers. No se han medido aquí otros tamaños, GPU ni rendimiento en Linux/Docker.
 
 ### `solvers/quantum_dwave.py`
 
@@ -344,7 +458,10 @@ El modo `classical` reproduce el backend clásico directo de la API y resuelve l
 - `tests/test_parser.py`: dimensiones, capacidades, coordenadas y demanda del parser.
 - `tests/test_evaluate_quantum_viability.py`: granularidad, tension de capacidad y compresibilidad espacial.
 - `tests/test_api.py`: estado del servicio, análisis sin solver, backend clásico directo, timeout de Qiskit y validación de backend.
+- `tests/test_quantum_fallback.py`: adaptación de DTO, métrica nativa, viajes autorizados, flota heterogénea, fallo sin coste, validación HTTP y separación de opciones del fallback.
 - `tests/test_quantum_preparation.py`: reparto de vehículos, `K` regional, GAP, nombres de subrequests y validación de Súper-Clientes.
+- `tests/test_route_expansion.py`: recorridos entre extremos distintos, grupos de 20 clientes, conexiones entre grupos, IDs originales, flota, cobertura y coste sin duplicaciones. Ejecuta PyVRP real con iteraciones fijas. Las pruebas de selección simulan los backends cuánticos y una prueba ejecuta también GAP y clustering reales.
+- `tests/test_quantum_qiskit.py`: decodificación por nombre de variable, rechazo de resultados incorrectos, timeout del proceso, selección de sampler y equivalencia de estados entre Aer y la referencia en un circuito QAOA pequeño. Las pruebas de decodificación sustituyen la búsqueda QAOA.
 - `tests/data/`: instancias Cordeau y casos sinteticos pequenos.
 
 ## 3. Instalación
@@ -379,7 +496,7 @@ Dependencias principales fijadas actualmente:
 - Pydantic `2.13.5`.
 - NumPy `2.5.2`, PuLP `3.3.2` y scikit-learn `1.9.0`.
 - PyVRP `0.14.0`.
-- Qiskit `2.5.2`, Qiskit Algorithms `0.4.0` y Qiskit Optimization `0.7.0`.
+- Qiskit `2.5.2`, Qiskit Aer `0.18.2`, Qiskit Algorithms `0.4.0` y Qiskit Optimization `0.7.0`.
 - Dimod `0.12.22` y D-Wave System `1.36.0`.
 
 Las versiones exactas pueden cambiar en el futuro. Para reproducibilidad, la referencia operativa es siempre el `requirements.txt` del repositorio.
@@ -450,7 +567,9 @@ Cualquier otro valor devuelve HTTP 422 con los valores admitidos.
 
 El límite temporal solo se aplica a Qiskit. La ejecución se aísla en un proceso para que una llamada lenta de QAOA o SciPy no bloquee el proceso de la API. Si vence, se termina ese proceso y se descarta el candidato. Si todos los candidatos vencen o fallan, se usa PyVRP con `fallback_reason` indicando el timeout. `SparseEfficiencyWarning` es un aviso de rendimiento emitido internamente por SciPy, no una excepción ni la causa directa del bloqueo.
 
-`X-Classical-Time-Limit` limita cada ejecución de PyVRP, tanto en el backend `classical` como en los fallbacks y en la referencia usada para las métricas. Admite enteros de `1` a `300` segundos y su valor predeterminado es `60`. `X-Max-Qubits` admite enteros de `1` a `24` y fija el máximo de variables binarias lógicas del QUBO de cada subproblema Qiskit. `X-Include-Mtz` admite `true` o `false`, está desactivada por defecto y solo afecta a Qiskit. Las dos últimas cabeceras no cambian la formulación CQM de D-Wave ni el backend `classical`.
+`X-Quantum-Timeout-Seconds` es opcional. Si se envía, se respeta su valor, mayor que cero y hasta 300 segundos. Si se omite, un subproblema con los parámetros predeterminados recibe 60 s hasta 10 qubits, 90 s hasta 14, 150 s hasta 18, 210 s hasta 21 y 300 s hasta 24. Incluye margen de arranque. Los presupuestos de varios subproblemas se suman con un máximo de 300 s por candidato. Son límites orientativos, no tiempos de ejecución garantizados. `maxiter`, `reps`, `shots` y `seed` se pueden configurar desde Python. Su integración en `parameters` queda pendiente del contrato de Delivera.
+
+`X-Classical-Time-Limit` limita cada ejecución de PyVRP en el backend `classical` y en la referencia usada para las métricas. Es también el tiempo del fallback, salvo que se configure `parameters.fallback.classicalTimeLimit`. Admite enteros de `1` a `300` segundos y su valor predeterminado es `60`. `X-Max-Qubits` admite enteros de `1` a `24` y fija el máximo de variables binarias lógicas del QUBO de cada subproblema Qiskit. `X-Include-Mtz` admite `true` o `false`, está desactivada por defecto y solo afecta a Qiskit. Las dos últimas cabeceras no cambian la formulación CQM de D-Wave ni el backend `classical`.
 
 ### JSON de entrada
 
@@ -515,7 +634,6 @@ Invoke-RestMethod `
   -Method Post `
   -Headers @{
     "X-Target-Quantum-Backend" = "qiskit"
-    "X-Quantum-Timeout-Seconds" = "30"
     "X-Classical-Time-Limit" = "60"
     "X-Max-Qubits" = "24"
     "X-Include-Mtz" = "false"
@@ -550,7 +668,7 @@ un fallback PyVRP con su correspondiente `fallback_reason`.
 ```json
 {
   "routing_response": {
-    "instance_name": "Delivera_Quantum_Qiskit_Global",
+    "instance_name": "demo",
     "solver_used": "IBM Quantum / BSC Simulator",
     "execution_time_ms": 123.4,
     "total_distance": 32.0,
@@ -569,7 +687,7 @@ un fallback PyVRP con su correspondiente `fallback_reason`.
   },
   "metrics": {
     "quantum_total_distance": 32.0,
-    "internal_cost": 0.0,
+    "internal_cost": 2.0,
     "total_cost": 32.0,
     "classical_reference_distance": 32.0,
     "relative_degradation": 0.0,
@@ -579,13 +697,19 @@ un fallback PyVRP con su correspondiente `fallback_reason`.
     "capacity_violations": [],
     "is_feasible": true,
     "qubits": 18,
-    "preparation": {},
+    "preparation": {
+      "compressed_cost": 30.0,
+      "global_cost": 30.0,
+      "internal_cost": 2.0,
+      "total_cost": 32.0,
+      "expanded_superclients": 1
+    },
     "backend_requested": "qiskit"
   }
 }
 ```
 
-`fallback_reason` identifica por qué se abandonó la ruta cuántica. Una respuesta con `solver_used` igual a `PyVRP classical fallback` no representa una ejecución QAOA exitosa. Representa una derivación controlada al solver clásico. En cambio, `solver_used` igual a `PyVRP` y `execution_mode` igual a `classical_direct` identifican una solicitud clásica explícita. `routes` contiene las rutas realmente decodificadas. Solo estará vacía en casos sin clientes o cuando la respuesta concreta no contenga rutas.
+`fallback_reason` identifica por qué se abandonó la ruta cuántica. Una respuesta con `solver_used` igual a `HGS-ADC classical fallback` no representa una ejecución QAOA exitosa. Representa una derivación controlada a PyVRP2. En cambio, `solver_used` igual a `PyVRP` y `execution_mode` igual a `classical_direct` identifican una solicitud clásica explícita. `routes` contiene las rutas realmente decodificadas. Un fallback sin solución factible devuelve rutas vacías y coste `null`.
 
 ## 5. Evaluación local con Cordeau
 
@@ -620,7 +744,7 @@ python tests/run_local_evaluation.py --all --backend classical
 | `--all` | bandera | Evalúa todos los archivos `pNN`, es incompatible con `--instance`. |
 | `--backend` | `qiskit`, `dwave`, `classical` | Selecciona solver, por defecto `qiskit`. |
 | `--max-qubits` | entero, por defecto `24` | Límite de variables binarias del QUBO por subproblema. |
-| `--quantum-time-limit` | decimal, por defecto `30` | Límite en segundos de cada candidato Qiskit antes de usar el fallback clásico. |
+| `--quantum-time-limit` | decimal, opcional | Límite por candidato Qiskit. Si se omite se adapta al QUBO real, hasta 300 s. |
 | `--classical-time-limit` | entero, por defecto `60` | Tiempo máximo de cada ejecución PyVRP de referencia/fallback. |
 | `--include-mtz` | bandera | Activa las restricciones MTZ en la formulación Qiskit. Aumenta el QUBO. |
 | `--json` | bandera | Imprime el resultado completo como JSON en vez del resumen de consola. |
@@ -655,6 +779,7 @@ Pruebas individuales:
 python -m unittest tests.test_parser -v
 python -m unittest tests.test_evaluate_quantum_viability -v
 python -m unittest tests.test_quantum_preparation -v
+python -m unittest tests.test_route_expansion -v
 ```
 
 En algunos entornos Windows, SciPy/scikit-learn o extensiones nativas de D-Wave pueden fallar al cargar DLL por políticas del sistema. Ese error ocurre durante la importación nativa, antes de ejecutar la lógica de estas pruebas. El runner usa imports diferidos para que el modo clásico y la ayuda puedan arrancar sin D-Wave.
@@ -681,6 +806,8 @@ d(a,b)=round\left(\sqrt{(x_a-x_b)^2+(y_a-y_b)^2}\right)
 $$
 
 La misma convención se usa en el parser, PyVRP, GAP y las formulaciones cuánticas.
+
+Esta convención describe la vía nativa y su expansión. El endpoint heterogéneo `/api/v1/HGS-ADC/solve` utiliza la matriz original o distancia euclídea cartesiana sin redondear, como se explica en su apartado.
 
 ### Filtro inicial
 
@@ -715,19 +842,21 @@ Después del GAP se estima, para cada región, el número mínimo de Súper-Clie
 
 ### Coste total
 
-El candidato se compara con:
+Cada candidato se expande antes de compararlo. Su coste es la suma de los tramos entre nodos de las rutas completas, incluidos la salida y el regreso al depósito:
 
 $$
-C_{total}=C_{global}+C_{interno}
+C_{total}=\sum_{r\in rutas}\sum_{(a,b)\in r}d(a,b)
 $$
 
-Donde:
+Los campos tienen estos significados:
 
-- `C_global`: distancia de las rutas entre depósito y Súper-Clientes obtenida por Qiskit o D-Wave.
-- `C_interno`: suma de los TSP internos de cada Súper-Cliente resueltos con PyVRP.
-- `C_total`: coste usado para seleccionar el mejor candidato.
+- `routing_response.total_distance`, `metrics.total_cost` y `metrics.quantum_total_distance`: distancia completa expandida. El último conserva su nombre histórico, aunque incluye el trabajo clásico de expansión y también se utiliza en respuestas clásicas.
+- `metrics.preparation.compressed_cost`: distancia de la respuesta reducida entre centroides, anterior a la expansión. Es informativa y no se suma al coste final.
+- `metrics.preparation.internal_cost`: distancia de los tramos entre clientes originales dentro de un mismo grupo. Se copia también a `metrics.internal_cost`.
+- `metrics.preparation.global_cost`: distancia de las conexiones reales entre grupos, clientes individuales y depósito. Es `total_cost - internal_cost`.
+- `metrics.preparation.total_cost`: distancia completa utilizada para seleccionar el mejor candidato.
 
-El coste interno no debe ignorarse: agrupar clientes reduce el grafo, pero la ruta real debe visitar los clientes originales. El centroide del Súper-Cliente se utiliza como depósito artificial del TSP interno.
+Por construcción, `global_cost + internal_cost = total_cost`. El coste interno ya está incluido en las rutas expandidas, por lo que añadirlo otra vez a `routing_response.total_distance` duplicaría parte del recorrido. Los tramos hacia los centroides provisionales de los modelos locales tampoco se suman como desplazamientos reales.
 
 `capacity_violations` es una comprobación defensiva de las rutas devueltas. En una respuesta factible correcta debería ser una lista vacía.
 
@@ -759,10 +888,10 @@ El proyecto consigue:
 7. Explorar varios valores regionales de `K`.
 8. Medir el número real de variables del QUBO.
 9. Activar o desactivar MTZ como compromiso entre exactitud y tamaño.
-10. Calcular el coste interno con PyVRP.
-11. Devolver rutas globales e internas en una respuesta estructurada.
+10. Expandir los grupos con PyVRP entre extremos externos en una sola pasada.
+11. Devolver rutas completas sobre clientes originales y su coste sin duplicaciones.
 12. Derivar a PyVRP cuando la instancia, el QUBO o el backend no son viables.
-13. Ejecutar pruebas unitarias del parser, filtros y preparación.
+13. Ejecutar pruebas del parser, filtros, preparación, expansión y API.
 14. Comparar resultados cuánticos o híbridos con una referencia clásica.
 
 La principal aportación del proyecto es hacer visible el coste real de la formulación. El particionamiento espacial reduce clientes por subproblema, pero no convierte automáticamente `K` Súper-Clientes en `K` qubits.
@@ -830,7 +959,7 @@ Sin MTZ, el QUBO puede admitir ciclos de clientes desconectados del depósito. L
 - Devolver el número de qubits estimado antes de iniciar QAOA.
 - Parametrizar por backend el límite de qubits, shots, profundidad y tiempo.
 - Mejorar el clustering para imponer capacidad durante la agrupación, no solo después. Esto evitaría generar y rechazar después un Súper-Cliente cuya demanda excede `Q`.
-- Añadir pruebas de rutas globales, rutas internas, fallback y serialización JSON.
+- Ampliar la cobertura de integración con los backends cuánticos y el gateway. Las pruebas locales de expansión y fallback ya están disponibles.
 - Reparar el entorno Windows cuando bloquee extensiones nativas de SciPy o D-Wave.
 - Añadir un archivo de configuración para no duplicar valores como `24`, `3` y `60` entre API y runner. Sería una única fuente para el límite de qubits, el máximo offset y el tiempo clásico.
 
@@ -857,6 +986,8 @@ Si la tecnología permite más qubits lógicos, mejores conectividades, menor ru
 
 La carpeta hermana `../experimentacion/` se creó para medir el empeoramiento que introduce el preprocesamiento (GAP y Súper-Clientes) antes de usar una formulación cuántica. Su script `evaluation.py` compara el coste de PyVRP aplicado directamente a la instancia MD-CVRP global con el coste compuesto por PyVRP tras el preprocesamiento: rutas entre depósitos y Súper-Clientes más los TSP internos. El resultado es el gap de coste atribuible a la compresión, no una comparación entre PyVRP y Qiskit.
 
+Esta descripción corresponde al experimento previo del repositorio original. No describe la expansión actual de esta copia en Delivera, que calcula el coste directamente sobre la ruta completa.
+
 ## 14. Resumen final
 
 Este proyecto no debe interpretarse como un microservicio cuántico que resuelve actualmente todos los problemas MD-CVRP representados por las instancias en formato Cordeau. Es una plataforma experimental y un microservicio híbrido que:
@@ -866,6 +997,6 @@ Este proyecto no debe interpretarse como un microservicio cuántico que resuelve
 3. Comprime espacialmente cuando es posible.
 4. Mide el QUBO real.
 5. Intenta Qiskit o D-Wave en subproblemas.
-6. Calcula el coste interno de la compresión.
+6. Expande los grupos para visitar los clientes originales y recalcula el coste completo.
 7. Valida las rutas.
 8. Conserva una salida clásica cuando la vía cuántica no es viable.

@@ -17,6 +17,13 @@ management:
 fms:
   instances:
     dir: instances-MD-CVRP-JSON
+  # Health of the engines, cached per solver. A UP result is kept longer because
+  # a healthy engine rarely changes state; a DOWN one expires soon so a
+  # recovery is noticed and the catalogue stops reporting an available engine
+  # as down.
+  health-cache:
+    positive-ttl: 20s
+    negative-ttl: 5s
   # Engine catalogue and its metadata. Each entry feeds at once the HTTP client,
   # problem dispatching, the parameters' default values and the
   # GET /api/v1/fms/solvers endpoint. Registering a new solver only takes adding
@@ -328,12 +335,10 @@ fms:
           max: 24
         - name: quantumTimeoutSeconds
           description: >-
-            Wall-clock limit for each QAOA run, in seconds. The run is killed when it expires and
-            that candidate is discarded. cqvrp tries up to four candidates (from K_min to
-            K_min+3 super-customers per region), so the quantum part can take up to four times
-            this value
+            Optional wall-clock limit per quantum candidate, in seconds. If omitted, the engine
+            adapts its budget to the actual QUBO size, up to 300 seconds per candidate. An explicit
+            value overrides that adaptive budget. Up to four candidates are tried
           type: DECIMAL
-          default-value: 30.0
           min: 1
           max: 300
         - name: classicalTimeLimit

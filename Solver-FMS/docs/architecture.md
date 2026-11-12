@@ -75,7 +75,7 @@ not an oversight.
 3. Consistency validation                    validateConsistency()
 4. WebClient selection by solverType         EngineDispatcher
 5. Solver parameter resolution               SolverRegistry.resolveParameters()
-6. POST http://<engine>/api/v1/engine/solve  300 s timeout
+6. POST http://<engine>/api/v1/engine/solve  300 s timeout (QISKIT: 1530 s)
 7. The engine solves                         <X>RouteSolver.solve()
 8. The response is returned untouched        ResponseEntity.ok(response)
 ```

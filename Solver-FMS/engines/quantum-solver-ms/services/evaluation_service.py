@@ -1,10 +1,14 @@
 import math
+import time
 from typing import Any, Dict, List, Tuple
 
-from domain.models import RoutingRequest, RoutingResponse, RouteDto
+from domain.models import RoutingRequest, RoutingResponse
 from domain.spatial_partitioner import SpatialPartitioner
 from services.graph_analyzer import GraphAnalyzer
-from solvers.pyvrp_solver import solve_internal_tsp, solve_with_pyvrp
+from solvers.pyvrp_solver import solve_with_pyvrp
+from services.route_expansion_service import expand_quantum_routes
+from api.adapter.fallback_adapter import PyvrpFallbackAdapter, fallback_parameters
+from solvers.pyvrp_v2_solver import solve_hgs_adc
 
 
 class QuantumPreparationError(ValueError):
@@ -127,29 +131,16 @@ def prepare_quantum_subrequests(
     }
 
 
-def calculate_internal_results(
-    subrequests: List[RoutingRequest],
-) -> Tuple[float, List[RouteDto]]:
-    """Calcula coste y rutas TSP internas de todos los superclientes."""
-    internal_cost = 0.0
-    internal_routes = []
-    for subrequest in subrequests:
-        for superclient in subrequest.customers:
-            response = solve_internal_tsp(superclient)
-            internal_cost += response.total_distance
-            internal_routes.extend(response.routes)
-    return internal_cost, internal_routes
-
-
 def solve_best_quantum_candidate(
     request: RoutingRequest,
     backend: str = "qiskit",
     max_qubits: int = 24,
     max_k_offset: int = 3,
     include_mtz: bool = False,
-    quantum_timeout_sec: float = 30.0,
+    quantum_timeout_sec: float | None = None,
+    expansion_time_limit_sec: float = 0.1,
 ) -> Tuple[RoutingResponse, Dict[str, Any]]:
-    """Explora K_min..K_min+N y devuelve el candidato de menor coste total."""
+    """Explora K_min..K_min+N y compara sus rutas expandidas sobre clientes originales."""
     candidates = []
     rejected_candidates = []
     attempted_cluster_counts = set()
@@ -184,10 +175,13 @@ def solve_best_quantum_candidate(
                     include_mtz=include_mtz,
                     timeout_sec=quantum_timeout_sec,
                 )
-            internal_cost, internal_routes = calculate_internal_results(subrequests)
-            total_cost = response.total_distance + internal_cost
-            response = response.model_copy(update={"internal_routes": internal_routes})
-            candidates.append((total_cost, response, preparation, internal_cost))
+            # Cada grupo se resuelve una sola vez. Los centroides siguientes
+            # orientan la salida, pero no forman parte del recorrido definitivo.
+            response, expansion = expand_quantum_routes(
+                request, subrequests, response, max_runtime_sec=expansion_time_limit_sec,
+            )
+            preparation.update(expansion)
+            candidates.append((response.total_distance, response, preparation))
         except Exception as error:
             rejected_candidates.append({"k_offset": k_offset, "reason": str(error)})
 
@@ -200,11 +194,9 @@ def solve_best_quantum_candidate(
             f"Ningun candidato K_min..K_min+{max_k_offset} es viable. {reasons}"
         )
 
-    total_cost, response, preparation, internal_cost = min(
-        candidates, key=lambda candidate: candidate[0] # minimiza coste total (cuantico + interno)
+    total_cost, response, preparation = min(
+        candidates, key=lambda candidate: candidate[0] # minimiza la distancia de la ruta completa
     )
-    preparation["global_cost"] = response.total_distance
-    preparation["internal_cost"] = internal_cost
     preparation["total_cost"] = total_cost
     preparation["rejected_candidates"] = rejected_candidates
     return response, preparation
@@ -226,7 +218,11 @@ def evaluate_quantum_metrics(
     internal_cost: float = 0.0,
     classical_time_limit: int = 60,
 ) -> Dict[str, Any]:
-    """Calcula metricas de factibilidad y coste sin alterar la respuesta."""
+    """Calcula métricas sobre rutas completas, con los tramos internos ya incluidos.
+
+    internal_cost describe los tramos entre clientes de un mismo grupo. Es un
+    desglose del coste de routes, nunca un suplemento que se deba volver a sumar.
+    """
     route_loads = [route.load for route in response.routes]
     capacities = {vehicle.id: vehicle.capacity for vehicle in request.vehicles}
     capacity_violations = [
@@ -238,22 +234,23 @@ def evaluate_quantum_metrics(
         for route in response.routes
         if route.vehicle_id in capacities and route.load > capacities[route.vehicle_id]
     ]
-    if classical_cost is None:
+    # Un fallback fallido no debe lanzar otra búsqueda para obtener una referencia.
+    if classical_cost is None and response.is_feasible:
         classical_response = (
             solve_with_pyvrp(request, max_runtime_sec=classical_time_limit)
             if request.customers
             else None
         )
         classical_cost = classical_response.total_distance if classical_response else 0.0
-    quantum_cost = response.total_distance
-    total_cost = quantum_cost + internal_cost
+    total_cost = response.total_distance
     degradation = (
         (total_cost - classical_cost) / classical_cost
-        if classical_cost != 0 and math.isfinite(classical_cost)
+        if total_cost is not None and classical_cost is not None
+        and classical_cost != 0 and math.isfinite(classical_cost)
         else None
     )
     return {
-        "quantum_total_distance": quantum_cost,
+        "quantum_total_distance": total_cost,
         "internal_cost": internal_cost,
         "total_cost": total_cost,
         "classical_reference_distance": classical_cost,
@@ -270,26 +267,22 @@ def evaluate_quantum_metrics(
 def solve_with_classical_fallback(
     request: RoutingRequest,
     reason: str,
-    max_runtime_sec: int = 60,
+    max_runtime_sec: float = 60,
 ) -> RoutingResponse:
-    """Devuelve una respuesta clasica cuando la via cuantica no es viable."""
-    if not request.customers:
-        return RoutingResponse(
-            instance_name=request.instance_name,
-            solver_used="PyVRP classical fallback",
-            execution_time_ms=0.0,
-            total_distance=0.0,
-            is_feasible=True,
-            routes=[],
-            fallback_reason=reason,
-        )
-    response = solve_with_pyvrp(request, max_runtime_sec=max_runtime_sec)
-    return response.model_copy(
-        update={
-            "solver_used": "PyVRP classical fallback",
-            "fallback_reason": reason,
-        }
+    """Resuelve los clientes originales con PyVRP2 y viajes autorizados para el fallback."""
+    started = time.perf_counter()
+    options = fallback_parameters(request, max_runtime_sec)
+    response = solve_hgs_adc(
+        PyvrpFallbackAdapter.to_request(request),
+        vehicle_strategy_config=options.vehicle_strategy_config,
+        vehicle_strategy=options.vehicle_strategy,
+        seed=options.seed,
+        max_runtime_sec=options.classical_time_limit,
+        max_vehicle_repetition=options.max_vehicle_repetition,
     )
+    native_response = PyvrpFallbackAdapter.to_response(response, reason)
+    native_response.execution_time_ms = round((time.perf_counter() - started) * 1000, 3)
+    return native_response
 
 
 def solve_with_classical(

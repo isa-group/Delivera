@@ -67,7 +67,7 @@ def evaluate_instance(
 	max_qubits: int = 24,
 	include_mtz: bool = False,
 	classical_time_limit: int = 60,
-	quantum_time_limit: float = 30.0,
+	quantum_time_limit: float | None = None,
 ) -> Dict[str, Any]:
 	"""Ejecuta una instancia como si fuera una llamada al microservicio.
 
@@ -159,12 +159,14 @@ def _print_result(result: Dict[str, Any]) -> None:
 	metrics = result["metrics"]
 	degradation = metrics["relative_degradation"]
 	degradation_text = "n/a" if degradation is None else f"{degradation:.2%}"
+	def distance_text(value):
+		return "n/a" if value is None else f"{value:.2f}"
 	print(
 		f"{result['instance']}: solver={response['solver_used']} | "
-		f"coste_total={metrics['total_cost']:.2f} | "
-		f"distancia_global={response['total_distance']:.2f} | "
+		f"coste_total={distance_text(metrics['total_cost'])} | "
+		f"distancia_global={distance_text(response['total_distance'])} | "
 		f"coste_interno={metrics['internal_cost']:.2f} | "
-		f"referencia={metrics['classical_reference_distance']:.2f} | "
+		f"referencia={distance_text(metrics['classical_reference_distance'])} | "
 		f"degradacion={degradation_text} | factible={metrics['is_feasible']} | "
 		f"qubits={response.get('qubits') or 'n/a'}"
 	)
@@ -185,8 +187,8 @@ def build_parser() -> argparse.ArgumentParser:
 	parser.add_argument(
 		"--quantum-time-limit",
 		type=float,
-		default=30.0,
-		help="Límite en segundos para una ejecución Qiskit antes del fallback",
+		default=None,
+		help="Segundos por candidato Qiskit. Si se omite se adapta al tamaño del QUBO",
 	)
 	parser.add_argument(
 		"--include-mtz",

@@ -50,12 +50,16 @@ class TestAdapter(unittest.TestCase):
                 [10, 0],
             ],
             solver_type="PYVRP",
-            parameters={},
+            parameters={"fallback": {"maxVehicleRepetition": 2, "seed": 7}},
         )
 
         result = Adapter.adapt_request(request)
 
         self.assertEqual(result.instance_name, "test-problem")
+        self.assertEqual(result.parameters, request.parameters)
+        # Cambiar opciones anidadas en el destino no debe modificar la petición original.
+        result.parameters["fallback"]["maxVehicleRepetition"] = 3
+        self.assertEqual(request.parameters["fallback"]["maxVehicleRepetition"], 2)
 
         self.assertEqual(result.depots[0].id, "D1")
         self.assertEqual(result.depots[0].x, 20)

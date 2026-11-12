@@ -7,8 +7,8 @@
 The hybrid quantum-classical engine of the quantum line. It splits the instance by depot and tries
 to solve each region on a quantum backend: QAOA on a local Qiskit simulator (solver `QISKIT`) or
 D-Wave's Leap hybrid solver in the cloud (solver `DWAVE`). When the quantum path is not viable it
-falls back to PyVRP. It is the first real path from Delivera to quantum hardware and simulators;
-with 24 simulated qubits only very small instances reach the Qiskit part.
+falls back to PyVRP2. The integration is experimental. With 24 simulated qubits only very small
+instances reach the Qiskit part.
 
 ## Where the code lives
 
@@ -74,7 +74,7 @@ run that happens.
 | Parameter | Type | Default | Range | `cqvrp` header | Meaning |
 | --- | --- | --- | --- | --- | --- |
 | `maxQubits` | INTEGER | 24 | 1–24 | `X-Max-Qubits` | Largest QUBO that may go to the simulator (Q_max). A region that needs more is solved with PyVRP |
-| `quantumTimeoutSeconds` | DECIMAL | 30.0 | 1–300 | `X-Quantum-Timeout-Seconds` | Wall-clock limit of each QAOA run; up to four candidates are tried |
+| `quantumTimeoutSeconds` | DECIMAL | Omitted, adaptive | 1–300 | `X-Quantum-Timeout-Seconds` | Optional wall-clock limit per candidate. An explicit value replaces the adaptive budget |
 | `classicalTimeLimit` | INTEGER | 60 | 1–300 | `X-Classical-Time-Limit` | PyVRP budget for the fallback and for the classical reference. PyVRP always uses all of it |
 | `includeMtz` | BOOLEAN | false | | `X-Include-Mtz` | Adds MTZ constraints against subtours, at the cost of many more qubits |
 
@@ -88,38 +88,41 @@ run that happens.
 them on that path, always includes MTZ in the CQM and does not limit its run time (Leap's default
 applies).
 
-Not exposed for either: the number of extra candidates, fixed at 3 inside `cqvrp`, and a `seed`,
-because neither QAOA nor Leap is seeded in `cqvrp`, so neither solver is deterministic.
+The gateway does not insert `quantumTimeoutSeconds` when it is omitted. The future contract adapter
+must then omit `X-Quantum-Timeout-Seconds` too. With the default QAOA settings, the engine allows
+60 s up to 10 qubits, 90 s up to 14, 150 s up to 18, 210 s up to 21 and 300 s up to 24, including
+startup margin. Budgets for several regions accumulate up to 300 s per candidate. The engine
+returns as soon as the calculation finishes. See the [engine README](../../engines/quantum-solver-ms/README.md).
 
-With the defaults, a `QISKIT` request with a quantum solution takes at least 70 s, almost all of it
-PyVRP (60 s of classical reference plus 10 s per super-customer of internal TSP), and the gateway
-gives up on an engine after 300 s.
+The number of extra candidates remains fixed at 3 in the API. QAOA supports a seed from Python,
+but the gateway does not expose it yet. Successful quantum routes are expanded to the original
+customers with an open PyVRP path, with a default search budget of 0.1 s per multi-customer group.
+The classical reference has its own budget, 60 s by default.
+
+The gateway's HTTP timeout for `QISKIT` is 1530 s: four candidates of up to 300 s, a classical
+execution of up to 300 s and 30 s of margin. It is a transport timeout, independent of the engine's
+per-candidate budget. Preparation and route expansion also consume time. Other solvers retain
+the 300 s HTTP timeout.
+
+`quantum_viability.py` uses `count_qiskit_qubits()` from the engine. The counter and the solver
+share the model builder and count the final QUBO variables, including auxiliary bits. Counting
+does not run QAOA. Fitting in the qubit limit does not guarantee a feasible solution. The local
+code used for counting must match the service version used for the HTTP `/analyze` call.
 
 ## Configuration
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `QUANTUM_MAX_QUBITS` | 24 | Available quantum capacity (Q_max) |
+| `QUANTUM_MAX_QUBITS` | 24 | Declared by Docker, not consumed by the API yet. The API limit remains fixed at 24 |
 | `DWAVE_API_TOKEN` | not set | D-Wave Leap token for the `DWAVE` solver |
 
 ## Pending changes in the engine
 
-A patch with these changes was proposed to the quantum line, and the code in
-`engines/quantum-solver-ms` does not include it yet. Until it does, the Qiskit path never returns
-a quantum solution, `/actuator/health` answers 404 (the gateway reports the engine as DOWN) and
-`QUANTUM_MAX_QUBITS` has no effect.
+The engine already transpiles QAOA circuits to basic gates, reads results by variable name and
+rejects infeasible or incomplete routes. Simulation uses `StatevectorSampler` below 18 qubits
+and Aer from 18, selecting GPU when Aer offers it, otherwise CPU. Remaining integration work:
 
-Fixes to the Qiskit solver:
-
-- QAOA circuits are transpiled to basic gates before simulation. Without it a 10-qubit QUBO takes
-  more than 5 minutes instead of 0.6 s, so the 30 s timeout always expires and PyVRP takes over.
-- Variable values are read from `variables_dict`; `get_variable_value` does not exist in
-  `qiskit-optimization` 0.7 and every candidate failed after QAOA.
-- A QAOA sample that violates the constraints, or leaves customers unserved, is rejected.
-  Before, an empty solution with cost 0 was returned as feasible and won over real candidates.
-
-Changes to fit Solver-FMS:
-
+- `POST /api/v1/engine/solve`, translating the request, parameters and response to the gateway contract.
 - `GET /actuator/health`, the path the gateway probes.
 - `QUANTUM_MAX_QUBITS` as the default and upper bound of the `X-Max-Qubits` header, instead of a
   fixed 24.

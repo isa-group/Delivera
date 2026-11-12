@@ -121,8 +121,8 @@ class SpatialPartitioner:
             # Indicamos visualmente que es un nodo comprimido
             composed_id = "SC_" + "_".join(c.id for c in internal_customers)
             
-            # Guardamos los nodos internos en el DTO para poder 
-            # calcular el C_interno (el TSP local) en la fase de evaluación.
+            # Guardamos los clientes originales para expandir después cada grupo
+            # y calcular la distancia del recorrido completo, sin visitar centroides.
             super_clients.append(CustomerDto(
                 id=composed_id, 
                 x=round(avg_x, 2), 
