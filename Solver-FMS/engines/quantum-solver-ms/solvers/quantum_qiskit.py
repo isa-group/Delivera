@@ -144,6 +144,186 @@ def solve_with_qiskit_with_timeout(
                 process.stdin.close()
 
 
+def _build_qiskit_model(request: RoutingRequest, include_mtz: bool):
+    """Construye el problema y cuenta las variables del QUBO final, sin simular."""
+    from qiskit_optimization import QuadraticProgram
+    from qiskit_optimization.converters import QuadraticProgramToQubo
+
+    # Cada subrequest llega con un unico deposito porque el GAP ya separo
+    # la instancia global en regiones independientes.
+    depot = request.depots[0]
+    customers = request.customers
+    nodes = [depot] + customers
+    vehicles = request.vehicles
+    vehicle_ids = [vehicle.id for vehicle in vehicles]
+    capacities = {vehicle.id: vehicle.capacity for vehicle in vehicles}
+    demands = {customer.id: customer.demand for customer in customers}
+
+    # Variables del modelo:
+    #   x_origen_destino_vehiculo = 1 si el vehiculo usa ese arco.
+    #   y_cliente_vehiculo = 1 si el cliente se asigna a ese vehiculo.
+    #   u_cliente_vehiculo = carga acumulada, solo con MTZ.
+    # Qiskit convierte las variables enteras 'u' a varios bits binarios.
+    problem = QuadraticProgram(name=f"QUBO_Cluster_{request.instance_name}")
+
+    for vehicle_id in vehicle_ids:
+        for origin in nodes:
+            for destination in nodes:
+                if origin.id != destination.id:
+                    problem.binary_var(
+                        name=f"x_{origin.id}_{destination.id}_{vehicle_id}"
+                    )
+
+    for customer in customers:
+        for vehicle_id in vehicle_ids:
+            problem.binary_var(name=f"y_{customer.id}_{vehicle_id}")
+            if include_mtz:
+                problem.integer_var(
+                    name=f"u_{customer.id}_{vehicle_id}",
+                    lowerbound=0,
+                    upperbound=capacities[vehicle_id],
+                )
+
+    # El objetivo minimiza la suma de distancias de todos los arcos usados.
+    # Las distancias son euclideas redondeadas, igual que en el parser y
+    # en PyVRP.
+    problem.minimize(
+        linear={
+            f"x_{origin.id}_{destination.id}_{vehicle_id}": origin.euclidean_distance(destination)
+            for vehicle_id in vehicle_ids
+            for origin in nodes
+            for destination in nodes
+            if origin.id != destination.id
+        }
+    )
+
+    # Cada cliente debe pertenecer exactamente a un vehiculo. Despues se
+    # impone conservacion de flujo: si un vehiculo visita un cliente,
+    # debe entrar y salir de el exactamente una vez.
+    for customer in customers:
+        problem.linear_constraint(
+            linear={f"y_{customer.id}_{vehicle_id}": 1 for vehicle_id in vehicle_ids},
+            sense="==",
+            rhs=1,
+            name=f"visit_{customer.id}",
+        )
+        for vehicle_id in vehicle_ids:
+            incoming = {
+                f"x_{origin.id}_{customer.id}_{vehicle_id}": 1
+                for origin in nodes
+                if origin.id != customer.id
+            }
+            outgoing = {
+                f"x_{customer.id}_{destination.id}_{vehicle_id}": 1
+                for destination in nodes
+                if destination.id != customer.id
+            }
+            assignment = f"y_{customer.id}_{vehicle_id}"
+            problem.linear_constraint(
+                linear={**incoming, assignment: -1},
+                sense="==",
+                rhs=0,
+                name=f"in_{customer.id}_{vehicle_id}",
+            )
+            problem.linear_constraint(
+                linear={**outgoing, assignment: -1},
+                sense="==",
+                rhs=0,
+                name=f"out_{customer.id}_{vehicle_id}",
+            )
+            if include_mtz:
+                # Estas dos restricciones atan la carga acumulada a la
+                # asignacion del cliente. Evitan valores de carga absurdos.
+                load = f"u_{customer.id}_{vehicle_id}"
+                problem.linear_constraint(
+                    linear={load: 1, assignment: -demands[customer.id]},
+                    sense=">=",
+                    rhs=0,
+                    name=f"cap_min_{customer.id}_{vehicle_id}",
+                )
+                problem.linear_constraint(
+                    linear={load: 1, assignment: -capacities[vehicle_id]},
+                    sense="<=",
+                    rhs=0,
+                    name=f"cap_max_{customer.id}_{vehicle_id}",
+                )
+
+    # Sin MTZ, esta restriccion conserva la capacidad de cada vehiculo,
+    # pero no elimina subtours; la decodificacion los rechaza despues.
+    if not include_mtz:
+        for vehicle_id in vehicle_ids:
+            problem.linear_constraint(
+                linear={
+                    f"y_{customer.id}_{vehicle_id}": demands[customer.id]
+                    for customer in customers
+                },
+                sense="<=",
+                rhs=capacities[vehicle_id],
+                name=f"capacity_aggregate_{vehicle_id}",
+            )
+
+    # Cada vehiculo puede iniciar como maximo una ruta desde el deposito.
+    # El balance obliga a regresar al mismo deposito. Sin MTZ aun pueden
+    # existir ciclos de clientes desconectados del deposito.
+    # Las restricciones de visita y flujo anteriores garantizan la visita
+    # unica, mientras que MTZ, si se activa, elimina ciclos desconectados.
+    for vehicle_id in vehicle_ids:
+        depot_out = {
+            f"x_{depot.id}_{customer.id}_{vehicle_id}": 1
+            for customer in customers
+        }
+        depot_in = {
+            f"x_{customer.id}_{depot.id}_{vehicle_id}": 1
+            for customer in customers
+        }
+        problem.linear_constraint(
+            linear={**depot_out, **{name: -value for name, value in depot_in.items()}},
+            sense="==",
+            rhs=0,
+            name=f"depot_balance_{vehicle_id}",
+        )
+        problem.linear_constraint(
+            linear=depot_out,
+            sense="<=",
+            rhs=1,
+            name=f"depot_out_{vehicle_id}",
+        )
+
+        if include_mtz:
+            # MTZ fuerza que el orden/carga avance al recorrer un arco de
+            # cliente a cliente; por eso elimina subtours desconectados.
+            for origin in customers:
+                for destination in customers:
+                    if origin.id == destination.id:
+                        continue
+                    problem.linear_constraint(
+                        linear={
+                            f"u_{destination.id}_{vehicle_id}": 1,
+                            f"u_{origin.id}_{vehicle_id}": -1,
+                            f"x_{origin.id}_{destination.id}_{vehicle_id}": -capacities[vehicle_id],
+                        },
+                        sense=">=",
+                        rhs=demands[destination.id] - capacities[vehicle_id],
+                        name=f"mtz_{origin.id}_{destination.id}_{vehicle_id}",
+                    )
+
+    # QAOA trabaja sin restricciones: el convertidor incorpora las
+    # penalizaciones y variables auxiliares en el QUBO final.
+    # El numero de variables del QUBO es el numero real de qubits logicos
+    # que necesitara este subproblema, incluidas variables auxiliares.
+    qubo = QuadraticProgramToQubo().convert(problem)
+    qubit_count = qubo.get_num_vars()
+    return problem, qubit_count
+
+
+def count_qiskit_qubits(request: RoutingRequest, include_mtz: bool = False) -> int:
+    """Qubits del mismo modelo que resuelve QAOA, sin ejecutar el optimizador."""
+    if not request.customers or not request.depots or not request.vehicles:
+        return 0
+    _, qubits = _build_qiskit_model(request, include_mtz)
+    return qubits
+
+
 def solve_with_qiskit(
     sub_requests: List[RoutingRequest],
     max_qubits: int = 24,
@@ -160,13 +340,11 @@ def solve_with_qiskit(
     MTZ es opcional porque puede aumentar mucho el QUBO. Si se desactiva,
     la decodificacion valida que no queden clientes en subtours desconectados.
     """
-    # Estos imports solo se ejecutan en quantum_qiskit_proc_isolate. Así SciPy y
+    # La API ejecuta estos imports en quantum_qiskit_proc_isolate. Así SciPy y
     # Qiskit no pueden bloquear el proceso principal antes del timeout.
     from qiskit_algorithms import QAOA
     from qiskit_algorithms.optimizers import COBYLA
-    from qiskit_optimization import QuadraticProgram
     from qiskit_optimization.algorithms import MinimumEigenOptimizer, OptimizationResultStatus
-    from qiskit_optimization.converters import QuadraticProgramToQubo
 
     _validate_options(maxiter, reps, shots)
     if seed is not None:
@@ -185,171 +363,13 @@ def solve_with_qiskit(
         if not request.customers or not request.depots or not request.vehicles:
             continue
 
-        # Cada subrequest llega con un unico deposito porque el GAP ya separo
-        # la instancia global en regiones independientes.
+        problem, qubit_count = _build_qiskit_model(request, include_mtz)
         depot = request.depots[0]
         customers = request.customers
         nodes = [depot] + customers
-        vehicles = request.vehicles
-        vehicle_ids = [vehicle.id for vehicle in vehicles]
-        capacities = {vehicle.id: vehicle.capacity for vehicle in vehicles}
+        vehicle_ids = [vehicle.id for vehicle in request.vehicles]
         demands = {customer.id: customer.demand for customer in customers}
         node_by_id = {node.id: node for node in nodes}
-
-        # Variables del modelo:
-        #   x_origen_destino_vehiculo = 1 si el vehiculo usa ese arco.
-        #   y_cliente_vehiculo = 1 si el cliente se asigna a ese vehiculo.
-        #   u_cliente_vehiculo = carga acumulada, solo con MTZ.
-        # Qiskit convierte las variables enteras 'u' a varios bits binarios.
-        problem = QuadraticProgram(name=f"QUBO_Cluster_{request.instance_name}")
-
-        for vehicle_id in vehicle_ids:
-            for origin in nodes:
-                for destination in nodes:
-                    if origin.id != destination.id:
-                        problem.binary_var(
-                            name=f"x_{origin.id}_{destination.id}_{vehicle_id}"
-                        )
-
-        for customer in customers:
-            for vehicle_id in vehicle_ids:
-                problem.binary_var(name=f"y_{customer.id}_{vehicle_id}")
-                if include_mtz:
-                    problem.integer_var(
-                        name=f"u_{customer.id}_{vehicle_id}",
-                        lowerbound=0,
-                        upperbound=capacities[vehicle_id],
-                    )
-
-        # El objetivo minimiza la suma de distancias de todos los arcos usados.
-        # Las distancias son euclideas redondeadas, igual que en el parser y
-        # en PyVRP.
-        problem.minimize(
-            linear={
-                f"x_{origin.id}_{destination.id}_{vehicle_id}": origin.euclidean_distance(destination)
-                for vehicle_id in vehicle_ids
-                for origin in nodes
-                for destination in nodes
-                if origin.id != destination.id
-            }
-        )
-
-        # Cada cliente debe pertenecer exactamente a un vehiculo. Despues se
-        # impone conservacion de flujo: si un vehiculo visita un cliente,
-        # debe entrar y salir de el exactamente una vez.
-        for customer in customers:
-            problem.linear_constraint(
-                linear={f"y_{customer.id}_{vehicle_id}": 1 for vehicle_id in vehicle_ids},
-                sense="==",
-                rhs=1,
-                name=f"visit_{customer.id}",
-            )
-            for vehicle_id in vehicle_ids:
-                incoming = {
-                    f"x_{origin.id}_{customer.id}_{vehicle_id}": 1
-                    for origin in nodes
-                    if origin.id != customer.id
-                }
-                outgoing = {
-                    f"x_{customer.id}_{destination.id}_{vehicle_id}": 1
-                    for destination in nodes
-                    if destination.id != customer.id
-                }
-                assignment = f"y_{customer.id}_{vehicle_id}"
-                problem.linear_constraint(
-                    linear={**incoming, assignment: -1},
-                    sense="==",
-                    rhs=0,
-                    name=f"in_{customer.id}_{vehicle_id}",
-                )
-                problem.linear_constraint(
-                    linear={**outgoing, assignment: -1},
-                    sense="==",
-                    rhs=0,
-                    name=f"out_{customer.id}_{vehicle_id}",
-                )
-                if include_mtz:
-                    # Estas dos restricciones atan la carga acumulada a la
-                    # asignacion del cliente. Evitan valores de carga absurdos.
-                    load = f"u_{customer.id}_{vehicle_id}"
-                    problem.linear_constraint(
-                        linear={load: 1, assignment: -demands[customer.id]},
-                        sense=">=",
-                        rhs=0,
-                        name=f"cap_min_{customer.id}_{vehicle_id}",
-                    )
-                    problem.linear_constraint(
-                        linear={load: 1, assignment: -capacities[vehicle_id]},
-                        sense="<=",
-                        rhs=0,
-                        name=f"cap_max_{customer.id}_{vehicle_id}",
-                    )
-
-        # Sin MTZ, esta restriccion conserva la capacidad de cada vehiculo,
-        # pero no elimina subtours; la decodificacion los rechaza despues.
-        if not include_mtz:
-            for vehicle_id in vehicle_ids:
-                problem.linear_constraint(
-                    linear={
-                        f"y_{customer.id}_{vehicle_id}": demands[customer.id]
-                        for customer in customers
-                    },
-                    sense="<=",
-                    rhs=capacities[vehicle_id],
-                    name=f"capacity_aggregate_{vehicle_id}",
-                )
-
-        # Cada vehiculo puede iniciar como maximo una ruta desde el deposito.
-        # El balance obliga a regresar al mismo deposito. Sin MTZ aun pueden
-        # existir ciclos de clientes desconectados del deposito.
-        # Las restricciones de visita y flujo anteriores garantizan la visita
-        # unica, mientras que MTZ, si se activa, elimina ciclos desconectados.
-        for vehicle_id in vehicle_ids:
-            depot_out = {
-                f"x_{depot.id}_{customer.id}_{vehicle_id}": 1
-                for customer in customers
-            }
-            depot_in = {
-                f"x_{customer.id}_{depot.id}_{vehicle_id}": 1
-                for customer in customers
-            }
-            problem.linear_constraint(
-                linear={**depot_out, **{name: -value for name, value in depot_in.items()}},
-                sense="==",
-                rhs=0,
-                name=f"depot_balance_{vehicle_id}",
-            )
-            problem.linear_constraint(
-                linear=depot_out,
-                sense="<=",
-                rhs=1,
-                name=f"depot_out_{vehicle_id}",
-            )
-
-            if include_mtz:
-                # MTZ fuerza que el orden/carga avance al recorrer un arco de
-                # cliente a cliente; por eso elimina subtours desconectados.
-                for origin in customers:
-                    for destination in customers:
-                        if origin.id == destination.id:
-                            continue
-                        problem.linear_constraint(
-                            linear={
-                                f"u_{destination.id}_{vehicle_id}": 1,
-                                f"u_{origin.id}_{vehicle_id}": -1,
-                                f"x_{origin.id}_{destination.id}_{vehicle_id}": -capacities[vehicle_id],
-                            },
-                            sense=">=",
-                            rhs=demands[destination.id] - capacities[vehicle_id],
-                            name=f"mtz_{origin.id}_{destination.id}_{vehicle_id}",
-                        )
-
-        # QAOA trabaja sin restricciones: el convertidor incorpora las
-        # penalizaciones y variables auxiliares en el QUBO final.
-        # El numero de variables del QUBO es el numero real de qubits logicos
-        # que necesitara este subproblema, incluidas variables auxiliares.
-        qubo = QuadraticProgramToQubo().convert(problem)
-        qubit_count = qubo.get_num_vars()
         largest_qubo = max(largest_qubo, qubit_count)
         if qubit_count > max_qubits:
             raise ValueError(

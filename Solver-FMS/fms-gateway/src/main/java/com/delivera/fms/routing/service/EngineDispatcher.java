@@ -18,6 +18,8 @@ public class EngineDispatcher {
 
     private static final Logger log = LoggerFactory.getLogger(EngineDispatcher.class);
     private static final Duration TIMEOUT = Duration.ofSeconds(300);
+    // Cuatro candidatos de hasta 300 s, una ejecución clásica de hasta 300 s y margen.
+    private static final Duration QISKIT_TIMEOUT = Duration.ofSeconds(4 * 300 + 300 + 30);
 
     private final SolverRegistry registry;
 
@@ -49,7 +51,7 @@ public class EngineDispatcher {
                     .bodyValue(enriched)
                     .retrieve()
                     .bodyToMono(RoutingResponse.class)
-                    .timeout(TIMEOUT)
+                    .timeout(solverType == TypeSolver.QISKIT ? QISKIT_TIMEOUT : TIMEOUT)
                     .block();
 
             if (response == null) {

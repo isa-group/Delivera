@@ -67,7 +67,7 @@ class QuantumSolversCatalogTest {
                 .extracting(SolverParameter::name, SolverParameter::type, SolverParameter::defaultValue)
                 .containsExactly(
                         tuple("maxQubits", ParameterType.INTEGER, 24L),
-                        tuple("quantumTimeoutSeconds", ParameterType.DECIMAL, 30.0),
+                        tuple("quantumTimeoutSeconds", ParameterType.DECIMAL, null),
                         tuple("classicalTimeLimit", ParameterType.INTEGER, 60L),
                         tuple("includeMtz", ParameterType.BOOLEAN, false));
     }
@@ -86,9 +86,21 @@ class QuantumSolversCatalogTest {
 
         assertThat(resolved).containsExactly(
                 Map.entry("maxQubits", 24L),
-                Map.entry("quantumTimeoutSeconds", 30.0),
                 Map.entry("classicalTimeLimit", 60L),
                 Map.entry("includeMtz", true));
+        assertThat(resolved).doesNotContainKey("quantumTimeoutSeconds");
+    }
+
+    @Test
+    void explicitQuantumTimeoutIsPreservedAndMustRespectItsRange() {
+        assertThat(registry.resolveParameters(TypeSolver.QISKIT, Map.of("quantumTimeoutSeconds", 45.5)))
+                .containsEntry("quantumTimeoutSeconds", 45.5);
+        for (double timeout : new double[] {0, 301}) {
+            assertThatThrownBy(() -> registry.resolveParameters(TypeSolver.QISKIT,
+                    Map.of("quantumTimeoutSeconds", timeout)))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("quantumTimeoutSeconds");
+        }
     }
 
     @Test

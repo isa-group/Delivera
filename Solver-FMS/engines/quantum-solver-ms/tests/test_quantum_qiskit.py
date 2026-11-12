@@ -3,11 +3,13 @@ from unittest.mock import patch
 import json
 import subprocess
 import sys
+import importlib.util
+from pathlib import Path
 
 from domain.models import CustomerDto, DepotDto, RoutingRequest, VehicleDto
 from solvers.quantum_qiskit import (
     QuantumExecutionTimeoutError, _model_timeout, _simulation_pass_manager, _simulation_sampler,
-    solve_with_qiskit, solve_with_qiskit_with_timeout,
+    count_qiskit_qubits, solve_with_qiskit, solve_with_qiskit_with_timeout,
 )
 
 
@@ -36,14 +38,54 @@ class TestQiskitResultDecoding(unittest.TestCase):
         return build_result
 
     def test_decodes_optimization_result_by_variable_name(self):
+        model_sizes = []
         with patch("qiskit_optimization.algorithms.MinimumEigenOptimizer.solve",
                    side_effect=self.result_factory({"x_D_C1_V", "x_C1_C2_V", "x_C2_D_V"})):
-            response = solve_with_qiskit([self.request])
+            response = solve_with_qiskit([self.request], on_model_ready=model_sizes.append)
         self.assertTrue(response.is_feasible)
         self.assertEqual(len(response.routes), 1)
         self.assertEqual(response.routes[0].stops, ["D", "C1", "C2", "D"])
         self.assertEqual(response.routes[0].load, 2)
         self.assertEqual(response.total_distance, 4)
+        self.assertEqual(model_sizes, [count_qiskit_qubits(self.request)])
+        self.assertEqual(response.qubits, model_sizes[0])
+
+    def test_qubit_counter_and_viability_script_include_auxiliary_bits_without_qaoa(self):
+        script = Path(__file__).resolve().parents[3] / "quantum_viability.py"
+        spec = importlib.util.spec_from_file_location("quantum_viability", script)
+        viability = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(viability)
+        request = self.request.model_copy(deep=True)
+        request.vehicles[0].capacity = 3
+        pair = request.model_copy(deep=True)
+        pair.customers = [CustomerDto(id="SC", x=1, y=0, demand=2)]
+        three = request.model_copy(deep=True)
+        three.customers.append(CustomerDto(id="C3", x=3, y=0, demand=1))
+        three.vehicles[0].capacity = 4
+        empty = request.model_copy(deep=True)
+        empty.customers = []
+        cases = [(empty, False, 0), (pair, False, 6), (request, False, 10),
+                 (request, True, 26), (three, False, 18)]
+        with patch("qiskit_optimization.algorithms.MinimumEigenOptimizer.solve") as optimizer, patch(
+            "solvers.quantum_qiskit._simulation_sampler",
+        ) as sampler:
+            for instance, mtz, expected in cases:
+                with self.subTest(customers=len(instance.customers), mtz=mtz):
+                    self.assertEqual(count_qiskit_qubits(instance, mtz), expected)
+                    self.assertEqual(viability.qubits_needed(instance, mtz), expected)
+        optimizer.assert_not_called()
+        sampler.assert_not_called()
+
+    def test_qubit_limit_uses_shared_count_before_simulation(self):
+        request = self.request.model_copy(deep=True)
+        request.vehicles[0].capacity = 3
+        with patch("solvers.quantum_qiskit._simulation_sampler") as sampler, patch(
+            "qiskit_optimization.algorithms.MinimumEigenOptimizer.solve",
+        ) as optimizer:
+            with self.assertRaisesRegex(ValueError, "necesita 10 qubits"):
+                solve_with_qiskit([request], max_qubits=9)
+        sampler.assert_not_called()
+        optimizer.assert_not_called()
 
     def test_inconsistent_assignments_are_still_rejected(self):
         with patch("qiskit_optimization.algorithms.MinimumEigenOptimizer.solve",
