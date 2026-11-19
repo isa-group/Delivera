@@ -47,6 +47,8 @@ class TestApiEndpoints(unittest.TestCase):
         self.assertIn("features", result["analysis"])
 
     def test_classical_backend_uses_pyvrp_directly(self):
+        # Las opciones del fallback tampoco cambian una solicitud clásica explícita.
+        self.request.parameters = {"fallback": {"maxVehicleRepetition": 2}}
         # Esta es la respuesta que devolvería PyVRP. Se usa para aislar la
         # lógica de la API del coste real de ejecutar una metaheurística.
         pyvrp_response = RoutingResponse(

@@ -1,72 +1,83 @@
-from dataclasses import dataclass
-from typing import Any
+"""Reparto de viajes entre vehículos equivalentes, respetando su disponibilidad."""
+
 from abc import ABC, abstractmethod
-from typing import Any
+from dataclasses import dataclass, field
 from enum import StrEnum
 
 
 @dataclass
 class VehicleAssignmentContext:
     vehicle_ids: list[str]
-
     vehicle_position: int
-
     route_distance: float
     distance_by_vehicle: dict[str, float]
     distance_weight: float
-    
-
     route_load: int
     load_by_vehicle: dict[str, int]
     load_weight: float
-
-    max_distance: float = 0
-    max_load: float = 0
+    trip_count_by_vehicle: dict[str, int] = field(default_factory=dict)
+    max_trips_per_vehicle: int | None = None
 
 
 class VehicleAssignmentStrategy(ABC):
-
     @staticmethod
     @abstractmethod
-    def next(ctx: VehicleAssignmentContext, **kwargs) -> str:
+    def next(ctx: VehicleAssignmentContext, candidates: list[str] | None = None) -> str:
         pass
 
+    @staticmethod
+    def candidate_ids(ctx: VehicleAssignmentContext, candidates: list[str] | None) -> list[str]:
+        ids = ctx.vehicle_ids if candidates is None else candidates
+        if not ids:
+            raise ValueError("No hay vehículos candidatos para la estrategia.")
+        if not set(ids).issubset(ctx.vehicle_ids):
+            raise ValueError("Los candidatos no pertenecen a esta flota.")
+        available = [
+            v for v in ids
+            if ctx.max_trips_per_vehicle is None
+            or ctx.trip_count_by_vehicle.get(v, 0) < ctx.max_trips_per_vehicle
+        ]
+        if not available:
+            raise ValueError("No quedan vehículos con viajes disponibles entre los candidatos.")
+        return available
 
 
 class RobinStrategy(VehicleAssignmentStrategy):
     @staticmethod
-    def next(ctx: VehicleAssignmentContext, **kwargs) -> str:
-        return ctx.vehicle_ids[ 
-            ctx.vehicle_position % len(ctx.vehicle_ids)
-        ]
-   
-        
+    def next(ctx: VehicleAssignmentContext, candidates: list[str] | None = None) -> str:
+        eligible = set(RobinStrategy.candidate_ids(ctx, candidates))
+        # El turno usa el orden completo, aunque algunos camiones estén agotados.
+        for offset in range(len(ctx.vehicle_ids)):
+            position = (ctx.vehicle_position + offset) % len(ctx.vehicle_ids)
+            vehicle_id = ctx.vehicle_ids[position]
+            if vehicle_id in eligible:
+                return vehicle_id
+        raise RuntimeError("No se pudo resolver el turno circular con los candidatos validados.")
+
+
 class LoadStrategy(VehicleAssignmentStrategy):
     @staticmethod
-    def next(ctx: VehicleAssignmentContext, **kwargs) -> str:
-        return min(
-            ctx.vehicle_ids, 
-            key=lambda vehicle_id: ctx.load_by_vehicle.get(vehicle_id,0)
-        ) 
+    def next(ctx: VehicleAssignmentContext, candidates: list[str] | None = None) -> str:
+        ids = LoadStrategy.candidate_ids(ctx, candidates)
+        return min(ids, key=lambda v: ctx.load_by_vehicle.get(v, 0))
+
 
 class DistanceStrategy(VehicleAssignmentStrategy):
     @staticmethod
-    def next(ctx: VehicleAssignmentContext, **kwargs) -> str:
-        return min(
-            ctx.vehicle_ids, 
-            key=lambda vehicle_id: ctx.distance_by_vehicle.get(vehicle_id,0)
-        ) 
+    def next(ctx: VehicleAssignmentContext, candidates: list[str] | None = None) -> str:
+        ids = DistanceStrategy.candidate_ids(ctx, candidates)
+        return min(ids, key=lambda v: ctx.distance_by_vehicle.get(v, 0))
+
 
 class HybridBase(VehicleAssignmentStrategy):
     @staticmethod
     def default_distance_weight() -> float:
         return 0.6
-    
+
     @staticmethod
     def default_load_weight() -> float:
         return 0.4
-    
-    
+
     @staticmethod
     def normalize_context(
         ctx: VehicleAssignmentContext,
@@ -76,237 +87,121 @@ class HybridBase(VehicleAssignmentStrategy):
         max_distance: float,
         min_load: float,
         max_load: float,
-        **kwargs
     ) -> tuple[float, float, float, float]:
-        # USING A MIN-MAX NORMALIZATION
-
-        wd = ctx.distance_weight
-        wl = ctx.load_weight
+        wd, wl = ctx.distance_weight, ctx.load_weight
         total = wd + wl
-
-        # FALLBACK
         if total <= 0:
             wd = HybridBase.default_distance_weight()
             wl = HybridBase.default_load_weight()
             total = wd + wl
-
-        # Weights between 0 and 1
-        wd = wd / total
-        wl = wl / total
-
-        # We use mix-max to avoid one element growing faster than the other
-        distance_norm = (
-            0
-            if (max_distance - min_distance) <= 0
-            else (distance - min_distance) / (max_distance - min_distance)
+        wd, wl = wd / total, wl / total
+        distance_norm = 0 if max_distance <= min_distance else (
+            (distance - min_distance) / (max_distance - min_distance)
         )
-
-        load_norm = (
-            0
-            if (max_load - min_load) <= 0
-            else (load - min_load) / (max_load - min_load)
+        load_norm = 0 if max_load <= min_load else (
+            (load - min_load) / (max_load - min_load)
         )
-
-        return wd, distance_norm,  wl, load_norm
+        return wd, distance_norm, wl, load_norm
 
     @staticmethod
-    def calculate_goal(**kwargs):
-        wd, distance, wl,load = HybridBase.normalize_context(**kwargs)
-        return wd*distance + wl*load
+    def calculate_goal(
+        ctx: VehicleAssignmentContext,
+        distance: float,
+        load: float,
+        min_distance: float,
+        max_distance: float,
+        min_load: float,
+        max_load: float,
+    ) -> float:
+        wd, distance_norm, wl, load_norm = HybridBase.normalize_context(
+            ctx, distance, load, min_distance, max_distance, min_load, max_load,
+        )
+        return wd * distance_norm + wl * load_norm
+
+    @staticmethod
+    def select_vehicle(ctx: VehicleAssignmentContext, candidates: list[str] | None,
+                       include_current_route: bool = False) -> str:
+        ids = HybridBase.candidate_ids(ctx, candidates)
+        route_distance = ctx.route_distance if include_current_route else 0
+        route_load = ctx.route_load if include_current_route else 0
+        distances = {v: ctx.distance_by_vehicle.get(v, 0) + route_distance for v in ids}
+        loads = {v: ctx.load_by_vehicle.get(v, 0) + route_load for v in ids}
+        # Mínimos y máximos se calculan juntos, sobre los mismos candidatos.
+        min_distance, max_distance = min(distances.values()), max(distances.values())
+        min_load, max_load = min(loads.values()), max(loads.values())
+        return min(ids, key=lambda v: HybridBase.calculate_goal(
+            ctx, distances[v], loads[v], min_distance, max_distance, min_load, max_load,
+        ))
+
+
+class HybridStrategy(HybridBase):
+    @staticmethod
+    def next(ctx: VehicleAssignmentContext, candidates: list[str] | None = None) -> str:
+        return HybridBase.select_vehicle(ctx, candidates)
 
 
 class FutureHybridStrategy(HybridBase):
-
     @staticmethod
-    def calculate_ponderation(
-        ctx: VehicleAssignmentContext, 
-        vehicle_id: str,
-        max_distance: float,
-        min_distance: float,
-        max_load: float,
-        min_load: float,
-        ** kwargs
-    ):
-        distance = ctx.distance_by_vehicle.get(vehicle_id, 0) +ctx.route_distance
-        load = ctx.load_by_vehicle.get(vehicle_id, 0) + ctx.route_load
+    def next(ctx: VehicleAssignmentContext, candidates: list[str] | None = None) -> str:
+        # Añade la misma distancia y carga de la ruta a todos los candidatos.
+        # Esa constante se cancela al recalcular mínimo y máximo en min-max.
+        # Por ello equivale a HYBRID. Se conserva el nombre por compatibilidad.
+        return HybridBase.select_vehicle(ctx, candidates, include_current_route=True)
 
-        return FutureHybridStrategy.calculate_goal(
-            ctx=ctx,
-            load=load,
-            distance=distance,
-            max_distance= max_distance,
-            min_distance= min_distance,
-            max_load= max_load,
-            min_load=min_load,
-            ** kwargs
-        )
-
-    @staticmethod
-    def next(ctx: VehicleAssignmentContext, **kwargs) -> str:
-        max_distance = 0
-        min_distance = float('inf')
-
-        max_load = 0
-        min_load = float('inf')
-
-        for v_id in ctx.vehicle_ids:
-            new_distance = ctx.route_distance + ctx.distance_by_vehicle.get(v_id,0)
-        
-            max_distance = max(max_distance, new_distance)
-            min_distance = min(min_distance, new_distance)
-
-            new_load = ctx.route_load + ctx.load_by_vehicle.get(v_id,0)
-
-            max_load = max(max_load, new_load)
-            min_load = min(min_load, new_load)
-
-        return min(
-            ctx.vehicle_ids, 
-            key=lambda vehicle_id: FutureHybridStrategy.calculate_ponderation(
-                ctx=ctx, 
-                vehicle_id= vehicle_id,
-                max_distance= max_distance,
-                min_distance= min_distance,
-                max_load= max_load,
-                min_load= min_load,
-                **kwargs
-            )
-        )
-
-    
-class HybridStrategy(HybridBase):
-
-   
-    @staticmethod
-    def calculate_ponderation(
-        ctx: VehicleAssignmentContext, 
-        vehicle_id: str,
-        min_distance: float,
-        min_load: float,
-        ** kwargs
-    ):
-        distance = ctx.distance_by_vehicle.get(vehicle_id, 0)
-        load = ctx.load_by_vehicle.get(vehicle_id, 0)
-
-   
-        return HybridStrategy.calculate_goal(
-             ctx=ctx,
-            load=load,
-            distance=distance,
-            max_distance= ctx.max_distance,
-            min_distance= min_distance,
-            max_load= ctx.max_load,
-            min_load= min_load,
-            ** kwargs
-        )
-
-    @staticmethod
-    def next(ctx: VehicleAssignmentContext, **kwargs) -> str:
-        min_distance = float('inf')
-        min_load = float('inf')
-        
-        for v_id in ctx.vehicle_ids:
-            min_distance = min(min_distance,  ctx.distance_by_vehicle.get(v_id,0))
-
-            min_load = min(min_load,  ctx.load_by_vehicle.get(v_id,0))
-        
-        return min(
-            ctx.vehicle_ids, 
-            key=lambda vehicle_id: HybridStrategy.calculate_ponderation(
-                ctx=ctx, vehicle_id=vehicle_id,
-                min_distance= min_distance,
-                min_load= min_load,
-            )
-        )
 
 class HybridPresets(StrEnum):
-    # Last-mile distribution.
-    # Stopping and delivering is usually more expensive than driving.
     URBAN = "urban"
-
-    # Long-distance routes.
-    # Driving dominates operational costs.
     INTERURBAN = "interurban"
-
-    # Pallets, beverages, food distribution, etc.
-    # Handling goods dominates route effort.
     HEAVY_GOODS = "heavy_goods"
-
-    # Equal importance for distance and load.
     BALANCED = "balanced"
 
+
 class VehicleStrategies(StrEnum):
-    # Use an equal vehicle distribution 
     ROBIN_ROUND = "robin_round"
-
-
-    # Use accumulated vehicle distance
     DISTANCE = "distance"
-
-    # Use accumulated vehicle load
     LOAD = "load"
-
-    # Use accumulated vehicle distance and load
     HYBRID = "hybrid"
-
-    # Use accumulated vehicle distance and load + the route distance and load 
     FUTURE_HYBRID = "future_hybrid"
 
 
-
 class VehicleStrategy:
-
     PRESETS: dict[HybridPresets, tuple[float, float]] = {
         HybridPresets.URBAN: (0.4, 0.6),
         HybridPresets.INTERURBAN: (0.8, 0.2),
         HybridPresets.HEAVY_GOODS: (0.3, 0.7),
         HybridPresets.BALANCED: (0.5, 0.5),
     }
-
-    STRATEGIES: dict[VehicleStrategies, VehicleAssignmentStrategy] = {
-            VehicleStrategies.ROBIN_ROUND: RobinStrategy,
-            VehicleStrategies.DISTANCE: DistanceStrategy,
-            VehicleStrategies.LOAD: LoadStrategy,
-            VehicleStrategies.HYBRID: HybridStrategy,
-            VehicleStrategies.FUTURE_HYBRID: FutureHybridStrategy
+    STRATEGIES: dict[VehicleStrategies, type[VehicleAssignmentStrategy]] = {
+        VehicleStrategies.ROBIN_ROUND: RobinStrategy,
+        VehicleStrategies.DISTANCE: DistanceStrategy,
+        VehicleStrategies.LOAD: LoadStrategy,
+        VehicleStrategies.HYBRID: HybridStrategy,
+        VehicleStrategies.FUTURE_HYBRID: FutureHybridStrategy,
     }
 
     @staticmethod
-    def get_weights(presets: HybridPresets | None = None):
-        if presets is not None and presets in VehicleStrategy.PRESETS:
-            wd, wl = VehicleStrategy.PRESETS[presets] 
-        else:
-            wd, wl = VehicleStrategy.PRESETS[HybridPresets.BALANCED] 
-
-        return wd, wl
-
-
-
+    def get_weights(presets: HybridPresets | None = None) -> tuple[float, float]:
+        return VehicleStrategy.PRESETS.get(presets, VehicleStrategy.PRESETS[HybridPresets.BALANCED])
 
     @staticmethod
-    def decide(ctx: VehicleAssignmentContext, strategy: VehicleStrategies, **kwargs):
-        
-        if ctx.vehicle_position < len(ctx.vehicle_ids):
-            vehicle_id: str = ctx.vehicle_ids[ctx.vehicle_position]
-        else: 
-            
-            executor = VehicleStrategy.STRATEGIES.get(strategy, RobinStrategy)
-
-            vehicle_id: str = executor.next(ctx=ctx,**kwargs)
-
-        new_load = ctx.load_by_vehicle.get(vehicle_id, 0) + ctx.route_load
-        new_distance = ctx.distance_by_vehicle.get(vehicle_id, 0) + ctx.route_distance
-
-        ctx.distance_by_vehicle[vehicle_id] = new_distance 
-        ctx.max_distance = max(ctx.max_distance, new_distance)
-       
-
-        
-        ctx.load_by_vehicle[vehicle_id] =  new_load 
-
-        ctx.max_load = max(ctx.max_load, new_load)
-
-
-        return vehicle_id 
-    
-    
+    def decide(ctx: VehicleAssignmentContext, strategy: VehicleStrategies) -> str:
+        """Filtra candidatos, delega la elección y actualiza el estado del reparto."""
+        if ctx.max_trips_per_vehicle is not None and ctx.max_trips_per_vehicle < 1:
+            raise ValueError("El máximo de viajes por vehículo debe ser positivo.")
+        eligible = [
+            v for v in ctx.vehicle_ids
+            if ctx.max_trips_per_vehicle is None
+            or ctx.trip_count_by_vehicle.get(v, 0) < ctx.max_trips_per_vehicle
+        ]
+        if not eligible:
+            raise ValueError("No quedan vehículos con viajes disponibles en esta flota.")
+        executor = VehicleStrategy.STRATEGIES.get(strategy)
+        if executor is None:
+            raise ValueError(f"Estrategia de asignación desconocida: {strategy}.")
+        unused = [v for v in eligible if ctx.trip_count_by_vehicle.get(v, 0) == 0]
+        vehicle_id = unused[0] if unused else executor.next(ctx, candidates=eligible)
+        ctx.trip_count_by_vehicle[vehicle_id] = ctx.trip_count_by_vehicle.get(vehicle_id, 0) + 1
+        ctx.distance_by_vehicle[vehicle_id] = ctx.distance_by_vehicle.get(vehicle_id, 0) + ctx.route_distance
+        ctx.load_by_vehicle[vehicle_id] = ctx.load_by_vehicle.get(vehicle_id, 0) + ctx.route_load
+        ctx.vehicle_position += 1
+        return vehicle_id

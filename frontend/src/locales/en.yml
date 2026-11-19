@@ -707,7 +707,9 @@ routes:
     GENETIC: Genetic
     GREEDY: Greedy
     ANNEALING: Annealing
-  
+    QISKIT: Quantum (Qiskit)
+    DWAVE: Quantum (D-Wave)
+
   tables:
     group: Group
     slot: Slot

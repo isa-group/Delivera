@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Any, List, Optional
 import math
 
 # ==========================================
@@ -21,8 +21,8 @@ class CustomerDto(NodeDto):
     demand: int = Field(..., description="Demanda del cliente (qi)")
     
     # Campo opcional para almacenar el sub-grafo interno si este nodo es un Súper-Cliente.
-    # Esto es vital para el Coarse-Graining: nos permite calcular a posteriori el C_interno (el TSP local)
-    # sin perder la información topológica original del diagrama de Voronoi.
+    # Permite reconstruir la ruta sobre los clientes originales después del coarse-graining,
+    # sin intentar recuperar sus IDs a partir del nombre compuesto del Súper-Cliente.
     internal_nodes: Optional[List['CustomerDto']] = Field(default=None, description="Nodos internos si este es un Súper-Cliente")
 
 class DepotDto(NodeDto):
@@ -40,6 +40,10 @@ class RoutingRequest(BaseModel):
     depots: List[DepotDto] = Field(..., description="Lista de depósitos (Semillas de Voronoi)")
     customers: List[CustomerDto] = Field(..., description="Clientes asignados a este sub-clúster")
     vehicles: List[VehicleDto] = Field(..., description="Vehículos disponibles para este clúster")
+    parameters: dict[str, Any] = Field(default_factory=dict, description=(
+        "Opciones de ejecución. parameters.fallback configura exclusivamente el fallback PyVRP2, "
+        "incluidos maxVehicleRepetition, vehicleStrategy, vehicleStrategyConfig, seed y classicalTimeLimit"
+    ))
 
     @property
     def total_demand(self) -> int:
@@ -55,6 +59,8 @@ class RouteDto(BaseModel):
     stops: List[str] = Field(..., description="Lista ordenada de IDs de nodos visitados")
     distance: float = Field(..., description="Distancia total recorrida en esta ruta")
     load: int = Field(..., description="Carga total transportada en la ruta")
+    trip_index: Optional[int] = Field(default=None, ge=1,
+        description="Orden del viaje del vehículo en el fallback, sin planificación horaria")
 
 class RoutingResponse(BaseModel):
     request_id: Optional[str] = Field(None, description="ID opcional para trazabilidad")
@@ -64,15 +70,18 @@ class RoutingResponse(BaseModel):
         ...,
         description="Tiempo de procesamiento en ms, redondeado a tres decimales",
     )
-    total_distance: float = Field(..., description="Costo total objetivo de todas las rutas")
+    total_distance: Optional[float] = Field(..., description="Distancia de las rutas completas, o null si el fallback no encuentra solución factible")
     is_feasible: bool = Field(..., description="Indica si la solución respeta la capacidad")
     routes: List[RouteDto] = Field(..., description="Desglose de las rutas calculadas")
     internal_routes: List[RouteDto] = Field(
         default_factory=list,
-        description="Rutas internas de los superclientes, si existen",
+        description="Campo legado. En las respuestas expandidas queda vacío porque routes ya contiene todos los clientes",
     )
     qubits: Optional[int] = Field(None, description="Qubits del mayor QUBO generado")
     fallback_reason: Optional[str] = Field(None, description="Motivo de derivacion a solver clasico")
+    seed: Optional[int] = Field(None, description="Semilla utilizada por el fallback clásico")
+    solver_details: Optional[dict[str, Any]] = Field(None,
+        description="Detalles del fallback, incluidos el límite de viajes y los viajes adicionales")
 
 
 # Resolución de referencias circulares para Pydantic V2

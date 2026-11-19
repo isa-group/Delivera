@@ -46,8 +46,9 @@ public class SolverController {
                             value = SOLVER_CATALOG_EXAMPLE)))
     @GetMapping
     public ResponseEntity<SolverCatalog> listSolvers(
-            @Parameter(description = "If true, checks the health of each engine and fills in the status field. " +
-                    "Adds latency to the response (up to 2 seconds per unavailable engine).")
+            @Parameter(description = "If true, fills in the status field with each engine's health. " +
+                    "Results are cached (positive and negative TTLs), so only engines without a valid " +
+                    "cached entry are probed; an uncached unavailable engine may add up to 2 seconds.")
             @RequestParam(defaultValue = "false") boolean includeStatus) {
         return ResponseEntity.ok(SolverCatalog.of(registry.findAll(includeStatus)));
     }

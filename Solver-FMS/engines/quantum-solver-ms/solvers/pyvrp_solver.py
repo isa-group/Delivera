@@ -3,12 +3,9 @@ from collections import defaultdict
 from pyvrp import Model
 from pyvrp.stop import MaxRuntime
 from domain.models import (
-    CustomerDto,
-    DepotDto,
     RouteDto,
     RoutingRequest,
     RoutingResponse,
-    VehicleDto,
 )
 
 def solve_with_pyvrp(
@@ -154,46 +151,4 @@ def solve_with_pyvrp(
         total_distance=float(res.cost()),
         is_feasible=all(route.is_feasible() for route in res.best.routes()),
         routes=routes,
-    )
-
-def solve_internal_tsp(
-    super_client: CustomerDto,
-    max_runtime_sec: int = 10,
-) -> RoutingResponse:
-    """
-    Devuelve la ruta y el costo de enrutamiento interno para un Súper-Cliente.
-    Al encapsular un único vehículo de capacidad infinita, el problema colapsa matemáticamente a un TSP.
-    """
-    # Si el "Súper-Cliente" es en realidad un solo nodo (outlier topológico), el costo interno es 0.
-    if not super_client.internal_nodes or len(super_client.internal_nodes) <= 1:
-        return RoutingResponse(
-            instance_name=f"TSP_{super_client.id}",
-            solver_used="PyVRP internal TSP",
-            execution_time_ms=0.0,
-            total_distance=0.0,
-            is_feasible=True,
-            routes=[],
-        )
-        
-    # El origen del micro-enrutamiento será el baricentro geométrico calculado
-    depot = DepotDto(id=f"D_{super_client.id}", x=super_client.x, y=super_client.y)
-    
-    # Inyectamos un vehículo fantasma de capacidad desmesurada para asegurar que el motor
-    # no intente partir la ruta por restricciones de peso.
-    vehicle = VehicleDto(id="V_TSP", capacity=9999999)
-    
-    mini_request = RoutingRequest(
-        instance_name=f"TSP_{super_client.id}",
-        depots=[depot],
-        customers=super_client.internal_nodes,
-        vehicles=[vehicle]
-    )
-    
-    # Resolvemos el TSP interno (al ser un grafo diminuto, 1 segundo es más que suficiente)
-    response = solve_with_pyvrp(mini_request, max_runtime_sec=max_runtime_sec)
-    return response.model_copy(
-        update={
-            "instance_name": mini_request.instance_name,
-            "solver_used": "PyVRP internal TSP",
-        }
     )

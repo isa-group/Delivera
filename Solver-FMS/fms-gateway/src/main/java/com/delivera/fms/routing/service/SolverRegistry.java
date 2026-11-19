@@ -21,6 +21,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -41,8 +42,17 @@ public class SolverRegistry {
     private static final Duration HEALTH_TIMEOUT = Duration.ofSeconds(2);
 
     private final Map<TypeSolver, RegisteredSolver> solvers;
+    private final HealthStatusCache healthCache;
 
-    public SolverRegistry(EngineProperties properties, WebClient.Builder builder) {
+    /**
+     * Sondas en curso por URL de motor. Mientras una sonda no termina, quien pida el
+     * estado de ese motor (otra peticion al catalogo u otro solver del mismo motor)
+     * espera a esa misma sonda en vez de lanzar otra.
+     */
+    private final Map<String, Mono<SolverStatus>> probesInFlight = new ConcurrentHashMap<>();
+
+    public SolverRegistry(EngineProperties properties, WebClient.Builder builder, HealthStatusCache healthCache) {
+        this.healthCache = healthCache;
         Map<TypeSolver, RegisteredSolver> registered = properties.getEngines().entrySet().stream()
                 .filter(entry -> entry.getValue().isEnabled())
                 .sorted(Comparator
@@ -69,7 +79,7 @@ public class SolverRegistry {
                 engine.isDeterministic(),
                 parameters(type, engine),
                 SolverStatus.UNKNOWN);
-        return new RegisteredSolver(info, builder.baseUrl(engine.getUrl()).build());
+        return new RegisteredSolver(info, engine.getUrl(), builder.baseUrl(engine.getUrl()).build());
     }
 
     /**
@@ -104,9 +114,11 @@ public class SolverRegistry {
     /**
      * Devuelve el catalogo completo de solvers registrados.
      *
-     * @param includeStatus si es true, consulta en paralelo la salud de cada
-     *                      motor y rellena el campo status; en caso contrario
-     *                      todos los solvers se devuelven como UNKNOWN.
+     * @param includeStatus si es true, rellena el campo status con la salud de
+     *                      cada motor. El estado sale de la cache si sigue
+     *                      vigente; solo se sondean los motores sin entrada
+     *                      valida. En caso contrario todos los solvers se
+     *                      devuelven como UNKNOWN.
      */
     public List<SolverInfo> findAll(boolean includeStatus) {
         List<SolverInfo> catalog = solvers.values().stream()
@@ -237,19 +249,54 @@ public class SolverRegistry {
     }
 
     private Mono<SolverStatus> probeAsync(RegisteredSolver solver) {
+        String url = solver.url();
+        SolverStatus cached = healthCache.get(url).orElse(null);
+        if (cached != null) {
+            return Mono.just(cached);
+        }
+        return probesInFlight.computeIfAbsent(url, key -> sendProbe(solver));
+    }
+
+    private Mono<SolverStatus> sendProbe(RegisteredSolver solver) {
+        String url = solver.url();
         return solver.client().get()
                 .uri("/actuator/health")
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(HEALTH_TIMEOUT)
                 .map(body -> SolverStatus.UP)
+                .defaultIfEmpty(SolverStatus.UP)
                 .onErrorResume(ex -> {
-                    log.debug("Health probe failed for {}: {}", solver.info().type(), ex.getMessage());
+                    log.debug("Health probe failed for {}: {}", url, ex.getMessage());
                     return Mono.just(SolverStatus.DOWN);
-                });
+                })
+                .doOnNext(status -> healthCache.put(url, status))
+                // Al terminar sale de las sondas en curso: desde ahi responde la cache.
+                .doFinally(signal -> probesInFlight.remove(url))
+                .cache();
     }
 
-    /** Metadatos publicos de un solver junto al cliente HTTP de su motor. */
-    private record RegisteredSolver(SolverInfo info, WebClient client) {
+    /** El motor acaba de resolver un problema, asi que esta vivo. */
+    public void markHealthy(TypeSolver type) {
+        RegisteredSolver solver = solvers.get(type);
+        if (solver != null) {
+            healthCache.put(solver.url(), SolverStatus.UP);
+        }
+    }
+
+    /**
+     * No se pudo hablar con el motor. Se descarta su estado cacheado para que la
+     * proxima consulta lo sondee, en vez de marcarlo DOWN: el fallo puede ser de esa
+     * peticion (por ejemplo, una resolucion que supera el timeout) y no del motor.
+     */
+    public void forgetHealth(TypeSolver type) {
+        RegisteredSolver solver = solvers.get(type);
+        if (solver != null) {
+            healthCache.invalidate(solver.url());
+        }
+    }
+
+    /** Metadatos publicos de un solver junto a la URL y el cliente HTTP de su motor. */
+    private record RegisteredSolver(SolverInfo info, String url, WebClient client) {
     }
 }

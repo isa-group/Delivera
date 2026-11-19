@@ -695,6 +695,8 @@ routes:
     GENETIC: Genético
     GREEDY: Voraz
     ANNEALING: Recocido
+    QISKIT: Cuántico (Qiskit)
+    DWAVE: Cuántico (D-Wave)
   tables:
     group: Grupo
     slot: Ranura
