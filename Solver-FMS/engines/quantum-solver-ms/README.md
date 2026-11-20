@@ -250,7 +250,7 @@ euclídea redondeada y la flota por bloques uniformes de depósito. No recupera 
 matriz ni asignaciones que no existan en el DTO nativo. Dentro de cada bloque,
 el fallback sí puede utilizar vehículos con capacidades diferentes.
 
-La salida identifica `solver_used: "HGS-ADC classical fallback"` y conserva
+La salida identifica `solver_used: "HGS"` y conserva
 `fallback_reason`, `seed`, el `trip_index` de cada ruta y `solver_details` con los
 campos de PyVRP2, como `maxTripsPerVehicle`, `additionalTrips` y `scheduleValidated`.
 Las paradas nativas incluyen el depósito en ambos extremos. Si no se encuentra
@@ -709,7 +709,7 @@ un fallback PyVRP con su correspondiente `fallback_reason`.
 }
 ```
 
-`fallback_reason` identifica por qué se abandonó la ruta cuántica. Una respuesta con `solver_used` igual a `HGS-ADC classical fallback` no representa una ejecución QAOA exitosa. Representa una derivación controlada a PyVRP2. En cambio, `solver_used` igual a `PyVRP` y `execution_mode` igual a `classical_direct` identifican una solicitud clásica explícita. `routes` contiene las rutas realmente decodificadas. Un fallback sin solución factible devuelve rutas vacías y coste `null`.
+`fallback_reason` identifica por qué se abandonó la ruta cuántica. Una respuesta con `solver_used` igual a `HGS-ADC` no representa una ejecución QAOA exitosa. Representa una derivación controlada a PyVRP2. En cambio, `solver_used` igual a `PyVRP` y `execution_mode` igual a `classical_direct` identifican una solicitud clásica explícita. `routes` contiene las rutas realmente decodificadas. Un fallback sin solución factible devuelve rutas vacías y coste `null`.
 
 ## 5. Evaluación local con Cordeau
 

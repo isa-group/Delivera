@@ -3,8 +3,9 @@ from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
 from typing import Optional, Dict, Any
 
-from domain.models import RoutingRequest
+from domain.models import RoutingRequest, RoutingResponse
 from api.adapter.models import PyvrpParameters, RoutingRequestStd, RoutingResponseStd
+from api.adapter.models import QuantumParameters
 from api.adapter.specification import OpenSpecificationFactory, OpenMetada
 from api.adapter.adapter import Adapter
 from api.adapter.fallback_adapter import fallback_parameters
@@ -135,7 +136,7 @@ async def solve_quantum_route(
     Qiskit y D-Wave aplican el flujo de preparación cuántica. PyVRP resuelve
     directamente la instancia global cuando se solicita ``classical``.
     """
-    # TODO:  request =  Adapter.adapt_request(_request)
+
     backend = _get_backend(x_target_quantum_backend)
     # Se valida antes de ejecutar Qiskit, aunque finalmente no haga falta fallback.
     try:
@@ -220,8 +221,59 @@ async def solve_quantum_route(
     metrics["preparation"] = preparation_metrics
     metrics["backend_requested"] = backend
 
-    # TODO Adapter.adapt_response(raw_response),
     return {
         "routing_response": raw_response.model_dump(),
         "metrics": metrics
     }
+
+
+async def base_solve_quantum_route( 
+    request: RoutingRequestStd,
+    engine: str
+    
+):
+    """Lee las opciones de Delivera desde parameters, sin cabeceras de configuración."""
+    try:
+        options: QuantumParameters = QuantumParameters.model_validate(request.parameters)
+    except ValidationError as exc:
+        errors = [
+            {**error, "loc": ("body", "parameters", *error["loc"])}
+            for error in exc.errors(include_url=False)
+        ]
+        raise RequestValidationError(errors) from exc
+    
+    adapted_request = Adapter.adapt_request(request)
+    print(adapted_request.parameters)
+    adapted_request.parameters.pop("classicalTimeLimit",None)
+    adapted_request.parameters.pop("maxQubits",None)
+    adapted_request.parameters.pop("includeMtz",None)
+    
+    solution = await solve_quantum_route(
+        adapted_request,
+        x_target_quantum_backend = engine,
+        x_quantum_timeout_seconds = options.quantum_timeout_seconds,
+        x_classical_time_limit = options.classical_time_limit,
+        x_max_qubits= options.max_qubits,
+        x_include_mtz= options.include_mtz
+        
+    )
+
+    return Adapter.adapt_response(
+        RoutingResponse(**solution["routing_response"])
+    )
+
+
+@app.post("/api/v2/DWAVE/solve", response_model=RoutingResponseStd)
+async def solve_dwave_quantum_route( 
+    request: RoutingRequestStd,
+    
+):
+   return await base_solve_quantum_route(request,"dwave")
+
+
+@app.post("/api/v2/QISKIT/solve", response_model=RoutingResponseStd)
+async def solve_dwave_quantum_route( 
+    request: RoutingRequestStd,
+    
+):
+   return await base_solve_quantum_route(request,"qiskit")

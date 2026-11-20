@@ -45,7 +45,7 @@ class PyvrpFallbackAdapter:
     def to_response(response: RoutingResponseStd, reason: str) -> RoutingResponse:
         return RoutingResponse(
             instance_name=response.problem_id,
-            solver_used=f"{response.solver_used} classical fallback",
+            solver_used=f"{response.solver_used}",
             execution_time_ms=response.computation_time_ms,
             total_distance=response.total_cost,
             is_feasible=response.is_feasible,

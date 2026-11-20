@@ -107,7 +107,7 @@ class TestQuantumFallback(unittest.TestCase):
                 self.assertEqual(status, 200)
                 response = payload["routing_response"]
                 self.assertTrue(response["is_feasible"])
-                self.assertEqual(response["solver_used"], "HGS-ADC classical fallback")
+                self.assertEqual(response["solver_used"], "HGS")
                 self.assertEqual(response["instance_name"], request.instance_name)
                 self.assertEqual(response["seed"], 7)
                 self.assertEqual(response["solver_details"]["additionalTrips"], 1)

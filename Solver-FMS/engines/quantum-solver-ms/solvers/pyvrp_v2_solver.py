@@ -22,7 +22,7 @@ from services.vehicle_strategy_service import (
     VehicleStrategy,
 )
 
-SOLVER_TYPE = "HGS-ADC"
+SOLVER_TYPE = "HGS"
 # El factor conserva tres decimales de la unidad recibida, sin suponer kilómetros.
 # Se aplica también a la matriz recibida en distanceMatrix, no solo a la calculada.
 DISTANCE_SCALE = 1000
@@ -85,7 +85,7 @@ def use_matrix_or_default(model: Model, location_by_matrix_index: dict,
 # TODO
 def hgs_adc_manifest():
     metadata = OpenMetada(
-        name="hgs-adc",
+        name="HGS",
         namespace="delivera.solvers",
         version="1.0.0"
     )    
