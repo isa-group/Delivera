@@ -61,7 +61,7 @@ public class FmsSpaceOrchestrator {
         .map(
             kv -> kv.getKey().replace("SolverAvailability","")
         ).collect(Collectors.toSet());
-        getUsageLimitByFeature(orgId, "annealingSolverExecutions");
+
         return solvers;
     }
 

@@ -10,6 +10,7 @@ import com.delivera.data.fms.dto.RoutingResponse;
 import com.delivera.data.fms.dto.SolveClusterRequest;
 import com.delivera.data.fms.dto.SolveInstanceClusterRequest;
 import com.delivera.data.fms.dto.TypeSolver;
+import com.delivera.data.fms.dto.solver.info.SolverSummary;
 import com.delivera.data.fms.service.FmsAvailableSolvers;
 import com.delivera.data.fms.service.FmsRoutingService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -42,12 +44,23 @@ public class FmsRoutingController {
     private final SecurityUtils securityUtils;
     private final FmsAvailableSolvers availableSolvers;
 
+    // TODO: WE ARE NOT USING THIS
+   @Operation(summary = "Get user available solvers ",
+            description = "Obtain solvers that are contracted by the user")
+   @GetMapping("/available/solvers/names")
+   public ResponseEntity<Set<String>> availableSolversNames() {
+        return ResponseEntity.ok(
+            availableSolvers.getAvailableUserSolvers(securityUtils.getCurrentOrgId().toString())
+        );
+
+   }
+
    @Operation(summary = "Get user available solvers ",
             description = "Obtain solvers that are contracted by the user")
    @GetMapping("/available/solvers")
-   public ResponseEntity<Set<String>> availableSolvers() {
+   public ResponseEntity<List<SolverSummary>> availableSolvers() {
         return ResponseEntity.ok(
-            availableSolvers.getAvailableUserSolvers(securityUtils.getCurrentOrgId().toString())
+            availableSolvers.getAvailableSolvers(securityUtils.getCurrentOrgId().toString())
         );
 
    }

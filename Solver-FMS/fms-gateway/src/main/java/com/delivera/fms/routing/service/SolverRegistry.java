@@ -44,6 +44,8 @@ public class SolverRegistry {
     private final Map<TypeSolver, RegisteredSolver> solvers;
     private final HealthStatusCache healthCache;
 
+    private final String DEFAULT_URL = "/api/v1/engine/solve";
+
     /**
      * Sondas en curso por URL de motor. Mientras una sonda no termina, quien pida el
      * estado de ese motor (otra peticion al catalogo u otro solver del mismo motor)
@@ -79,7 +81,11 @@ public class SolverRegistry {
                 engine.isDeterministic(),
                 parameters(type, engine),
                 SolverStatus.UNKNOWN);
-        return new RegisteredSolver(info, engine.getUrl(), builder.baseUrl(engine.getUrl()).build());
+        return new RegisteredSolver(
+            info, engine.getUrl(), 
+            builder.baseUrl(engine.getUrl()).build(),
+            engine.getPath().isBlank() ? DEFAULT_URL : engine.getPath() 
+        );
     }
 
     /**
@@ -152,6 +158,20 @@ public class SolverRegistry {
                     + ". Available: " + solvers.keySet());
         }
         return solver.client();
+    }
+
+    /**
+     * Cliente HTTP del motor que implementa el solver indicado.
+     *
+     * @throws SolverNotFoundException si el tipo no esta registrado
+    */
+    public String pathFor(TypeSolver type) {
+        RegisteredSolver solver = solvers.get(type);
+        if (solver == null) {
+            throw new SolverNotFoundException("No engine configured for solver type: " + type
+                    + ". Available: " + solvers.keySet());
+        }
+        return solver.path();
     }
 
     /**
@@ -297,6 +317,6 @@ public class SolverRegistry {
     }
 
     /** Metadatos publicos de un solver junto a la URL y el cliente HTTP de su motor. */
-    private record RegisteredSolver(SolverInfo info, String url, WebClient client) {
+    private record RegisteredSolver(SolverInfo info, String url, WebClient client, String path) {
     }
 }
