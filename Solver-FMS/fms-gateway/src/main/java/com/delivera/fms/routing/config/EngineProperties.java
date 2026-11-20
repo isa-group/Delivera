@@ -52,6 +52,8 @@ public class EngineProperties {
         @NotBlank
         private String url;
 
+        private String path;
+
         /** Nombre legible del solver. Por defecto, el nombre de la constante. */
         private String displayName;
 
@@ -81,6 +83,14 @@ public class EngineProperties {
 
         public String getUrl() {
             return url;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public void setPath(String path) {
+            this.path = path;
         }
 
         public void setUrl(String url) {

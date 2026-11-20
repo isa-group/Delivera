@@ -38,6 +38,7 @@ public class EngineDispatcher {
     public RoutingResponse dispatch(RoutingRequest request) {
         TypeSolver solverType = request.solverType();
         WebClient client = registry.clientFor(solverType);
+        String path = registry.pathFor(solverType);
 
         Map<String, Object> parameters = registry.resolveParameters(solverType, request.parameters());
         RoutingRequest enriched = request.withParameters(parameters);
@@ -47,7 +48,7 @@ public class EngineDispatcher {
 
         try {
             RoutingResponse response = client.post()
-                    .uri("/api/v1/engine/solve")
+                    .uri(path)
                     .bodyValue(enriched)
                     .retrieve()
                     .bodyToMono(RoutingResponse.class)

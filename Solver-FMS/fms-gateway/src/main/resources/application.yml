@@ -31,6 +31,7 @@ fms:
   engines:
     random:
       url: http://random-engine:8092
+      path: /api/v1/engine/solve
       display-name: Random
       description: Assigns customers to vehicles at random while honouring capacity. Serves as the comparison baseline
       strategy: Baseline
@@ -51,6 +52,7 @@ fms:
           max: 281474976710655
     greedy:
       url: http://greedy-engine:8091
+      path: /api/v1/engine/solve
       display-name: Greedy
       description: Nearest-neighbour constructive heuristic with assignment to the closest depot
       strategy: Constructive heuristic
@@ -61,6 +63,7 @@ fms:
       parameters: []
     genetic:
       url: http://genetic-engine:8093
+      path: /api/v1/engine/solve
       display-name: Genetic Algorithm
       description: Evolutionary metaheuristic with BCRC crossover, intra- and inter-depot mutations, Prins' optimal split and local search
       strategy: Metaheuristic
@@ -187,6 +190,7 @@ fms:
 
     annealing:
       url: http://annealing-engine:8094
+      path: /api/v1/engine/solve
       display-name: Simulated Annealing
       description: Single-solution metaheuristic with the Metropolis criterion, intra- and inter-depot neighbourhoods, Prins' optimal split and periodic local search. Stops on a time budget and returns the anytime curve
       strategy: Metaheuristic
@@ -311,6 +315,7 @@ fms:
     # hide them.
     qiskit:
       url: http://quantum-engine:8095
+      path: /api/v2/QISKIT/solve
       display-name: Quantum QAOA (Qiskit)
       description: >-
         Hybrid quantum-classical solver of the quantum line (cqvrp). It splits the instance by
@@ -359,6 +364,7 @@ fms:
           default-value: false
     dwave:
       url: http://quantum-engine:8095
+      path: /api/v2/DWAVE/solve
       display-name: Quantum hybrid (D-Wave Leap)
       description: >-
         Hybrid quantum-classical solver of the quantum line (cqvrp) on D-Wave's cloud. It splits
@@ -384,6 +390,18 @@ fms:
           default-value: 60
           min: 1
           max: 300
+    hgs:
+      url: http://quantum-engine:8095
+      path: /api/v1/HGS-ADC/solve
+      display-name: Quantum hybrid (D-Wave Leap)
+      description: >-
+        TEST
+      strategy: TEST
+      technology: TEST
+      version: 1.0.0
+      deterministic: false
+      order: 60
+      parameters: 
 
 springdoc:
   api-docs:
