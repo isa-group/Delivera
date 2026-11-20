@@ -709,6 +709,7 @@ routes:
     ANNEALING: Annealing
     QISKIT: Quantum (Qiskit)
     DWAVE: Quantum (D-Wave)
+    HGS: HGS
 
   tables:
     group: Group
@@ -747,6 +748,8 @@ routes:
     DWAVE:
       name: Quantum (D-Wave)
       description: "Hybrid quantum-classical solver on D-Wave's cloud. It sends each region to the Leap hybrid solver, which handles much larger problems than the local simulator. It needs a D-Wave account; without access, a classical solver is used. Experimental."
+    HGS:
+      name: Hybrid Genetic Search
   slot:
     title: What is an execution slot?
     p1: A slot represents an independent solver execution.

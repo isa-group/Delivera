@@ -61,8 +61,10 @@ export function useRoutes() {
 
     const maxPerExecution = ref(20)
 
+
     const {
-        featureContexts
+        featureContexts,
+        errorLoadingJwt
     } = useSpaceJwt()
 
     watch(featureContexts, () => {
@@ -94,6 +96,7 @@ export function useRoutes() {
         data,
         dataError,
         selectedBenchmark,
+        allBenchmarkError,
         deliveryWindowConfig,
         loadInitialData: loadInitialData,
         isBenchmark,
@@ -109,13 +112,25 @@ export function useRoutes() {
         groupsRows
     } = groupingUtils
     const solverUtils = useRoutesSolver(wizard,modesUtils, groupingUtils)
-    const {executeAllSelected,executeSlots, getSolverDistance, routesBySolver} = solverUtils
+    const {executeAllSelected,executeSlots, getSolverDistance, routesBySolver, routesErrors} = solverUtils
     const { t } = useI18n() 
     let initialCustomerLayer = null
     let initalDepotLayer = null
     let finalDepotLayer = null
     const groupLayers = ref([])
     const selectedClusterId = ref(null)
+
+    const globlaErrors = computed(() => {
+        console.log('aaa')
+        return [
+            { source:"availableSolvers" ,error: errorLoadingJwt.value},
+            {source: "benchmarksLoad", error: allBenchmarkError.value},
+            { source:"obtainingData", error: dataError.value},
+            {source: "groupingData", error: groupsError.value},
+            ...routesErrors.value
+        ]
+    })
+    
 
     const computedMetricsBySlot = computed(() => {
         const result = []
@@ -341,6 +356,7 @@ export function useRoutes() {
         mapEl,
         computedMetricsBySlot,
         featureContexts,
+        globlaErrors,
         runSolvers,
         runInitialData,
         runGrouping,

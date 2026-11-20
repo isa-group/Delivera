@@ -26,7 +26,7 @@ export function useLoad() {
     
     }
 
-    async function post(_api,_url, _body ,_ref, _refLoadError,  _refLoaded = null, _transformationFunction = null) {
+    async function post(_api,_url, _body ,_ref, _refLoadError,  _refLoaded = null, _transformationFunction = null, _errorFunction = null) {
         if (_refLoaded != null && _refLoaded.value) return;
         
         if (_api == null || _url == null || _ref == null || _refLoadError == null) return;
@@ -43,7 +43,10 @@ export function useLoad() {
             if(_refLoaded != null) _refLoaded.value = true
           } else {
             const error = await response.json().catch(()=> null)
-            _refLoadError.value = _api.translateError(error, 'error.connection')
+            _refLoadError.value = _errorFunction == null?
+                _api.translateError(error, 'error.connection') :
+                _errorFunction(error)
+    
           }
         } catch {
           _refLoadError.value = t('error.connection')

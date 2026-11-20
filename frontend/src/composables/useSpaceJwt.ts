@@ -62,6 +62,8 @@ export interface SpaceContext {
     payload: Ref<SpaceJwtPayload | null>
 
     featureContexts: ComputedRef<FeatureContext[]>
+
+    errorLoadingJwt: Ref<string | null>
 }
 
 
@@ -162,6 +164,7 @@ export function useSpaceJwt(): SpaceContext {
 
     return {
         payload: jwtPayload,
-        featureContexts: featureContexts
+        featureContexts: featureContexts,
+        errorLoadingJwt: errorLoadingJwt
     }
 }

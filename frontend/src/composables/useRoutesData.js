@@ -34,6 +34,7 @@ export function useRoutesData({
     const selectedBenchmark = ref({})
     
     const dataError = ref()
+
     const {executeLoad, post} = useLoad()
     const dataApi = useServices("data-service")
     const url = "/fms/routing/data"
@@ -164,6 +165,7 @@ export function useRoutesData({
         toDate,
         showConfig,
         allBenchmark,
+        allBenchmarkError,
         isBenchmarkComputed,
         possibleBenchmarks,
         selectedBenchmark,

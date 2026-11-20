@@ -29,7 +29,6 @@ export interface ParamSpecification {
 
 }
 
-
 export function useParamBuilder() {
     const { getDisplayName }= useSmartTranslation()
 

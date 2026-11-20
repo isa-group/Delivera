@@ -11,6 +11,7 @@ import DockBar  from '@/components/windows/DockBar.vue';
 import { useSmartTranslation } from '@/composables/useSmartTranslation.js';
 import ParamsRender from '@/components/paramsRenderer/paramsRender.vue';
 import { useParamBuilder } from '@/composables/useParamBuilder.js';
+import ErrorCard from '@/components/errorCard/ErrorCard.vue';
 
 
 
@@ -30,6 +31,7 @@ const {
         groupingParams,
         groupingNormalSelectors,
         solvers,
+        solverParams, // TODO :)
         selectedSolversId,
         selectedDataModeId,
         groupingParamsDisabled,
@@ -47,6 +49,7 @@ const {
         includeNullsToDate,
         featureContexts,
         allSolvers,
+        globlaErrors,
         selectPhase,
         showGroupDatatable,
         canGoToPhase,
@@ -90,100 +93,6 @@ const {
         y: (window.innerHeight - 400) / 2
     }
 
-    const {params, errors} = build( [ {
-                        name: "mutationRate",
-                        type: "NUMBER",
-                        default: 0.8,
-                        minimum:  0.2,
-                        maximum: 1,
-                        enabled: true
-                    },
-                    {
-                        name: "mutationProbability",
-                        type: "NUMBER",
-                        default: 15,
-                        minimum:  1,
-                        maximum: 300,
-                        enabled: true
-                    },
-                    {
-                        name: "mutationProbability",
-                        type: "INTEGER",
-                        default: 30000000,
-                        minimum:  1,
-                        maximum: 30000000,
-                        enabled: true
-                    },
-                    {
-                        name: "solverOptions",
-                        type: "INTEGER",
-                        default: 100,
-                        minimum:  0,
-                        maximum: 300,
-                        enabled: true,
-                        step: 1
-
-                    },
-                    {
-                        name: "maxVehicles",
-                        type: "BOOLEAN",
-                        //default: false,
-                        enabled: true
-                    },
-                    {
-                        name: "selectUnit",
-                        enum: ['depot-x','depot-y','depot-z'],
-                        //default: 'depot-x',
-                        enabled: true,
-                        type: null
-                    },
-                    {
-                        name: "solverConfig2",
-                        type: "NUMBER",
-                        default: 100,
-                        minimum:  0,
-                        enabled: true,
-                        step: 1
-
-                    },
-                    {
-                        name: "solverConfig1",
-                        type: "NUMBER",
-                        default: 100,
-                        minimum:  0,
-                        maximum: 300,
-                        enabled: false,
-                        step: 1
-
-                    },
-                    {
-                        name: "solverOptions1",
-                        type: "INTEGER",
-                        default: 100,
-                        minimum:  0,
-                        maximum: 300,
-                        enabled: false,
-                        step: 1
-
-                    },
-                    {
-                        name: "maxVehicles1",
-                        type: "BOOLEAN",
-                        //default: false,
-                        enabled: false
-                    },
-                    {
-                        name: "selectUnit1",
-                        enum: ['depot-x','depot-y','depot-z'],
-                        //default: 'depot-x',
-                        enabled: false,
-                        type: null
-                    },
-
-                    
-    ])
-    const x = params
-    console.log(errors)
 </script>
 
 <template>
@@ -208,23 +117,6 @@ const {
 
 
         <DockBar>
-            <FloatingPanel
-                :title="getDisplayName('Config')"
-                :panel-id="'Config'"
-                :display-name="getDisplayName('Config')"
-                :icon="'pi pi-cog'"
-                :initial-x="300"
-                :initial-y="80"
-                :start-minimized="false"
-            > 
-                <ParamsRender
-                    :params="x"
-                >
-                
-                </ParamsRender>
-        
-            </FloatingPanel>
-            
             <FloatingPanel
                 :title="t('routes.routing')"
                 :panel-id="'Routing'"
@@ -548,7 +440,7 @@ const {
                                         <Checkbox
                                             v-model="data[solverName]"
                                             binary
-                                            :disabled="disableSelection(data.id, solverName)"
+                                            
                                         />
                                     </template>
                                 </Column>
@@ -605,9 +497,7 @@ const {
                 :initial-x="errorPanelPosition?.x"
                 :initial-y="errorPanelPosition?.y"
             >
-                <div :key="error" v-for="error in errors">
-                    {{ error}}
-                </div>
+               <ErrorCard :errors="globlaErrors" />
 
             </FloatingPanel>
             <FloatingPanel
@@ -635,6 +525,34 @@ const {
             >
                 <QuotaUsage  :features="featureContexts"/>
 
+            </FloatingPanel>
+            <FloatingPanel
+                :title="getDisplayName('Config')"
+                :panel-id="'Config'"
+                :display-name="getDisplayName('Config')"
+                :icon="'pi pi-cog'"
+                :initial-x="300"
+                :initial-y="80"
+                :start-minimized="false"
+            >   
+                <div  
+                    v-if="solverParams.length > 0"
+                >
+                    <div class="solver-config-card" :key="solver"  v-for="[solver,params] in solverParams">
+                        <div>
+                            <h2>{{solver}}</h2>
+                        </div>
+                        <ParamsRender
+                            :key="solver"
+                            :params="params"
+                        />
+                        <div v-if="params.length == 0">
+                            {{"EMPTY"}}
+                        </div>
+                    </div>
+                </div>
+                
+        
             </FloatingPanel>
         </DockBar> 
     </div>

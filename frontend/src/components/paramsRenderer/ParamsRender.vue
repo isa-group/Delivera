@@ -25,6 +25,20 @@ emit(
     structuredClone(values)
 )*/
 
+watch(
+    () => props.params,
+    (params) => {
+        params.forEach(param => {
+            values[param.name] = param.default
+        })
+    },
+    {
+        immediate: true,
+        deep: true
+    }
+)
+
+
 watch(values,() =>{
     console.log(values)
 }, {deep:true})

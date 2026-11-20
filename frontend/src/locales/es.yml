@@ -697,6 +697,7 @@ routes:
     ANNEALING: Recocido
     QISKIT: Cuántico (Qiskit)
     DWAVE: Cuántico (D-Wave)
+    HGS: HGS
   tables:
     group: Grupo
     slot: Ranura
@@ -733,6 +734,9 @@ routes:
     DWAVE:
       name: Cuántico (D-Wave)
       description: "Resolutor híbrido cuántico-clásico en la nube de D-Wave. Envía cada región al resolutor híbrido de Leap, que admite problemas mucho mayores que el simulador local. Necesita una cuenta de D-Wave; sin acceso, se usa un resolutor clásico. Experimental."
+    HGS:
+      name: Búsqueda genética híbrida
+      description: "Utiliza Hybrid Genetic Search (HGS), una combinación de algoritmo genético y búsqueda local avanzada. Mantiene una población diversa de soluciones que evoluciona mediante cruces, reparaciones y mejoras iterativas, logrando rutas de alta calidad incluso en instancias complejas."
   slot:
     title: ¿Qué es una ranura de ejecución?
     p1: Una ranura representa una ejecución independiente del resolutor.

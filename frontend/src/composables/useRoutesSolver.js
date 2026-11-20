@@ -4,6 +4,8 @@ import { computed, onMounted, ref, watch } from "vue"
 import { useLoad } from "./useLoad"
 import { useServices } from "./useServices"
 import { addlayer, initSolverLayer } from "./useDeliveraMap"
+import { icon } from "leaflet"
+import { useParamBuilder } from "./useParamBuilder"
 
 export function useRoutesSolver(
     {
@@ -35,30 +37,62 @@ export function useRoutesSolver(
 
     const routesByCluster =ref({})
 
-    const routesErrorBySolver = ref({})
+    const {build} = useParamBuilder()
+
+    const routesErrors = ref([])
     const showCatalog = ref(false)
 
     const slotRows = computed(() => setSlotRows())
 
-    const userSolvers = ref({})
+    const userSolvers = ref([])
 
     const errorLoadingUserSolvers = ref('')
+
+    const solverParams = computed(() => {
+        const transformParam =  parameter => 
+            {
+                const tmp = {
+                    ...parameter,
+                    type: parameter.type === "DECIMAL" ? "NUMBER" : parameter.type,
+                    minimum:  parameter.min,
+                    maximum:  parameter.max,
+                    default: parameter.defaultValue ?? parameter.min ?? parameter.max,
+                    enabled: true
+                }
+    
+                return tmp
+            }
+
+        const paramsBySolver = {}
+        for (const solverInfo of userSolvers.value) {
+            const params = []
+            for (const param of solverInfo.parameters || []) {
+                const transformedParam = transformParam(param)
+                params.push(transformedParam)
+            }
+            const normalizedParams = build(params)
+            paramsBySolver[solverInfo?.solver] = normalizedParams.params
+        }
+     
+       
+
+        return Object.entries(paramsBySolver)
+
+    })
 
     onMounted(() => {
         executeLoad(
             dataApi, 
             "/fms/routing/available/solvers", 
             userSolvers, 
-            errorLoadingUserSolvers,
-            null, (data) => new Set(data)
+            errorLoadingUserSolvers
         ).then(() => {
-            console.log(userSolvers.value)
-            console.log(solvers.value)
+            console.log(solverParams.value)
         })
 
     })
 
-    const allSolvers = ref([
+    const allSolvers = [
         {
             id:1,
             name: t("routes.solvers.GREEDY.name"),
@@ -89,11 +123,18 @@ export function useRoutesSolver(
             description: t("routes.solvers.DWAVE.description"),
             icon: "pi pi-cloud",
             type: "DWAVE"
+        }, {
+            id: 6,
+            name: t("routes.solvers.HGS.name"),
+            description: t("routes.solvers.HGS.description"),
+            icon: "pi pi-slack",
+            type: "HGS"
         }
-    ])
+
+    ]
     
     const solvers = computed(() => {  
-        return allSolvers.value.filter(solver => userSolvers.value?.has?.(solver.type.toLowerCase()) )
+        return allSolvers.filter(solver => userSolvers.value?.has?.(solver.type.toLowerCase()) )
     })
 
     const translateSolver = {
@@ -101,7 +142,8 @@ export function useRoutesSolver(
         "GENETIC":"GENETIC",
         "ANNEALING": "ANNEALING",
         "QISKIT": "QISKIT",
-        "DWAVE": "DWAVE"
+        "DWAVE": "DWAVE",
+        "HGS":"HGS"
     }
     
     function getSolverNames() {
@@ -192,7 +234,7 @@ export function useRoutesSolver(
                 `${urlBase}?solverType=${translateSolver[solverType]}`,
                 instance,
                 routesByCluster,
-                routesErrorBySolver,
+                routesErrors,
                 null,
                 (data) => {
 
@@ -203,14 +245,24 @@ export function useRoutesSolver(
                     newRoutes[slotId].push({solver: solverType, solution: data})
                     
                     return newRoutes
+                },
+                (error) => {
+                    routesErrors.value = [
+                        ... routesErrors.value,
+                        {
+                            source: "executingSolvers",
+                            error: `SOLVER ${solverType} ERROR: ${error} `
+                        }
+                    ]
                 }
             )
         }else {
             // TODO: HANDLE ERRORS
-            routesErrorBySolver.value = {
-                ...routesErrorBySolver.value,
-                [solverType]: "NO SOLVER TYPE AVAILABLE"
-            }
+            routesErrors.value = [... routesErrors.value, {
+                    source: `availableSolvers`,
+                    error:`NO SOLVER TYPE AVAILABLE: ${solverType}`
+                }  
+            ]
             return () => {}
         }
         
@@ -343,9 +395,10 @@ export function useRoutesSolver(
         allSolvers,
         showCatalog,
         routesBySolver,
-        routesErrorBySolver,
+        routesErrors,
         slotRows,
         routesByCluster,
+        solverParams,
         selectSolver,
         showSolverSelector,
         promiseExecuteSolver,
