@@ -23,6 +23,7 @@ import com.delivera.data.vehicle.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,7 @@ import org.springframework.web.client.RestClient;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -309,13 +311,62 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
     }
 
     @Override
+    public Map<String, Object> analyzeForCompany(
+        UUID companyId,
+        Set<UUID> customers,
+        Set<UUID> depots,
+        TypeSolver solverType
+    ) {
+        RoutingRequest request = getRoutingRequestForCompany(
+            companyId,
+            customers,
+            depots,
+            solverType
+        );
+        return analyze(request);
+    }
+
+    @Override
+    public Map<String, Object> analyzeForInstance(
+        String name,
+        Set<String> customers,
+        Set<String> depots,
+        TypeSolver solverType
+    ) {
+        return analyze(instanceSubsetRequest(name, customers, depots, solverType));
+    }
+
+    private Map<String, Object> analyze(RoutingRequest request) {
+        return fmsRoutingClient.post()
+                .uri("/api/v1/fms/routing/analyze")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .retrieve()
+                .body(new ParameterizedTypeReference<Map<String, Object>>() {});
+    }
+
+    @Override
     public RoutingResponse solverForInstance(
         String name, 
         Set<String> customers, 
         Set<String> depots,
         TypeSolver solverType
     ) {
+        return fmsRoutingClient.post()
+                .uri("/api/v1/fms/routing/solve")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(instanceSubsetRequest(name, customers, depots, solverType))
+                .retrieve()
+                .body(RoutingResponse.class);
+    }
 
+    /** Peticion con solo los clientes y depositos indicados de una instancia benchmark. */
+    private RoutingRequest instanceSubsetRequest(
+        String name,
+        Set<String> customers,
+        Set<String> depots,
+        TypeSolver solverType
+    ) {
         RoutingRequest request = getInstance(
             name,
             solverType,
@@ -359,21 +410,13 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
             }
         }
 
-        request = buildRequest(
+        return buildRequest(
             customerDTOs, 
             depotDTOs, 
             vehicles, 
             solverType, 
             true
         );
-
-
-        return fmsRoutingClient.post()
-                .uri("/api/v1/fms/routing/solve")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(request)
-                .retrieve()
-                .body(RoutingResponse.class);
     }
 
 

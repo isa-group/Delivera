@@ -1,6 +1,7 @@
 package com.delivera.data.fms.service;
 
 
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -13,6 +14,17 @@ import com.delivera.data.fms.dto.RoutingResponse;
 import com.delivera.data.fms.dto.TypeSolver;
 
 public interface FmsRoutingService {
+
+    /** Analisis previo (sin resolver) de un subconjunto de la empresa con el solver indicado. */
+    Map<String, Object> analyzeForCompany(
+        UUID companyId,
+        Set<UUID> customers,
+        Set<UUID> depots,
+        TypeSolver solverType
+    );
+
+    /** Analisis previo (sin resolver) de un subconjunto de una instancia benchmark. */
+    Map<String, Object> analyzeForInstance(String name, Set<String> customers, Set<String> depots, TypeSolver solverType);
 
 
 
