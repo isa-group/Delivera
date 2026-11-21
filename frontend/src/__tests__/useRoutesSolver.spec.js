@@ -41,10 +41,10 @@ function loadLocale(name) {
 }
 
 describe('useRoutesSolver — solvers cuánticos', () => {
-  it('ofrece QISKIT y DWAVE junto a los clásicos', () => {
+  it('ofrece QISKIT, DWAVE y HGS junto a los clásicos', () => {
     const { solvers, getSolverNames } = setup()
 
-    expect(solvers.map((solver) => solver.type)).toEqual(['GREEDY', 'GENETIC', 'ANNEALING', 'QISKIT', 'DWAVE'])
+    expect(solvers.map((solver) => solver.type)).toEqual(['GREEDY', 'GENETIC', 'ANNEALING', 'QISKIT', 'DWAVE', 'HGS'])
     expect(getSolverNames()).toEqual(expect.arrayContaining(QUANTUM_SOLVERS))
   })
 

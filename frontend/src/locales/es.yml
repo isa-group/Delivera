@@ -690,6 +690,8 @@ routes:
     ANNEALING: Recocido
     QISKIT: Cuántico (Qiskit)
     DWAVE: Cuántico (D-Wave)
+    HGS: HGS (PyVRP)
+    quantumViability: Viabilidad cuántica
   tables:
     group: Grupo
     slot: Ranura
@@ -723,9 +725,19 @@ routes:
     QISKIT:
       name: Cuántico (Qiskit)
       description: "Resolutor híbrido cuántico-clásico. Resuelve cada región con el algoritmo cuántico QAOA en un simulador local de Qiskit y recurre a un resolutor clásico cuando una región no cabe en los qubits disponibles. Experimental: hoy solo las instancias muy pequeñas llegan a la parte cuántica."
+    HGS:
+      name: HGS (PyVRP)
+      description: "Algoritmo genético híbrido que combina la evolución de una población de soluciones con búsqueda local intensiva. Es uno de los métodos clásicos más competitivos para problemas de rutas y suele dar soluciones de muy alta calidad en pocos segundos."
     DWAVE:
       name: Cuántico (D-Wave)
       description: "Resolutor híbrido cuántico-clásico en la nube de D-Wave. Envía cada región al resolutor híbrido de Leap, que admite problemas mucho mayores que el simulador local. Necesita una cuenta de D-Wave; sin acceso, se usa un resolutor clásico. Experimental."
+  quantumViability:
+    analyze: Ver viabilidad cuántica
+    viable: Apto para la vía cuántica
+    notViable: No apto para la vía cuántica
+    noDepot: Sin unidad asignada dentro del radio máximo, así que no se puede analizar.
+    noDepotSummary: "{noDepot} grupos no tienen ninguna unidad dentro del radio máximo y no se analizan (en gris en el mapa)."
+    summary: "{viable} de {analyzed} grupos pasan el filtro cuántico. Solo es el filtro inicial: no comprueba si caben en los qubits disponibles."
   slot:
     title: ¿Qué es una ranura de ejecución?
     p1: Una ranura representa una ejecución independiente del resolutor.

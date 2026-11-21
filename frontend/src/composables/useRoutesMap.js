@@ -33,7 +33,8 @@ export function useRoutesMap() {
         "GENETIC":"#026901",
         "ANNEALING":"#460202",
         "QISKIT":"#6a1b9a",
-        "DWAVE":"#00838f"
+        "DWAVE":"#00838f",
+        "HGS":"#ef6c00"
     }
 
     const dashedColorBySolver = {
@@ -41,7 +42,8 @@ export function useRoutesMap() {
         "GENETIC":"#026901",
         "ANNEALING": "#460202",
         "QISKIT": "#6a1b9a",
-        "DWAVE": "#00838f"
+        "DWAVE": "#00838f",
+        "HGS": "#ef6c00"
     }
 
 

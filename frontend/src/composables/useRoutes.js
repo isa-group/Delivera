@@ -21,6 +21,7 @@ import { useRoutesModes } from "./useRoutesMode"
 import {  useRoutesData } from "./useRoutesData"
 import { useRoutesSolver } from "./useRoutesSolver"
 import { useRoutesGrouping } from "./useRoutesGrouping"
+import { useRoutesQuantumViability } from "./useRoutesQuantumViability"
 import { useNumberFormat } from "./useNumberFormat"
 
 
@@ -29,6 +30,10 @@ export function useRoutes() {
 
     const CLUSTER_COLOR = "#a78bfa"
     const DEPOT_COLOR = "#7c3aed"
+    const VIABLE_COLOR = "#16a34a"
+    const NOT_VIABLE_COLOR = "#dc2626"
+    const NO_DEPOT_COLOR = "#6b7280"
+    const VIABILITY_PANE = "quantumViability"
 
     // =====================================
     // [START] MAP
@@ -95,6 +100,9 @@ export function useRoutes() {
         groupsRows
     } = groupingUtils
     const solverUtils = useRoutesSolver(wizard,modesUtils, groupingUtils)
+    const viabilityUtils = useRoutesQuantumViability(groupingUtils, dataUtils)
+    const { viabilityByCluster, analyzeViability, resetViability } = viabilityUtils
+    let viabilityLayer = null
     const {executeAllSelected,executeSlots, getSolverDistance, routesBySolver} = solverUtils
     const { t } = useI18n() 
     let initialCustomerLayer = null
@@ -199,7 +207,61 @@ export function useRoutes() {
    
     
 
+    function removeViabilityLayer() {
+        if (viabilityLayer) {
+            viabilityLayer.remove()
+            layerOverlay.removeLayer(viabilityLayer)
+            viabilityLayer = null
+        }
+    }
+
+    function viabilityPopup(clusterId, { isViable, features, noDepot }) {
+        const title = `<strong>${t("routes.layers.cluster")} ${clusterId}</strong><br>`
+        if (noDepot) return title + t("routes.quantumViability.noDepot")
+        const value = (key) => features[key] ?? "-"
+        return title
+            + `${isViable ? t("routes.quantumViability.viable") : t("routes.quantumViability.notViable")}<br>`
+            + `G = ${value("demand_granularity")} (&lt; 0.6)<br>`
+            + `Tc = ${value("capacity_tightness")} (&le; 0.9)<br>`
+            + `S = ${value("spatial_compressibility_index")} (&le; 1.2)`
+    }
+
+    // Un círculo por grupo en su centroide. Va en píxeles y no en metros para que se
+    // vea con cualquier zoom: a escala de país, un grupo de pocos km no ocupa nada.
+    function drawViabilityLayer() {
+        removeViabilityLayer()
+        // Panel propio por encima de los iconos de clientes y unidades (markerPane, 600):
+        // si no, cada círculo queda tapado por el icono que hay en el centroide.
+        if (!map.getPane(VIABILITY_PANE)) {
+            map.createPane(VIABILITY_PANE).style.zIndex = 650
+        }
+        viabilityLayer = initLayer()
+        for (const cluster of groups.value?.clusters || []) {
+            const result = viabilityByCluster.value[cluster.id]
+            const metadata = cluster.metadata || {}
+            if (!result || metadata.centroidLat == null || metadata.centroidLng == null) continue
+            const color = result.noDepot ? NO_DEPOT_COLOR : (result.isViable ? VIABLE_COLOR : NOT_VIABLE_COLOR)
+            L.circleMarker([metadata.centroidLat, metadata.centroidLng], {
+                pane: VIABILITY_PANE,
+                radius: 22,
+                color,
+                fillColor: color,
+                fillOpacity: 0.3,
+                weight: 4,
+            }).bindPopup(viabilityPopup(cluster.id, result)).addTo(viabilityLayer)
+        }
+        viabilityLayer.addTo(map)
+        addlayer(layerOverlay, viabilityLayer, t("routes.layers.quantumViability"))
+    }
+
+    async function runViabilityAnalysis() {
+        await analyzeViability()
+        if (map) drawViabilityLayer()
+    }
+
     function removeGroupLayers() {
+        removeViabilityLayer()
+        resetViability()
         for (const {id, layer} of groupLayers.value || []) {
             layer.remove()
             layerOverlay.removeLayer(layer)
@@ -324,6 +386,8 @@ export function useRoutes() {
         ...groupingUtils,
         ...modesUtils,
         ...solverUtils,
+        ...viabilityUtils,
+        runViabilityAnalysis,
         mapEl,
         computedMetricsBySlot,
         runSolvers,

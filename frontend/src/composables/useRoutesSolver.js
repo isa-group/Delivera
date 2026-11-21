@@ -73,6 +73,12 @@ export function useRoutesSolver(
             description: t("routes.solvers.DWAVE.description"),
             icon: "pi pi-cloud",
             type: "DWAVE"
+        }, {
+            id:6,
+            name: t("routes.solvers.HGS.name"),
+            description: t("routes.solvers.HGS.description"),
+            icon: "pi pi-sitemap",
+            type: "HGS"
         }
     ]
 
@@ -82,6 +88,7 @@ export function useRoutesSolver(
         "ANNEALING": "ANNEALING",
         "QISKIT": "QISKIT",
         "DWAVE": "DWAVE",
+        "HGS": "HGS",
     }
     
     function getSolverNames() {
