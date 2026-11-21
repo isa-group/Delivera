@@ -78,8 +78,10 @@ public class EngineProperties {
 
         // Rutas del motor. Por defecto, las del contrato comun de los engines Java; un
         // motor con otras rutas (como el de Python de la linea cuantica) las declara.
+
+        /** Ruta a la que se envia el problema para resolverlo. */
         @NotBlank
-        private String solvePath = "/api/v1/engine/solve";
+        private String path = "/api/v1/engine/solve";
 
         @NotBlank
         private String healthPath = "/actuator/health";
@@ -154,12 +156,12 @@ public class EngineProperties {
             this.order = order;
         }
 
-        public String getSolvePath() {
-            return solvePath;
+        public String getPath() {
+            return path;
         }
 
-        public void setSolvePath(String solvePath) {
-            this.solvePath = solvePath;
+        public void setPath(String path) {
+            this.path = path;
         }
 
         public String getHealthPath() {

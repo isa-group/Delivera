@@ -10,12 +10,15 @@ import com.delivera.data.fms.dto.RoutingResponse;
 import com.delivera.data.fms.dto.SolveClusterRequest;
 import com.delivera.data.fms.dto.SolveInstanceClusterRequest;
 import com.delivera.data.fms.dto.TypeSolver;
+import com.delivera.data.fms.dto.solver.info.SolverSummary;
+import com.delivera.data.fms.service.FmsAvailableSolvers;
 import com.delivera.data.fms.service.FmsRoutingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,26 +29,43 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/fms/routing")
 @Tag(name = "FMS Routing", description = "Optimizacion de rutas de flota")
+@RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
 public class FmsRoutingController {
 
     private final FmsRoutingService fmsRoutingService;
     private final SecurityUtils securityUtils;
+    private final FmsAvailableSolvers availableSolvers;
 
-    public FmsRoutingController(FmsRoutingService fmsRoutingService,
-                                 SecurityUtils securityUtils) {
-        this.fmsRoutingService = fmsRoutingService;
-        this.securityUtils = securityUtils;
-    }
+    // TODO: WE ARE NOT USING THIS
+   @Operation(summary = "Get user available solvers ",
+            description = "Obtain solvers that are contracted by the user")
+   @GetMapping("/available/solvers/names")
+   public ResponseEntity<Set<String>> availableSolversNames() {
+        return ResponseEntity.ok(
+            availableSolvers.getAvailableUserSolvers(securityUtils.getCurrentOrgId().toString())
+        );
 
+   }
 
-   
+   @Operation(summary = "Get user available solvers ",
+            description = "Obtain solvers that are contracted by the user")
+   @GetMapping("/available/solvers")
+   public ResponseEntity<List<SolverSummary>> availableSolvers() {
+        return ResponseEntity.ok(
+            availableSolvers.getAvailableSolvers(securityUtils.getCurrentOrgId().toString())
+        );
+
+   }
+
 
 
     @Operation(summary = "Get data that will be used to run MD-CVRP solvers ",

@@ -7,6 +7,9 @@ RUN npm install
 
 COPY . .
 
+# If .env doesn't exist it uses the default .env
+RUN [ -f .env ] || cp .env.docker.example .env
+
 RUN npm run build
 
 FROM nginx:alpine

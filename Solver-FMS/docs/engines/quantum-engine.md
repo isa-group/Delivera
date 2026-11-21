@@ -1,14 +1,14 @@
 # quantum-engine
 
-**Port 8095** · Python 3.14 / FastAPI + Qiskit + D-Wave Ocean · code in [`engines/quantum-solver-ms`](../../engines/quantum-solver-ms) · solvers `QISKIT` and `DWAVE`
+**Port 8095** · Python 3.14 / FastAPI + Qiskit + D-Wave Ocean · code in [`engines/quantum-solver-ms`](../../engines/quantum-solver-ms) · solvers `QISKIT`, `DWAVE` and `HGS`
 
 ## What it is for
 
 The hybrid quantum-classical engine of the quantum line. It splits the instance by depot and tries
 to solve each region on a quantum backend: QAOA on a local Qiskit simulator (solver `QISKIT`) or
 D-Wave's Leap hybrid solver in the cloud (solver `DWAVE`). When the quantum path is not viable it
-falls back to PyVRP. It is the first real path from Delivera to quantum hardware and simulators;
-with 24 simulated qubits only very small instances reach the Qiskit part.
+falls back to PyVRP2. The integration is experimental. With 24 simulated qubits only very small
+instances reach the Qiskit part.
 
 ## Where the code lives
 
@@ -22,23 +22,24 @@ image, dependencies, port and health check. The `quantum-engine` service in
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/health` | Service details and supported backends; used by the Docker health check |
-| GET | `/actuator/health` | Gateway health probe. Not available yet (see below) |
+| GET | `/health` | Service details and supported backends; used by the Docker health check and the gateway's probe |
 | POST | `/api/v1/quantum-routing/analyze` | Initial viability filter on a `cqvrp` request, without solving |
 | POST | `/api/v2/quantum-routing/analyze` | The same filter on a Delivera request, translated by the adapter |
 | POST | `/api/v1/quantum-routing/solve` | Solves a `cqvrp` request and returns routes and metrics |
+| POST | `/api/v2/QISKIT/solve` | Solves a Delivera request on the Qiskit backend, reading the options from `parameters` |
+| POST | `/api/v2/DWAVE/solve` | Solves a Delivera request on the D-Wave backend, reading the options from `parameters` |
 | POST | `/api/v1/HGS-ADC/solve` | Solves a Delivera request with PyVRP, reading the options from `parameters` |
 | POST | `/api/v1/adapter/test`, `/api/v1/manifest/test` | Debugging: the adapter's translation and the service manifest |
 
-The quantum path still uses the `cqvrp` contract (x/y coordinates, fleet per depot, options in
-`X-*` headers). The adapter in `api/adapter` already translates Delivera requests, but there is no
-`/api/v1/engine/solve` yet, which is the endpoint the gateway calls.
+Inside, the quantum path still uses the `cqvrp` contract (x/y coordinates, fleet per depot,
+options in `X-*` headers). The `/api/v2/*` endpoints wrap it: the adapter in `api/adapter`
+translates the Delivera request, passes its `parameters` as those options and translates the
+response back.
 
 ## In the gateway
 
 `cqvrp` has two quantum backends, and the gateway registers each one as its own solver. Both point
-to this same engine, which will choose the backend from the request's `solverType` once the
-contract adapter exists (today `cqvrp` chooses it with the `X-Target-Quantum-Backend` header):
+to this same engine, and each solver has its own solve path, which picks the backend:
 
 | Solver | Backend | Where it runs | Qubit limit |
 | --- | --- | --- | --- |
@@ -47,19 +48,22 @@ contract adapter exists (today `cqvrp` chooses it with the `X-Target-Quantum-Bac
 
 Both appear in `GET /api/v1/fms/solvers` with their metadata and parameters (blocks
 `fms.engines.qiskit` and `fms.engines.dwave` in the gateway's `application.yml`), and the gateway
-validates those parameters like any other solver's. Their health is probed on `/health`.
+validates those parameters like any other solver's. Each block declares the engine's own paths
+(see [solver-metadata.md](../solver-metadata.md)): health on `/health`, solving on
+`/api/v2/QISKIT/solve` or `/api/v2/DWAVE/solve`, and analysis on `/api/v2/quantum-routing/analyze`.
 
-- **Analysis works.** `POST /api/v1/fms/routing/analyze` with `solverType` `QISKIT` or `DWAVE`
-  forwards the problem to `/api/v2/quantum-routing/analyze` and returns the initial viability
-  filter untouched. The routes wizard uses it to show the quantum viability of each group.
-- **Solving does not work yet.** There is no quantum solve endpoint in the Delivera contract, so the
-  gateway has no path to send `QISKIT` and `DWAVE` problems to.
+- **Analysis.** `POST /api/v1/fms/routing/analyze` with `solverType` `QISKIT` or `DWAVE` forwards
+  the problem to `/api/v2/quantum-routing/analyze` and returns the initial viability filter
+  untouched. The routes wizard uses it to show the quantum viability of each group.
+- **Solving.** `POST /api/v1/fms/routing/solve` sends the problem to the solver's `/api/v2/*`
+  endpoint. The response keeps the engine's `solverUsed` (for example
+  `"IBM Quantum / BSC Simulator"` or `"D-Wave Leap Hybrid Solver"`), which is not a `TypeSolver`
+  constant, so data-service cannot read it yet.
 
 The engine also serves a third solver, `HGS` (block `fms.engines.hgs`): PyVRP's hybrid genetic
-search, solved through `/api/v1/HGS-ADC/solve`, which already speaks the Delivera contract. It
-works end to end and declares `classicalTimeLimit` (5 s by default), `seed` and
-`maxVehicleRepetition`. The engine answers with `solverUsed: "HGS-ADC"`, which data-service reads
-as `HGS`.
+search, solved through `/api/v1/HGS-ADC/solve`, which already spoke the Delivera contract. It
+declares `classicalTimeLimit` (5 s by default), `seed` and `maxVehicleRepetition`, and answers with
+`solverUsed: "HGS"`. data-service also accepts the `"HGS-ADC"` of earlier engine versions.
 
 `FMS_ENGINES_QISKIT_ENABLED=false`, `FMS_ENGINES_DWAVE_ENABLED=false` or
 `FMS_ENGINES_HGS_ENABLED=false` in the gateway removes that solver from the catalogue.
@@ -82,7 +86,7 @@ run that happens.
 | Parameter | Type | Default | Range | `cqvrp` header | Meaning |
 | --- | --- | --- | --- | --- | --- |
 | `maxQubits` | INTEGER | 24 | 1–24 | `X-Max-Qubits` | Largest QUBO that may go to the simulator (Q_max). A region that needs more is solved with PyVRP |
-| `quantumTimeoutSeconds` | DECIMAL | 30.0 | 1–300 | `X-Quantum-Timeout-Seconds` | Wall-clock limit of each QAOA run; up to four candidates are tried |
+| `quantumTimeoutSeconds` | DECIMAL | Omitted, adaptive | 1–300 | `X-Quantum-Timeout-Seconds` | Optional wall-clock limit per candidate. An explicit value replaces the adaptive budget |
 | `classicalTimeLimit` | INTEGER | 60 | 1–300 | `X-Classical-Time-Limit` | PyVRP budget for the fallback and for the classical reference. PyVRP always uses all of it |
 | `includeMtz` | BOOLEAN | false | | `X-Include-Mtz` | Adds MTZ constraints against subtours, at the cost of many more qubits |
 
@@ -96,39 +100,43 @@ run that happens.
 them on that path, always includes MTZ in the CQM and does not limit its run time (Leap's default
 applies).
 
-Not exposed for either: the number of extra candidates, fixed at 3 inside `cqvrp`, and a `seed`,
-because neither QAOA nor Leap is seeded in `cqvrp`, so neither solver is deterministic.
+The gateway does not insert `quantumTimeoutSeconds` when it is omitted. The future contract adapter
+must then omit `X-Quantum-Timeout-Seconds` too. With the default QAOA settings, the engine allows
+60 s up to 10 qubits, 90 s up to 14, 150 s up to 18, 210 s up to 21 and 300 s up to 24, including
+startup margin. Budgets for several regions accumulate up to 300 s per candidate. The engine
+returns as soon as the calculation finishes. See the [engine README](../../engines/quantum-solver-ms/README.md).
 
-With the defaults, a `QISKIT` request with a quantum solution takes at least 70 s, almost all of it
-PyVRP (60 s of classical reference plus 10 s per super-customer of internal TSP), and the gateway
-gives up on an engine after 300 s.
+The number of extra candidates remains fixed at 3 in the API. QAOA supports a seed from Python,
+but the gateway does not expose it yet. Successful quantum routes are expanded to the original
+customers with an open PyVRP path, with a default search budget of 0.1 s per multi-customer group.
+The classical reference has its own budget, 60 s by default.
+
+The gateway's HTTP timeout for `QISKIT` is 1530 s: four candidates of up to 300 s, a classical
+execution of up to 300 s and 30 s of margin. It is a transport timeout, independent of the engine's
+per-candidate budget. Preparation and route expansion also consume time. Other solvers retain
+the 300 s HTTP timeout.
+
+`quantum_viability.py` uses `count_qiskit_qubits()` from the engine. The counter and the solver
+share the model builder and count the final QUBO variables, including auxiliary bits. Counting
+does not run QAOA. Fitting in the qubit limit does not guarantee a feasible solution. The local
+code used for counting must match the service version used for the HTTP `/analyze` call.
 
 ## Configuration
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `QUANTUM_MAX_QUBITS` | 24 | Available quantum capacity (Q_max) |
+| `QUANTUM_MAX_QUBITS` | 24 | Declared by Docker, not consumed by the API yet. The API limit remains fixed at 24 |
 | `DWAVE_API_TOKEN` | not set | D-Wave Leap token for the `DWAVE` solver |
 
 ## Pending changes in the engine
 
-A patch with these changes was proposed to the quantum line, and the code in
-`engines/quantum-solver-ms` does not include it yet. Until it does, the Qiskit path never returns
-a quantum solution and `QUANTUM_MAX_QUBITS` has no effect. (The gateway no longer needs
-`/actuator/health`: it probes this engine on `/health`.)
+The engine already transpiles QAOA circuits to basic gates, reads results by variable name and
+rejects infeasible or incomplete routes. Simulation uses `StatevectorSampler` below 18 qubits
+and Aer from 18, selecting GPU when Aer offers it, otherwise CPU. The gateway no longer needs
+`/api/v1/engine/solve` or `/actuator/health` from this engine: it uses the paths each solver
+declares. Remaining integration work:
 
-Fixes to the Qiskit solver:
-
-- QAOA circuits are transpiled to basic gates before simulation. Without it a 10-qubit QUBO takes
-  more than 5 minutes instead of 0.6 s, so the 30 s timeout always expires and PyVRP takes over.
-- Variable values are read from `variables_dict`; `get_variable_value` does not exist in
-  `qiskit-optimization` 0.7 and every candidate failed after QAOA.
-- A QAOA sample that violates the constraints, or leaves customers unserved, is rejected.
-  Before, an empty solution with cost 0 was returned as feasible and won over real candidates.
-
-Changes to fit Solver-FMS:
-
-- `GET /actuator/health`, the path the gateway probes.
+- A `solverUsed` that data-service can read on the `/api/v2/*` responses (a `TypeSolver` name).
 - `QUANTUM_MAX_QUBITS` as the default and upper bound of the `X-Max-Qubits` header, instead of a
   fixed 24.
 - Synchronous solving endpoints, so a long run does not block the health endpoints.

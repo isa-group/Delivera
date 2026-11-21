@@ -19,6 +19,8 @@ public class EngineDispatcher {
 
     private static final Logger log = LoggerFactory.getLogger(EngineDispatcher.class);
     private static final Duration TIMEOUT = Duration.ofSeconds(300);
+    // Cuatro candidatos de hasta 300 s, una ejecución clásica de hasta 300 s y margen.
+    private static final Duration QISKIT_TIMEOUT = Duration.ofSeconds(4 * 300 + 300 + 30);
     /** El analisis no resuelve nada: si tarda mas que esto, algo va mal. */
     private static final Duration ANALYZE_TIMEOUT = Duration.ofSeconds(60);
 
@@ -39,6 +41,7 @@ public class EngineDispatcher {
     public RoutingResponse dispatch(RoutingRequest request) {
         TypeSolver solverType = request.solverType();
         WebClient client = registry.clientFor(solverType);
+        String path = registry.pathFor(solverType);
 
         Map<String, Object> parameters = registry.resolveParameters(solverType, request.parameters());
         RoutingRequest enriched = request.withParameters(parameters);
@@ -48,11 +51,11 @@ public class EngineDispatcher {
 
         try {
             RoutingResponse response = client.post()
-                    .uri(registry.solvePathFor(solverType))
+                    .uri(path)
                     .bodyValue(enriched)
                     .retrieve()
                     .bodyToMono(RoutingResponse.class)
-                    .timeout(TIMEOUT)
+                    .timeout(solverType == TypeSolver.QISKIT ? QISKIT_TIMEOUT : TIMEOUT)
                     .block();
 
             if (response == null) {

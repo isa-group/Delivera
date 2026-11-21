@@ -1,0 +1,252 @@
+{
+  "before": [
+    {
+      "case": "two-original-one-superclient",
+      "seed": 42,
+      "maxiter": 20,
+      "qubits": 6,
+      "original_customers": 2,
+      "reduced_customers": 1,
+      "status": "valid",
+      "elapsed_sec": 3.046,
+      "cost": 22.0,
+      "vehicles": 1,
+      "capacities": [
+        3
+      ],
+      "mtz": false
+    },
+    {
+      "case": "two-clients-direct",
+      "seed": 42,
+      "maxiter": 6,
+      "qubits": 10,
+      "original_customers": 2,
+      "reduced_customers": 2,
+      "status": "timeout",
+      "elapsed_sec": 30.023,
+      "cost": null,
+      "vehicles": 1,
+      "capacities": [
+        3
+      ],
+      "mtz": false
+    },
+    {
+      "case": "one-client",
+      "seed": 42,
+      "maxiter": 20,
+      "qubits": 6,
+      "original_customers": 1,
+      "reduced_customers": 1,
+      "status": "valid",
+      "elapsed_sec": 2.882,
+      "cost": 20.0,
+      "vehicles": 1,
+      "capacities": [
+        3
+      ],
+      "mtz": false
+    },
+    {
+      "case": "two-clients-direct",
+      "seed": 42,
+      "maxiter": 20,
+      "qubits": 10,
+      "original_customers": 2,
+      "reduced_customers": 2,
+      "status": "timeout",
+      "elapsed_sec": 30.015,
+      "cost": null,
+      "vehicles": 1,
+      "capacities": [
+        3
+      ],
+      "mtz": false
+    },
+    {
+      "case": "one-client-two-vehicles",
+      "seed": 42,
+      "maxiter": 20,
+      "qubits": 12,
+      "original_customers": 1,
+      "reduced_customers": 1,
+      "status": "timeout",
+      "elapsed_sec": 30.012,
+      "cost": null,
+      "vehicles": 2,
+      "capacities": [
+        3,
+        3
+      ],
+      "mtz": false
+    },
+    {
+      "case": "one-client-mtz",
+      "seed": 42,
+      "maxiter": 20,
+      "qubits": 10,
+      "original_customers": 1,
+      "reduced_customers": 1,
+      "status": "timeout",
+      "elapsed_sec": 30.016,
+      "cost": null,
+      "vehicles": 1,
+      "capacities": [
+        3
+      ],
+      "mtz": true
+    },
+    {
+      "case": "three-clients-direct",
+      "seed": 42,
+      "maxiter": 20,
+      "qubits": 18,
+      "original_customers": 3,
+      "reduced_customers": 3,
+      "status": "skipped_size",
+      "elapsed_sec": 0,
+      "cost": null,
+      "vehicles": 1,
+      "capacities": [
+        4
+      ],
+      "mtz": false
+    },
+    {
+      "case": "twenty-original-one-superclient",
+      "seed": 42,
+      "maxiter": 20,
+      "qubits": 10,
+      "original_customers": 20,
+      "reduced_customers": 1,
+      "status": "timeout",
+      "elapsed_sec": 30.01,
+      "cost": null,
+      "vehicles": 1,
+      "capacities": [
+        40
+      ],
+      "mtz": false
+    },
+    {
+      "case": "cordeau-quantum-small",
+      "seed": 42,
+      "maxiter": 20,
+      "qubits": 11,
+      "original_customers": 2,
+      "reduced_customers": 1,
+      "status": "timeout",
+      "elapsed_sec": 30.019,
+      "cost": null,
+      "vehicles": 1,
+      "capacities": [
+        100
+      ],
+      "mtz": false
+    }
+  ],
+  "after": [
+    {
+      "case": "two-clients",
+      "seed": 42,
+      "maxiter": 20,
+      "reps": 1,
+      "mtz": false,
+      "timeout_sec": null,
+      "original_customers": 2,
+      "reduced_customers": 2,
+      "status": "not_solved",
+      "reason": "ValueError: QAOA no encontró una muestra factible. No se certifica infactibilidad.",
+      "elapsed_sec": 2.083
+    },
+    {
+      "case": "two-clients",
+      "seed": 7,
+      "maxiter": 20,
+      "reps": 1,
+      "mtz": false,
+      "timeout_sec": null,
+      "original_customers": 2,
+      "reduced_customers": 2,
+      "status": "valid",
+      "qubits": 10,
+      "cost": 22.0,
+      "routes": [
+        [
+          "D",
+          "C1",
+          "C2",
+          "D"
+        ]
+      ],
+      "elapsed_sec": 2.155
+    },
+    {
+      "case": "quantum_small.txt",
+      "seed": 42,
+      "maxiter": 20,
+      "reps": 1,
+      "mtz": false,
+      "timeout_sec": null,
+      "original_customers": 2,
+      "reduced_customers": 1,
+      "status": "valid",
+      "qubits": 11,
+      "cost": 32.0,
+      "routes": [
+        [
+          "3",
+          "2",
+          "1",
+          "3"
+        ]
+      ],
+      "elapsed_sec": 2.201
+    },
+    {
+      "case": "clustered-pair",
+      "seed": 42,
+      "maxiter": 20,
+      "reps": 1,
+      "mtz": false,
+      "timeout_sec": null,
+      "original_customers": 2,
+      "reduced_customers": 1,
+      "status": "valid",
+      "qubits": 6,
+      "cost": 22.0,
+      "routes": [
+        [
+          "D",
+          "C2",
+          "C1",
+          "D"
+        ]
+      ],
+      "elapsed_sec": 1.833
+    },
+    {
+      "case": "three-clients",
+      "seed": 7,
+      "maxiter": 20,
+      "reps": 1,
+      "mtz": false,
+      "timeout_sec": null,
+      "original_customers": 3,
+      "reduced_customers": 3,
+      "status": "not_solved",
+      "reason": "ValueError: QAOA produjo un subtour desconectado para el vehiculo V.",
+      "elapsed_sec": 54.083
+    }
+  ],
+  "settings": {
+    "date": "2026-11-05",
+    "qiskit": "2.5.2",
+    "qiskit_optimization": "0.7.0",
+    "before_timeout_sec": 30,
+    "shots": 1024,
+    "reps": 1,
+    "change": "QAOA circuit decomposed to rz/sx/x/cx before StatevectorSampler"
+  }
+}

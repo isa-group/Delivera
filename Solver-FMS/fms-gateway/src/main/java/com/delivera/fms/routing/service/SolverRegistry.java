@@ -80,7 +80,7 @@ public class SolverRegistry {
                 engine.isDeterministic(),
                 parameters(type, engine),
                 SolverStatus.UNKNOWN);
-        return new RegisteredSolver(info, engine.getUrl(), engine.getSolvePath(), engine.getHealthPath(),
+        return new RegisteredSolver(info, engine.getUrl(), engine.getPath(), engine.getHealthPath(),
                 blankToNull(engine.getAnalyzePath()), builder.baseUrl(engine.getUrl()).build());
     }
 
@@ -156,8 +156,8 @@ public class SolverRegistry {
     }
 
     /** Ruta del motor que resuelve los problemas de este solver. */
-    public String solvePathFor(TypeSolver type) {
-        return registered(type).solvePath();
+    public String pathFor(TypeSolver type) {
+        return registered(type).path();
     }
 
     /** Ruta de analisis previo del solver, si su motor la ofrece. */
@@ -173,6 +173,7 @@ public class SolverRegistry {
         }
         return solver;
     }
+
 
     /**
      * Completa los parametros recibidos con los valores por defecto declarados en
@@ -317,7 +318,7 @@ public class SolverRegistry {
     }
 
     /** Metadatos publicos de un solver junto a la URL, las rutas y el cliente HTTP de su motor. */
-    private record RegisteredSolver(SolverInfo info, String url, String solvePath, String healthPath,
+    private record RegisteredSolver(SolverInfo info, String url, String path, String healthPath,
                                     String analyzePath, WebClient client) {
 
         // La salud es la del servicio: solvers del mismo motor comparten sonda y entrada.

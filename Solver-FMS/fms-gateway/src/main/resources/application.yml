@@ -31,6 +31,7 @@ fms:
   engines:
     random:
       url: http://random-engine:8092
+      path: /api/v1/engine/solve
       display-name: Random
       description: Assigns customers to vehicles at random while honouring capacity. Serves as the comparison baseline
       strategy: Baseline
@@ -51,6 +52,7 @@ fms:
           max: 281474976710655
     greedy:
       url: http://greedy-engine:8091
+      path: /api/v1/engine/solve
       display-name: Greedy
       description: Nearest-neighbour constructive heuristic with assignment to the closest depot
       strategy: Constructive heuristic
@@ -61,6 +63,7 @@ fms:
       parameters: []
     genetic:
       url: http://genetic-engine:8093
+      path: /api/v1/engine/solve
       display-name: Genetic Algorithm
       description: Evolutionary metaheuristic with BCRC crossover, intra- and inter-depot mutations, Prins' optimal split and local search
       strategy: Metaheuristic
@@ -187,6 +190,7 @@ fms:
 
     annealing:
       url: http://annealing-engine:8094
+      path: /api/v1/engine/solve
       display-name: Simulated Annealing
       description: Single-solution metaheuristic with the Metropolis criterion, intra- and inter-depot neighbourhoods, Prins' optimal split and periodic local search. Stops on a time budget and returns the anytime curve
       strategy: Metaheuristic
@@ -304,13 +308,13 @@ fms:
           min: 0
           max: 281474976710655
     # The two quantum backends of the quantum line's engine (cqvrp). Both point to the same
-    # service, which picks the backend per request. The defaults below mirror cqvrp's own (its
-    # X-* headers), so each descriptor matches the run that happens. The engine still speaks
-    # the cqvrp contract, not /api/v1/engine/solve, so solving through the gateway fails until
-    # that adapter exists; FMS_ENGINES_QISKIT_ENABLED=false or FMS_ENGINES_DWAVE_ENABLED=false
-    # hide them.
+    # service, each through its own Delivera-contract endpoint (/api/v2/QISKIT/solve and
+    # /api/v2/DWAVE/solve), and share its initial viability filter as their analysis. The
+    # defaults below mirror the engine's own, so each descriptor matches the run that happens.
+    # FMS_ENGINES_QISKIT_ENABLED=false or FMS_ENGINES_DWAVE_ENABLED=false hide them.
     qiskit:
       url: http://quantum-engine:8095
+      path: /api/v2/QISKIT/solve
       health-path: /health
       analyze-path: /api/v2/quantum-routing/analyze
       display-name: Quantum QAOA (Qiskit)
@@ -337,12 +341,10 @@ fms:
           max: 24
         - name: quantumTimeoutSeconds
           description: >-
-            Wall-clock limit for each QAOA run, in seconds. The run is killed when it expires and
-            that candidate is discarded. cqvrp tries up to four candidates (from K_min to
-            K_min+3 super-customers per region), so the quantum part can take up to four times
-            this value
+            Optional wall-clock limit per quantum candidate, in seconds. If omitted, the engine
+            adapts its budget to the actual QUBO size, up to 300 seconds per candidate. An explicit
+            value overrides that adaptive budget. Up to four candidates are tried
           type: DECIMAL
-          default-value: 30.0
           min: 1
           max: 300
         - name: classicalTimeLimit
@@ -363,6 +365,7 @@ fms:
           default-value: false
     dwave:
       url: http://quantum-engine:8095
+      path: /api/v2/DWAVE/solve
       health-path: /health
       analyze-path: /api/v2/quantum-routing/analyze
       display-name: Quantum hybrid (D-Wave Leap)
@@ -394,7 +397,7 @@ fms:
     # already speaks the Delivera contract through its own endpoint.
     hgs:
       url: http://quantum-engine:8095
-      solve-path: /api/v1/HGS-ADC/solve
+      path: /api/v1/HGS-ADC/solve
       health-path: /health
       display-name: HGS (PyVRP)
       description: >-

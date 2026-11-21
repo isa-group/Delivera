@@ -20,6 +20,11 @@ def main() -> int:
             sub_requests,
             max_qubits=request_payload["max_qubits"],
             include_mtz=request_payload["include_mtz"],
+            maxiter=request_payload.get("maxiter", 20),
+            reps=request_payload.get("reps", 1),
+            shots=request_payload.get("shots", 1024),
+            seed=request_payload.get("seed"),
+            on_model_ready=lambda qubits: print(json.dumps({"status": "model_ready", "qubits": qubits}), flush=True),
         )
         payload = {"status": "ok", "result": result.model_dump(mode="json")}
     except Exception as error:
@@ -27,7 +32,7 @@ def main() -> int:
         # Qiskit no puede serializarse a JSON.
         payload = {"status": "error", "detail": f"{type(error).__name__}: {error}"}
 
-    json.dump(payload, sys.stdout) # escribimos el resultado en stdout para que el proceso padre lo lea
+    print(json.dumps(payload), flush=True) # El padre recibe cada mensaje como una línea JSON.
     return 0
 
 

@@ -78,6 +78,10 @@ It happens in `EngineDispatcher`, before sending the problem to the engine:
    must not run a configuration nobody asked for.
 4. A `required` one with neither default nor sent value returns **400**.
 
+An optional parameter without a default is left out of the resolved map. This applies to
+`QISKIT.quantumTimeoutSeconds`: omission lets the engine choose its adaptive budget. Sending an
+explicit value overrides it. The contract adapter must preserve that omission.
+
 The engine therefore always receives the complete configuration. It lives in the dispatcher and not
 in the controller because it is an invariant: any entry path (direct request or instance load)
 reaches the engine with the same contract.
@@ -145,7 +149,7 @@ An engine with other paths declares them in the same block:
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `solve-path` | `/api/v1/engine/solve` | Where the gateway sends the problem to solve |
+| `path` | `/api/v1/engine/solve` | Where the gateway sends the problem to solve |
 | `health-path` | `/actuator/health` | What the health probe calls |
 | `analyze-path` | not set | Analysis without solving, behind `POST /api/v1/fms/routing/analyze`. Without it, that endpoint answers 400 for the solver |
 

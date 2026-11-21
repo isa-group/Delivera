@@ -1,0 +1,144 @@
+.param-container {
+    display: grid;
+
+    grid-template-columns: repeat(
+        auto-fit,
+        minmax(400px, 1fr)
+    );
+
+    gap: 1rem;
+
+    max-height: 70vh;
+
+    overflow-y: auto;
+
+}
+
+.param-header {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+}
+
+.param-card {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 1rem;
+
+    width: 100%;
+
+    min-height: 100px;
+
+    max-height: 300px;
+
+    padding: 1rem;
+
+    border-radius: 1rem;
+
+    border: 1px solid var(--color-surface-secondary);
+
+    background: var(--color-background);
+
+}
+
+.param-card.disabled {
+
+    opacity: .5;
+
+}
+
+.param-value-box {
+    margin-top: 1rem;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 1rem;
+
+    width: 100%;
+
+}
+
+
+
+
+.param-slider {
+    min-width: 200px;
+    max-width: 500px;
+
+    width: 70%;
+    height: 1rem;
+}
+
+.param-input :deep(.p-component) {
+    min-width: 80px;
+    max-width: 140px;
+    width: 30%;
+    height: 1rem;
+}
+
+.param-input.only :deep(.p-component) {
+    min-width: 80px;
+    max-width: 400px;
+    width: 100%;
+    height: 1rem;
+    justify-self: center;
+    align-self: center;
+}
+
+.param-enum {
+    max-width: 350px;
+    min-width: 150px;
+    width: 100%;
+
+}
+
+.param-enum :deep(.p-component){
+
+    width: 80%;
+}
+
+.param-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+
+    margin-top: 0.5rem;
+    
+
+    min-width: 200px;
+    max-width: 500px;
+
+    width: 100%;
+    height: 1rem;
+
+}
+
+.param-info :last-child {
+    margin-bottom: 0.5rem;
+}
+
+
+
+.param-reload {
+    margin-left: 0.5rem;
+    background-color: var( --color-surface-secondary);
+    border-radius: 1rem;
+    border-color: 5px solid var(--color-background-secondary);
+
+    transition: background .2s, box-shadow .2s, transform .2s;
+}
+
+.param-reload:hover {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.516);
+    transform: translateY(-2px);
+}

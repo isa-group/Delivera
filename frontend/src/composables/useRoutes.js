@@ -23,6 +23,7 @@ import { useRoutesSolver } from "./useRoutesSolver"
 import { useRoutesGrouping } from "./useRoutesGrouping"
 import { useRoutesQuantumViability } from "./useRoutesQuantumViability"
 import { useNumberFormat } from "./useNumberFormat"
+import { useSpaceJwt } from "./useSpaceJwt"
 
 
 
@@ -61,7 +62,22 @@ export function useRoutes() {
     // =====================================
     const {numberI18n} = useNumberFormat()
 
+    const maxActiveOrdersLabel = "maxActiveOrders"
+
     const maxPerExecution = ref(20)
+
+
+    const {
+        featureContexts,
+        errorLoadingJwt
+    } = useSpaceJwt()
+
+    watch(featureContexts, () => {
+        const activeOrderslimit = featureContexts.value.find(
+            faeture => faeture.name === maxActiveOrdersLabel
+        ).limit
+        maxPerExecution.value = activeOrderslimit ?? 20
+    })
 
     const wizard = useRoutesWizard()
     const {goToPhase} = wizard
@@ -85,6 +101,7 @@ export function useRoutes() {
         data,
         dataError,
         selectedBenchmark,
+        allBenchmarkError,
         deliveryWindowConfig,
         loadInitialData: loadInitialData,
         isBenchmark,
@@ -101,15 +118,28 @@ export function useRoutes() {
     } = groupingUtils
     const solverUtils = useRoutesSolver(wizard,modesUtils, groupingUtils)
     const viabilityUtils = useRoutesQuantumViability(groupingUtils, dataUtils)
-    const { viabilityByCluster, analyzeViability, resetViability } = viabilityUtils
+    const { viabilityByCluster, viabilityError, analyzeViability, resetViability } = viabilityUtils
     let viabilityLayer = null
-    const {executeAllSelected,executeSlots, getSolverDistance, routesBySolver} = solverUtils
+    const {executeAllSelected,executeSlots, getSolverDistance, routesBySolver, routesErrors} = solverUtils
     const { t } = useI18n() 
     let initialCustomerLayer = null
     let initalDepotLayer = null
     let finalDepotLayer = null
     const groupLayers = ref([])
     const selectedClusterId = ref(null)
+
+    const globlaErrors = computed(() => {
+        console.log('aaa')
+        return [
+            { source:"availableSolvers" ,error: errorLoadingJwt.value},
+            {source: "benchmarksLoad", error: allBenchmarkError.value},
+            { source:"obtainingData", error: dataError.value},
+            {source: "groupingData", error: groupsError.value},
+            {source: "quantumViability", error: viabilityError.value},
+            ...routesErrors.value
+        ]
+    })
+    
 
     const computedMetricsBySlot = computed(() => {
         const result = []
@@ -390,6 +420,8 @@ export function useRoutes() {
         runViabilityAnalysis,
         mapEl,
         computedMetricsBySlot,
+        featureContexts,
+        globlaErrors,
         runSolvers,
         runInitialData,
         runGrouping,

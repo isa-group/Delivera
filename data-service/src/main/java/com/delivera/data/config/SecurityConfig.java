@@ -122,6 +122,9 @@ public class SecurityConfig {
                 // FMS
                 auth.requestMatchers(api + "/fms/routing/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
 
+                // SPACE
+                auth.requestMatchers(api + "/space/**").hasAnyRole(ADMIN, ANALYST, OPERATOR);
+
                 auth.anyRequest().denyAll();
             });
             

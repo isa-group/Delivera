@@ -669,8 +669,6 @@ public class DemoDataSeeder implements CommandLineRunner {
     private void wipeData() {
         String baseDataUrl = dataHost+dataPrefix+"/internal/admin/data-service/";
         String baseAuthUrl =  authHost+authPrefix+"/internal/admin/auth-service/";
-        System.out.println(baseDataUrl);
-        System.out.println(baseAuthUrl);
         adminService.seederResetDatabase(adminEmail, baseDataUrl, baseAuthUrl);
     }
 }

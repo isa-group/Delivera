@@ -48,6 +48,7 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
     private final OrderRepository orderRepository;
     private final VehicleRepository vehicleRepository;
     private final FmsClusterService clusterService;
+    private final SolverClient solverClient;
 
 
 
@@ -302,12 +303,14 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
             depots, 
             solverType
         );
-        return fmsRoutingClient.post()
+
+        return solverClient.solve(request);
+        /*return fmsRoutingClient.post()
                 .uri("/api/v1/fms/routing/solve")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
-                .body(RoutingResponse.class);
+                .body(RoutingResponse.class);*/
     }
 
     @Override
@@ -352,12 +355,7 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
         Set<String> depots,
         TypeSolver solverType
     ) {
-        return fmsRoutingClient.post()
-                .uri("/api/v1/fms/routing/solve")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(instanceSubsetRequest(name, customers, depots, solverType))
-                .retrieve()
-                .body(RoutingResponse.class);
+        return solverClient.solve(instanceSubsetRequest(name, customers, depots, solverType));
     }
 
     /** Peticion con solo los clientes y depositos indicados de una instancia benchmark. */
@@ -411,10 +409,10 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
         }
 
         return buildRequest(
-            customerDTOs, 
-            depotDTOs, 
-            vehicles, 
-            solverType, 
+            customerDTOs,
+            depotDTOs,
+            vehicles,
+            solverType,
             true
         );
     }
@@ -465,6 +463,25 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
     }
 
 
+    private static double[][] buildEuclideanDistanceMatrix(List<Coordinates> coordinates) {
+        int n = coordinates.size();
+        double[][] matrix = new double[n][n];
+    
+        for (int i = 0; i < n; i++) {
+            Coordinates a = coordinates.get(i);
+    
+            for (int j = 0; j < n; j++) {
+                Coordinates b = coordinates.get(j);
+    
+                double dx = a.getLng() - b.getLng();
+                double dy = a.getLat() - b.getLat();
+    
+                matrix[i][j] = Math.sqrt(dx * dx + dy * dy);
+            }
+        }
+    
+        return matrix;
+    }
     
     private  RoutingRequest buildRequest(
         List<CustomerDto> customerDtos,
@@ -482,6 +499,8 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
         if (buildMatrix) {
             int totalNodes = depotDtos.size() + customerDtos.size();
             distanceMatrix = buildHaversineDistanceMatrix(totalNodes,coordinates);
+            // TODO: SOLVE THIS PROBLEM DUE TO  DIFFERENCES BETWEEN BENCHMARKS AND REAL INSTANCES
+            //distanceMatrix = buildEuclideanDistanceMatrix(coordinates);
         }
         
         

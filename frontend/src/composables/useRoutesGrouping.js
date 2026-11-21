@@ -35,7 +35,7 @@ export function useRoutesGrouping({
         dbscan: true,
         maxRadiusKm: 50,
         maxDepotRadiusKm: 150,
-        minClusterSize: 3,
+        minClusterSize: 1,
         maxClusterSize: 20,
         noiseClusterMaxDistanceKm: 150,
         noiseMaxDistanceKm: 30
@@ -73,7 +73,7 @@ export function useRoutesGrouping({
         objectByName("minClusterSize",1,100),
         objectByName("maxRadiusKm",1,benchmark? 10000 : 500 ),
         objectByName("noiseClusterMaxDistanceKm",1, benchmark? 10000 : 500),
-        objectByName("noiseMaxDistanceKm",1, benchmark? 10000 : 500)  
+        objectByName("noiseMaxDistanceKm",1, benchmark? 10000 : 500),
     ] 
     })
 

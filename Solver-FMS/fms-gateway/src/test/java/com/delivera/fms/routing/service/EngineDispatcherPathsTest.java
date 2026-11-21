@@ -45,7 +45,7 @@ class EngineDispatcherPathsTest {
         String url = "http://localhost:" + server.getAddress().getPort();
         EngineProperties.Engine custom = new EngineProperties.Engine();
         custom.setUrl(url);
-        custom.setSolvePath("/custom/solve");
+        custom.setPath("/custom/solve");
         custom.setAnalyzePath("/custom/analyze");
         EngineProperties.Engine plain = new EngineProperties.Engine();
         plain.setUrl(url);
