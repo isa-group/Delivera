@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -66,6 +67,18 @@ public class RoutingController {
         validateConsistency(request);
         RoutingResponse response = engineDispatcher.dispatch(request);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Analyse a routing problem without solving it",
+            description = "Asks the solver's engine for its previous analysis of the problem, without " +
+                    "solving it. Only solvers whose engine declares an analysis offer it (today QISKIT and " +
+                    "DWAVE, whose analysis is the quantum engine's initial viability filter); for the rest " +
+                    "it returns 400. The engine's answer is returned untouched.")
+    @ApiResponse(responseCode = "200", description = "Analysis returned by the engine")
+    @PostMapping("/analyze")
+    public ResponseEntity<Map<String, Object>> analyze(@Valid @RequestBody RoutingRequest request) {
+        validateConsistency(request);
+        return ResponseEntity.ok(engineDispatcher.analyze(request));
     }
 
     private void validateConsistency(RoutingRequest request) {

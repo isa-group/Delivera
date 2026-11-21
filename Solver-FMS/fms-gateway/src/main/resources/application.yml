@@ -311,6 +311,8 @@ fms:
     # hide them.
     qiskit:
       url: http://quantum-engine:8095
+      health-path: /health
+      analyze-path: /api/v2/quantum-routing/analyze
       display-name: Quantum QAOA (Qiskit)
       description: >-
         Hybrid quantum-classical solver of the quantum line (cqvrp). It splits the instance by
@@ -361,6 +363,8 @@ fms:
           default-value: false
     dwave:
       url: http://quantum-engine:8095
+      health-path: /health
+      analyze-path: /api/v2/quantum-routing/analyze
       display-name: Quantum hybrid (D-Wave Leap)
       description: >-
         Hybrid quantum-classical solver of the quantum line (cqvrp) on D-Wave's cloud. It splits
@@ -386,6 +390,47 @@ fms:
           default-value: 60
           min: 1
           max: 300
+    # Classical solver of the quantum line's engine: PyVRP's hybrid genetic search, which
+    # already speaks the Delivera contract through its own endpoint.
+    hgs:
+      url: http://quantum-engine:8095
+      solve-path: /api/v1/HGS-ADC/solve
+      health-path: /health
+      display-name: HGS (PyVRP)
+      description: >-
+        PyVRP's hybrid genetic search (HGS) for the heterogeneous fleet of each depot: a population
+        of solutions evolved by crossover and intensive local search. One of the strongest
+        classical methods for vehicle routing. It stops on a time budget and can let each vehicle
+        make several trips
+      strategy: Metaheuristic
+      technology: Python 3.14 / FastAPI + PyVRP 0.14
+      version: 1.0.0
+      deterministic: false
+      order: 45
+      parameters:
+        - name: classicalTimeLimit
+          description: >-
+            Search time in seconds; decimals are accepted. PyVRP uses all of it, so it bounds the
+            response time
+          type: DECIMAL
+          default-value: 5.0
+          min: 0.1
+          max: 300
+        - name: seed
+          description: >-
+            Seed of the search. If not sent, the engine uses 42, so a run is only repeatable with
+            the same seed and the same time budget on a similar machine
+          type: INTEGER
+          min: 0
+          max: 2147483647
+        - name: maxVehicleRepetition
+          description: >-
+            Maximum number of trips per vehicle, the first one included. 1 means each vehicle
+            makes a single trip
+          type: INTEGER
+          default-value: 1
+          min: 1
+          max: 10
 
 springdoc:
   api-docs:

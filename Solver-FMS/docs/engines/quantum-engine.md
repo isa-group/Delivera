@@ -47,14 +47,22 @@ contract adapter exists (today `cqvrp` chooses it with the `X-Target-Quantum-Bac
 
 Both appear in `GET /api/v1/fms/solvers` with their metadata and parameters (blocks
 `fms.engines.qiskit` and `fms.engines.dwave` in the gateway's `application.yml`), and the gateway
-validates those parameters like any other solver's. Two things do not work yet:
+validates those parameters like any other solver's. Their health is probed on `/health`.
 
-- **Status `DOWN`.** The gateway probes `/actuator/health`, which `cqvrp` does not have yet.
-- **Solving returns 404.** The gateway sends the problem to `/api/v1/engine/solve`, and the engine
-  only has the `cqvrp` endpoints. It will work once the contract adapter exists.
+- **Analysis works.** `POST /api/v1/fms/routing/analyze` with `solverType` `QISKIT` or `DWAVE`
+  forwards the problem to `/api/v2/quantum-routing/analyze` and returns the initial viability
+  filter untouched. The routes wizard uses it to show the quantum viability of each group.
+- **Solving does not work yet.** There is no quantum solve endpoint in the Delivera contract, so the
+  gateway has no path to send `QISKIT` and `DWAVE` problems to.
 
-`FMS_ENGINES_QISKIT_ENABLED=false` or `FMS_ENGINES_DWAVE_ENABLED=false` in the gateway removes
-either one from the catalogue.
+The engine also serves a third solver, `HGS` (block `fms.engines.hgs`): PyVRP's hybrid genetic
+search, solved through `/api/v1/HGS-ADC/solve`, which already speaks the Delivera contract. It
+works end to end and declares `classicalTimeLimit` (5 s by default), `seed` and
+`maxVehicleRepetition`. The engine answers with `solverUsed: "HGS-ADC"`, which data-service reads
+as `HGS`.
+
+`FMS_ENGINES_QISKIT_ENABLED=false`, `FMS_ENGINES_DWAVE_ENABLED=false` or
+`FMS_ENGINES_HGS_ENABLED=false` in the gateway removes that solver from the catalogue.
 
 ## D-Wave credentials
 
@@ -106,8 +114,8 @@ gives up on an engine after 300 s.
 
 A patch with these changes was proposed to the quantum line, and the code in
 `engines/quantum-solver-ms` does not include it yet. Until it does, the Qiskit path never returns
-a quantum solution, `/actuator/health` answers 404 (the gateway reports the engine as DOWN) and
-`QUANTUM_MAX_QUBITS` has no effect.
+a quantum solution and `QUANTUM_MAX_QUBITS` has no effect. (The gateway no longer needs
+`/actuator/health`: it probes this engine on `/health`.)
 
 Fixes to the Qiskit solver:
 

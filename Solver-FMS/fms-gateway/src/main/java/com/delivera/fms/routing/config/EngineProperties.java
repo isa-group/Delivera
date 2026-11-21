@@ -76,6 +76,17 @@ public class EngineProperties {
         /** Permite ocultar un motor del catalogo sin borrar su configuracion. */
         private boolean enabled = true;
 
+        // Rutas del motor. Por defecto, las del contrato comun de los engines Java; un
+        // motor con otras rutas (como el de Python de la linea cuantica) las declara.
+        @NotBlank
+        private String solvePath = "/api/v1/engine/solve";
+
+        @NotBlank
+        private String healthPath = "/actuator/health";
+
+        /** Analisis previo sin resolver. Sin valor, el motor no lo ofrece. */
+        private String analyzePath;
+
         /** Parametros de invocacion que acepta el motor. */
         private List<@Valid Parameter> parameters = new ArrayList<>();
 
@@ -141,6 +152,30 @@ public class EngineProperties {
 
         public void setOrder(int order) {
             this.order = order;
+        }
+
+        public String getSolvePath() {
+            return solvePath;
+        }
+
+        public void setSolvePath(String solvePath) {
+            this.solvePath = solvePath;
+        }
+
+        public String getHealthPath() {
+            return healthPath;
+        }
+
+        public void setHealthPath(String healthPath) {
+            this.healthPath = healthPath;
+        }
+
+        public String getAnalyzePath() {
+            return analyzePath;
+        }
+
+        public void setAnalyzePath(String analyzePath) {
+            this.analyzePath = analyzePath;
         }
 
         public boolean isEnabled() {

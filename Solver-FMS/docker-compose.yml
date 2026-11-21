@@ -15,6 +15,7 @@ services:
       - FMS_ENGINES_ANNEALING_URL=http://annealing-engine:8094
       - FMS_ENGINES_QISKIT_URL=http://quantum-engine:8095
       - FMS_ENGINES_DWAVE_URL=http://quantum-engine:8095
+      - FMS_ENGINES_HGS_URL=http://quantum-engine:8095
       - FMS_INSTANCES_DIR=/app/instances-MD-CVRP-JSON
     volumes:
       - ./instances-MD-CVRP-JSON:/app/instances-MD-CVRP-JSON:ro
