@@ -83,16 +83,6 @@ export function useParamBuilder() {
 
         }
 
-        if (hasType && hasEnum) {
-
-            errors.push(
-                `${spec.name}: type and enum cannot be used together`
-            )
-
-            return errors
-
-        }
-
         if (
             spec.enum &&
             spec.default !== null &&  spec.default !== undefined &&
