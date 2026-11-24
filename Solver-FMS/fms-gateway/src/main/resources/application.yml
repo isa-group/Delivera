@@ -393,15 +393,60 @@ fms:
     hgs:
       url: http://quantum-engine:8095
       path: /api/v1/HGS-ADC/solve
-      display-name: Quantum hybrid (D-Wave Leap)
+      display-name: HGS-ADC (PyVRP)
       description: >-
-        TEST
-      strategy: TEST
-      technology: TEST
+        Hybrid Genetic Search with Adaptive Diversity Control (HGS-ADC) based on
+        PyVRP. Solves the CVRP using the PyVRP metaheuristic and supports multiple
+        vehicle assignment strategies and tuning profiles for heterogeneous fleets.
+      strategy: Classical metaheuristic
+      technology: Python 3.14 / FastAPI + PyVRP 0.14
       version: 1.0.0
       deterministic: false
-      order: 60
-      parameters: 
+      order: 70
+      parameters:
+        - name: classicalTimeLimit
+          description: >-
+            Search time budget in seconds. PyVRP runs until the time limit is
+            reached.
+          type: DECIMAL
+          default-value: 1
+          min: 0.1
+          max: 300
+
+        - name: seed
+          description: Random seed used by the search process.
+          type: INTEGER
+          default-value: 42
+          min: 0
+          max: 2147483647
+
+        - name: maxVehicleRepetition
+          description: Maximum number of trips allowed per vehicle, including the first trip.
+          type: INTEGER
+          default-value: 1
+          min: 1
+          max: 10
+
+        - name: vehicleStrategy
+          description: Strategy used to assign work among compatible vehicles.
+          type: ENUM
+          default-value: future_hybrid
+          values:
+            - robin_round
+            - distance
+            - load
+            - hybrid
+            - future_hybrid
+
+        - name: vehicleStrategyConfig
+          description: Preset configuration for the hybrid vehicle strategy.
+          type: ENUM
+          default-value: interurban
+          values:
+            - urban
+            - interurban
+            - heavy_goods
+            - balanced
 
 springdoc:
   api-docs:

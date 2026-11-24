@@ -24,7 +24,11 @@ public enum ParameterType {
     DECIMAL,
 
     // Verdadero o falso. No admite 0/1 ni "true" en texto, para no adivinar intenciones.
-    BOOLEAN;
+    BOOLEAN,
+    // Cadena de texto a utilizar.
+    STRING,
+    // Conjunto de strings válidos para un param.
+    ENUM;
 
     /**
      * Comprueba que el valor encaja con el tipo declarado y lo normaliza.
@@ -37,6 +41,14 @@ public enum ParameterType {
         if (raw == null) {
             return null;
         }
+        if (this == ENUM || this == STRING) {
+            if (!(raw instanceof String value)) {
+                throw new IllegalArgumentException(
+                    "expected a string, received '" + raw + "'");
+            }
+            return value;
+        }
+
         if (this == BOOLEAN) {
             if (!(raw instanceof Boolean flag)) {
                 throw new IllegalArgumentException("expected true or false, received '" + raw + "'");

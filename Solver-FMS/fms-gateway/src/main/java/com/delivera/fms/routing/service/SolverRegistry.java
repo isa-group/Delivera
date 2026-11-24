@@ -104,8 +104,10 @@ public class SolverRegistry {
                         defaultValue(type, parameter),
                         parameter.getMin(),
                         parameter.getMax(),
-                        parameter.isRequired()))
-                .toList();
+                        parameter.isRequired(),
+                        parameter.getValues()
+                    )
+                ).toList();
     }
 
     private Object defaultValue(TypeSolver type, EngineProperties.Parameter parameter) {

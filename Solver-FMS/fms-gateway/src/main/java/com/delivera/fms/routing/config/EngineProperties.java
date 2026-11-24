@@ -191,6 +191,8 @@ public class EngineProperties {
 
         private boolean required;
 
+        private List<String> values;
+
         public String getName() {
             return name;
         }
@@ -245,6 +247,14 @@ public class EngineProperties {
 
         public void setRequired(boolean required) {
             this.required = required;
+        }
+
+        public List<String> getValues() {
+            return values;
+        }
+
+        public void setValues(List<String> values) {
+            this.values = values;
         }
     }
 
