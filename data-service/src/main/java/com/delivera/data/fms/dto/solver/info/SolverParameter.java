@@ -1,5 +1,7 @@
 package com.delivera.data.fms.dto.solver.info;
 
+import java.util.List;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
@@ -36,7 +38,10 @@ public record SolverParameter(
 
         @Schema(description = "If true, the client must send it because there is no default value",
                 example = "false")
-        boolean required
+        boolean required,
+
+        @Schema(description = "If enum, this shows the valid values", example = "['hybrid','urban']")
+        List<String> values
 ) {
 
     // Un parametro tiene valor por defecto util si esta declarado explicitamente.
