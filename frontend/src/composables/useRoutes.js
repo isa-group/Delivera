@@ -112,7 +112,13 @@ export function useRoutes() {
         groupsRows
     } = groupingUtils
     const solverUtils = useRoutesSolver(wizard,modesUtils, groupingUtils)
-    const {executeAllSelected,executeSlots, getSolverDistance, routesBySolver, routesErrors} = solverUtils
+    const {
+        executeAllSelected,
+        executeSlots, 
+        getSolverDistance, 
+        routesBySolver,
+        routesErrors, 
+        paramsErrors} = solverUtils
     const { t } = useI18n() 
     let initialCustomerLayer = null
     let initalDepotLayer = null
@@ -121,13 +127,13 @@ export function useRoutes() {
     const selectedClusterId = ref(null)
 
     const globlaErrors = computed(() => {
-        console.log('aaa')
         return [
             { source:"availableSolvers" ,error: errorLoadingJwt.value},
             {source: "benchmarksLoad", error: allBenchmarkError.value},
             { source:"obtainingData", error: dataError.value},
             {source: "groupingData", error: groupsError.value},
-            ...routesErrors.value
+            ...routesErrors.value,
+            ...paramsErrors.value
         ]
     })
     

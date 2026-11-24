@@ -1,16 +1,16 @@
 <script setup>
 import { ParamType } from '@/composables/useParamBuilder';
 import { InputNumber, Select, Slider, ToggleSwitch } from 'primevue';
-import { onMounted, reactive, watch } from 'vue';
+import { onMounted, onUnmounted, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { toRaw } from 'vue'
 
-const { t } = useI18n() 
+const { t, locale } = useI18n() 
+
 
 const props = defineProps({
   params: { type: Array, required: true }
 })
-
-
 
 const values = reactive({})
 
@@ -26,28 +26,26 @@ emit(
 )*/
 
 watch(
+    values,
+    () => {
+        emit(
+        'change',
+        structuredClone(toRaw(values))
+    )},
+    { deep: true }
+)
+
+watch(
     () => props.params,
-    (params) => {
+    params => {
         params.forEach(param => {
-            values[param.name] = param.default
+            values[param.name] = param.value
         })
     },
-    {
-        immediate: true,
-        deep: true
-    }
+    { immediate: true }
 )
 
 
-watch(values,() =>{
-    console.log(values)
-}, {deep:true})
-
-onMounted(() => {
-    props.params.forEach(param => {
-        values[param.name] = param.default
-    })
-})
 
 function reloadDefault(param) {
     values[param.name] = param.default
@@ -151,6 +149,7 @@ function supportsSlider(param) {
                         :useGrouping="false"
                         :min="param.minimum"
                         :max="param.maximum"
+                        :locale="locale"
                         :step="param.step ?? (
                             param.type === 'INTEGER'
                                 ? 1

@@ -39,6 +39,7 @@ export function useRoutesSolver(
 
     const {build} = useParamBuilder()
 
+    const paramsErrors = ref([])
     const routesErrors = ref([])
     const showCatalog = ref(false)
 
@@ -48,7 +49,9 @@ export function useRoutesSolver(
 
     const errorLoadingUserSolvers = ref('')
 
-    const solverParams = computed(() => {
+    const solverParams = ref([]) 
+
+    watch(userSolvers, () => {
         const transformParam =  parameter => 
             {
                 const tmp = {
@@ -57,9 +60,14 @@ export function useRoutesSolver(
                     minimum:  parameter.min,
                     maximum:  parameter.max,
                     default: parameter.defaultValue ?? parameter.min ?? parameter.max,
+                    value: parameter.defaultValue ?? parameter.min ?? parameter.max,
                     enabled: true
                 }
-    
+
+                if (parameter?.values?.length > 0) {
+                    tmp['enum'] = parameter.values
+                }
+             
                 return tmp
             }
 
@@ -71,14 +79,46 @@ export function useRoutesSolver(
                 params.push(transformedParam)
             }
             const normalizedParams = build(params)
+            const tmpParamsErrors = [
+                ...paramsErrors.value
+            ]
+            normalizedParams.errors.forEach(error => {
+                    tmpParamsErrors.push({
+                        source: "paramsNormalization",
+                        error: error
+                    })
+                }
+            )
+            paramsErrors.value = tmpParamsErrors
             paramsBySolver[solverInfo?.solver] = normalizedParams.params
         }
      
        
 
-        return Object.entries(paramsBySolver)
+        solverParams.value =  Object.entries(paramsBySolver)
 
     })
+
+
+    function updateSolverValues(solver, values) {
+        const tmp = [...solverParams.value]
+    
+        const entry = tmp.find(([name]) => name === solver)
+    
+        if (!entry) {
+            return
+        }
+    
+        const [, params] = entry
+    
+        params.forEach(param => {
+            if (values[param.name] !== undefined) {
+                param.value = values[param.name]
+            }
+        })
+    }
+
+    
 
     onMounted(() => {
         executeLoad(
@@ -86,9 +126,7 @@ export function useRoutesSolver(
             "/fms/routing/available/solvers", 
             userSolvers, 
             errorLoadingUserSolvers
-        ).then(() => {
-            console.log(solverParams.value)
-        })
+        )
 
     })
 
@@ -174,6 +212,15 @@ export function useRoutesSolver(
         return routesBySolver.value[solverType]
     }
 
+    function getSolverParamsValues(solver) {
+        const normalizedParams = solverParams.value.find(([_name,]) => _name === solver)?.[1] || []
+
+        return [...normalizedParams].reduce((acc, param) => {
+            acc[param.name] = param.value
+            return acc
+        },{})
+    }
+
     async function executeSlots({data,layersBySolver , drawFunction = () => {}, urlBase = undefined}) {
         const promises = []
         getSolverNames().forEach(name => initSolverLayer(name, layersBySolver) )
@@ -188,6 +235,8 @@ export function useRoutesSolver(
             
             getSolverNames().forEach(name => {
                 if (slotRow[name]) {
+                    payload['parameters'] = getSolverParamsValues(name)
+
                     promises.push(promiseExecuteSolver(slotRow.id, payload, name, urlBase))
                 }
             })
@@ -396,6 +445,7 @@ export function useRoutesSolver(
         showCatalog,
         routesBySolver,
         routesErrors,
+        paramsErrors,
         slotRows,
         routesByCluster,
         solverParams,
@@ -407,6 +457,7 @@ export function useRoutesSolver(
         getSolverNames,
         disableSelection,
         executeSlots,
-        getSolverDistance
+        getSolverDistance,
+        updateSolverValues
     }
 }

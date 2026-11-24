@@ -237,15 +237,7 @@ onUnmounted(() => {
 
 })
 
-watch(
-    dockCoordinates,
-    value => {
-        console.log(
-            props.panelId,
-            value
-        )
-    }
-)
+
 
 
 </script>

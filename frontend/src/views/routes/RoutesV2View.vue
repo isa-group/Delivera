@@ -75,6 +75,7 @@ const {
         getAvailableSlots,
         toggleCatalog,
         showCustomSection,
+        updateSolverValues
        
 
     } = useRoutes()
@@ -540,12 +541,14 @@ const {
                 >
                     <div class="solver-config-card" :key="solver"  v-for="[solver,params] in solverParams">
                         <div>
-                            <h2>{{solver}}</h2>
+                            <h2>{{t(`routes.solvers.${solver}.name`)}}</h2>
                         </div>
                         <ParamsRender
                             :key="solver"
                             :params="params"
+                            @change="newValues => updateSolverValues(solver, newValues)"
                         />
+
                         <div v-if="params.length == 0">
                             {{"EMPTY"}}
                         </div>

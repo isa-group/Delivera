@@ -7,8 +7,7 @@ const props = defineProps({
 })
 
 const showErrors = computed(() => {
-    console.log(props.errors)
-    console.log([...props.errors].filter(error => error.error))
+
     return [...props.errors].filter(error => error.error)
 })
 </script>
