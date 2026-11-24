@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -28,6 +29,7 @@ import com.delivera.data.fms.dto.InstanceCatalog;
 import com.delivera.data.fms.dto.RoutingRequest;
 import com.delivera.data.fms.dto.RoutingResponse;
 import com.delivera.data.fms.dto.SolveClusterRequest;
+import com.delivera.data.fms.dto.SolveInstanceClusterRequest;
 import com.delivera.data.fms.dto.TypeSolver;
 import com.delivera.data.fms.service.FmsRoutingService;
 
@@ -290,5 +292,42 @@ class FmsRoutingControllerTest {
                                 config,
                                null
                         );
+        }
+
+        @Test
+        void analyzeCluster_shouldAskTheServiceForTheCompanyCluster() {
+
+                SolveClusterRequest request = new SolveClusterRequest();
+                request.setCustomers(Set.of(UUID.randomUUID()));
+                request.setDepots(Set.of(UUID.randomUUID()));
+                Map<String, Object> analysis = Map.of("analysis", Map.of("is_viable", true));
+
+                when(securityUtils.getCurrentCompanyId()).thenReturn(companyId);
+                when(fmsRoutingService.analyzeForCompany(
+                        companyId, request.getCustomers(), request.getDepots(), TypeSolver.QISKIT
+                )).thenReturn(analysis);
+
+                ResponseEntity<Map<String, Object>> response =
+                        controller.analyzeCluster(TypeSolver.QISKIT, request);
+
+                assertThat(response.getBody()).isSameAs(analysis);
+        }
+
+        @Test
+        void analyzeInstanceCluster_shouldAskTheServiceForTheBenchmarkCluster() {
+
+                SolveInstanceClusterRequest request = new SolveInstanceClusterRequest();
+                request.setCustomers(Set.of("1", "2"));
+                request.setDepots(Set.of("51"));
+                Map<String, Object> analysis = Map.of("analysis", Map.of("is_viable", false));
+
+                when(fmsRoutingService.analyzeForInstance(
+                        "p01", request.getCustomers(), request.getDepots(), TypeSolver.DWAVE
+                )).thenReturn(analysis);
+
+                ResponseEntity<Map<String, Object>> response =
+                        controller.analyzeInstanceCluster(TypeSolver.DWAVE, request, "p01");
+
+                assertThat(response.getBody()).isSameAs(analysis);
         }
 }

@@ -308,14 +308,15 @@ fms:
           min: 0
           max: 281474976710655
     # The two quantum backends of the quantum line's engine (cqvrp). Both point to the same
-    # service, which picks the backend per request. The defaults below mirror cqvrp's own (its
-    # X-* headers), so each descriptor matches the run that happens. The engine still speaks
-    # the cqvrp contract, not /api/v1/engine/solve, so solving through the gateway fails until
-    # that adapter exists; FMS_ENGINES_QISKIT_ENABLED=false or FMS_ENGINES_DWAVE_ENABLED=false
-    # hide them.
+    # service, each through its own Delivera-contract endpoint (/api/v2/QISKIT/solve and
+    # /api/v2/DWAVE/solve), and share its initial viability filter as their analysis. The
+    # defaults below mirror the engine's own, so each descriptor matches the run that happens.
+    # FMS_ENGINES_QISKIT_ENABLED=false or FMS_ENGINES_DWAVE_ENABLED=false hide them.
     qiskit:
       url: http://quantum-engine:8095
       path: /api/v2/QISKIT/solve
+      health-path: /health
+      analyze-path: /api/v2/quantum-routing/analyze
       display-name: Quantum QAOA (Qiskit)
       description: >-
         Hybrid quantum-classical solver of the quantum line (cqvrp). It splits the instance by
@@ -365,6 +366,8 @@ fms:
     dwave:
       url: http://quantum-engine:8095
       path: /api/v2/DWAVE/solve
+      health-path: /health
+      analyze-path: /api/v2/quantum-routing/analyze
       display-name: Quantum hybrid (D-Wave Leap)
       description: >-
         Hybrid quantum-classical solver of the quantum line (cqvrp) on D-Wave's cloud. It splits
@@ -390,43 +393,48 @@ fms:
           default-value: 60
           min: 1
           max: 300
+    # Classical solver of the quantum line's engine: PyVRP's hybrid genetic search, which
+    # already speaks the Delivera contract through its own endpoint.
     hgs:
       url: http://quantum-engine:8095
       path: /api/v1/HGS-ADC/solve
-      display-name: HGS-ADC (PyVRP)
+      health-path: /health
+      display-name: HGS (PyVRP)
       description: >-
-        Hybrid Genetic Search with Adaptive Diversity Control (HGS-ADC) based on
-        PyVRP. Solves the CVRP using the PyVRP metaheuristic and supports multiple
-        vehicle assignment strategies and tuning profiles for heterogeneous fleets.
-      strategy: Classical metaheuristic
+        PyVRP's hybrid genetic search (HGS) for the heterogeneous fleet of each depot: a population
+        of solutions evolved by crossover and intensive local search. One of the strongest
+        classical methods for vehicle routing. It stops on a time budget and can let each vehicle
+        make several trips
+      strategy: Metaheuristic
       technology: Python 3.14 / FastAPI + PyVRP 0.14
       version: 1.0.0
       deterministic: false
-      order: 70
+      order: 45
       parameters:
         - name: classicalTimeLimit
           description: >-
-            Search time budget in seconds. PyVRP runs until the time limit is
-            reached.
+            Search time in seconds; decimals are accepted. PyVRP uses all of it, so it bounds the
+            response time
           type: DECIMAL
-          default-value: 1
+          default-value: 5.0
           min: 0.1
           max: 300
-
         - name: seed
-          description: Random seed used by the search process.
+          description: >-
+            Seed of the search. If not sent, the engine uses 42, so a run is only repeatable with
+            the same seed and the same time budget on a similar machine
           type: INTEGER
-          default-value: 42
           min: 0
           max: 2147483647
-
         - name: maxVehicleRepetition
-          description: Maximum number of trips allowed per vehicle, including the first trip.
+          description: >-
+            Maximum number of trips per vehicle, the first one included. 1 means each vehicle
+            makes a single trip
           type: INTEGER
           default-value: 1
           min: 1
           max: 10
-
+          
         - name: vehicleStrategy
           description: Strategy used to assign work among compatible vehicles.
           type: ENUM
@@ -447,6 +455,7 @@ fms:
             - interurban
             - heavy_goods
             - balanced
+
 
 springdoc:
   api-docs:

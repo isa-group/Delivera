@@ -709,7 +709,8 @@ routes:
     ANNEALING: Annealing
     QISKIT: Quantum (Qiskit)
     DWAVE: Quantum (D-Wave)
-    HGS: HGS
+    HGS: HGS (PyVRP)
+    quantumViability: Quantum viability
 
   tables:
     group: Group
@@ -745,11 +746,19 @@ routes:
     QISKIT:
       name: Quantum (Qiskit)
       description: "Hybrid quantum-classical solver. It solves each region with the QAOA quantum algorithm on a local Qiskit simulator, and uses a classical solver when a region does not fit in the available qubits. Experimental: today only very small instances reach the quantum part."
+    HGS:
+      name: HGS (PyVRP)
+      description: "Hybrid genetic algorithm that combines the evolution of a population of solutions with intensive local search. It is one of the most competitive classical methods for routing problems and usually finds very high-quality solutions in a few seconds."
     DWAVE:
       name: Quantum (D-Wave)
       description: "Hybrid quantum-classical solver on D-Wave's cloud. It sends each region to the Leap hybrid solver, which handles much larger problems than the local simulator. It needs a D-Wave account; without access, a classical solver is used. Experimental."
-    HGS:
-      name: Hybrid Genetic Search
+  quantumViability:
+    analyze: Show quantum viability
+    viable: Suitable for the quantum path
+    notViable: Not suitable for the quantum path
+    noDepot: No unit within the maximum radius, so it cannot be analysed.
+    noDepotSummary: "{noDepot} groups have no unit within the maximum radius and are not analysed (grey on the map)."
+    summary: "{viable} of {analyzed} groups pass the quantum filter. It is only the initial filter: it does not check whether they fit in the available qubits."
   slot:
     title: What is an execution slot?
     p1: A slot represents an independent solver execution.

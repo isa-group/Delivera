@@ -1,5 +1,7 @@
 package com.delivera.data.fms.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
@@ -17,5 +19,7 @@ public enum TypeSolver {
     ANNEALING,
     QISKIT,
     DWAVE,
+    // El engine de PyVRP responde hoy con solverUsed "HGS"; versiones anteriores, con "HGS-ADC".
+    @JsonAlias("HGS-ADC")
     HGS
 }

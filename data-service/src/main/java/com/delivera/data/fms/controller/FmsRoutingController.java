@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -160,6 +161,43 @@ public class FmsRoutingController {
             notShowAllDepots
         );
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Analizar un grupo de la empresa sin resolverlo",
+    description = "Pide al solver indicado su analisis previo de los clientes y depositos " +
+            "enviados, sin resolver rutas. Solo lo ofrecen los solvers cuyo motor lo declara " +
+            "(QISKIT y DWAVE: filtro de viabilidad cuantica).")
+    @PostMapping("/analyze/cluster")
+    public ResponseEntity<Map<String, Object>> analyzeCluster(
+        @Parameter(description = "Solver cuyo analisis se pide (QISKIT o DWAVE)")
+        @RequestParam(defaultValue = "QISKIT") TypeSolver solverType,
+        @RequestBody SolveClusterRequest request
+    ) {
+        UUID companyId = securityUtils.getCurrentCompanyId();
+        return ResponseEntity.ok(fmsRoutingService.analyzeForCompany(
+            companyId,
+            request.getCustomers(),
+            request.getDepots(),
+            solverType
+        ));
+    }
+
+    @Operation(summary = "Analizar un grupo de una instancia benchmark sin resolverlo",
+    description = "Igual que /analyze/cluster, sobre los clientes y depositos indicados de una " +
+            "instancia benchmark.")
+    @PostMapping("/analyze/benchmarks/{name}/cluster")
+    public ResponseEntity<Map<String, Object>> analyzeInstanceCluster(
+        @Parameter(description = "Solver cuyo analisis se pide (QISKIT o DWAVE)")
+        @RequestParam(defaultValue = "QISKIT") TypeSolver solverType,
+        @RequestBody SolveInstanceClusterRequest request,
+        @Valid @PathVariable(name = "name") String name
+    ) {
+        return ResponseEntity.ok(fmsRoutingService.analyzeForInstance(
+            name,
+            request.getCustomers(),
+            request.getDepots(),
+            solverType
+        ));
     }
 
     @Operation(summary = "Resolver rutas de la empresa",

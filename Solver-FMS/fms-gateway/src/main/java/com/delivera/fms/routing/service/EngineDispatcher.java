@@ -6,6 +6,7 @@ import com.delivera.fms.routing.dto.RoutingResponse;
 import com.delivera.fms.routing.dto.TypeSolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -20,6 +21,8 @@ public class EngineDispatcher {
     private static final Duration TIMEOUT = Duration.ofSeconds(300);
     // Cuatro candidatos de hasta 300 s, una ejecución clásica de hasta 300 s y margen.
     private static final Duration QISKIT_TIMEOUT = Duration.ofSeconds(4 * 300 + 300 + 30);
+    /** El analisis no resuelve nada: si tarda mas que esto, algo va mal. */
+    private static final Duration ANALYZE_TIMEOUT = Duration.ofSeconds(60);
 
     private final SolverRegistry registry;
 
@@ -67,6 +70,44 @@ public class EngineDispatcher {
 
         } catch (WebClientResponseException ex) {
             // El motor ha respondido, aunque sea con error: esta vivo y su estado no cambia.
+            throw ex;
+        } catch (Exception ex) {
+            registry.forgetHealth(solverType);
+            throw new EngineUnavailableException(
+                    "Failed to communicate with " + solverType + " engine: " + ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * Pide al motor del solver su analisis previo del problema, sin resolverlo. Cada
+     * motor decide que devuelve (el cuantico, su filtro de viabilidad), asi que la
+     * respuesta se reenvia tal cual. Los parametros no se resuelven: el analisis no
+     * ejecuta el solver.
+     */
+    public Map<String, Object> analyze(RoutingRequest request) {
+        TypeSolver solverType = request.solverType();
+        String path = registry.analyzePathFor(solverType).orElseThrow(() -> new IllegalArgumentException(
+                "Solver " + solverType + " does not offer a previous analysis"));
+        WebClient client = registry.clientFor(solverType);
+        // Sin parametros se envia un mapa vacio, no null: el motor espera un objeto.
+        RoutingRequest body = request.parameters() != null ? request : request.withParameters(Map.of());
+
+        try {
+            Map<String, Object> analysis = client.post()
+                    .uri(path)
+                    .bodyValue(body)
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                    .timeout(ANALYZE_TIMEOUT)
+                    .block();
+            if (analysis == null) {
+                throw new EngineUnavailableException("Engine " + solverType + " returned an empty analysis");
+            }
+            registry.markHealthy(solverType);
+            return analysis;
+        } catch (WebClientResponseException ex) {
+            throw ex;
+        } catch (EngineUnavailableException ex) {
             throw ex;
         } catch (Exception ex) {
             registry.forgetHealth(solverType);

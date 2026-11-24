@@ -20,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -43,8 +44,6 @@ public class SolverRegistry {
 
     private final Map<TypeSolver, RegisteredSolver> solvers;
     private final HealthStatusCache healthCache;
-
-    private final String DEFAULT_URL = "/api/v1/engine/solve";
 
     /**
      * Sondas en curso por URL de motor. Mientras una sonda no termina, quien pida el
@@ -81,11 +80,12 @@ public class SolverRegistry {
                 engine.isDeterministic(),
                 parameters(type, engine),
                 SolverStatus.UNKNOWN);
-        return new RegisteredSolver(
-            info, engine.getUrl(), 
-            builder.baseUrl(engine.getUrl()).build(),
-            engine.getPath().isBlank() ? DEFAULT_URL : engine.getPath() 
-        );
+        return new RegisteredSolver(info, engine.getUrl(), engine.getPath(), engine.getHealthPath(),
+                blankToNull(engine.getAnalyzePath()), builder.baseUrl(engine.getUrl()).build());
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     /**
@@ -154,27 +154,28 @@ public class SolverRegistry {
      * @throws SolverNotFoundException si el tipo no esta registrado
      */
     public WebClient clientFor(TypeSolver type) {
-        RegisteredSolver solver = solvers.get(type);
-        if (solver == null) {
-            throw new SolverNotFoundException("No engine configured for solver type: " + type
-                    + ". Available: " + solvers.keySet());
-        }
-        return solver.client();
+        return registered(type).client();
     }
 
-    /**
-     * Cliente HTTP del motor que implementa el solver indicado.
-     *
-     * @throws SolverNotFoundException si el tipo no esta registrado
-    */
+    /** Ruta del motor que resuelve los problemas de este solver. */
     public String pathFor(TypeSolver type) {
+        return registered(type).path();
+    }
+
+    /** Ruta de analisis previo del solver, si su motor la ofrece. */
+    public Optional<String> analyzePathFor(TypeSolver type) {
+        return Optional.ofNullable(registered(type).analyzePath());
+    }
+
+    private RegisteredSolver registered(TypeSolver type) {
         RegisteredSolver solver = solvers.get(type);
         if (solver == null) {
             throw new SolverNotFoundException("No engine configured for solver type: " + type
                     + ". Available: " + solvers.keySet());
         }
-        return solver.path();
+        return solver;
     }
+
 
     /**
      * Completa los parametros recibidos con los valores por defecto declarados en
@@ -271,7 +272,7 @@ public class SolverRegistry {
     }
 
     private Mono<SolverStatus> probeAsync(RegisteredSolver solver) {
-        String url = solver.url();
+        String url = solver.healthUrl();
         SolverStatus cached = healthCache.get(url).orElse(null);
         if (cached != null) {
             return Mono.just(cached);
@@ -280,9 +281,9 @@ public class SolverRegistry {
     }
 
     private Mono<SolverStatus> sendProbe(RegisteredSolver solver) {
-        String url = solver.url();
+        String url = solver.healthUrl();
         return solver.client().get()
-                .uri("/actuator/health")
+                .uri(solver.healthPath())
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(HEALTH_TIMEOUT)
@@ -302,7 +303,7 @@ public class SolverRegistry {
     public void markHealthy(TypeSolver type) {
         RegisteredSolver solver = solvers.get(type);
         if (solver != null) {
-            healthCache.put(solver.url(), SolverStatus.UP);
+            healthCache.put(solver.healthUrl(), SolverStatus.UP);
         }
     }
 
@@ -314,11 +315,17 @@ public class SolverRegistry {
     public void forgetHealth(TypeSolver type) {
         RegisteredSolver solver = solvers.get(type);
         if (solver != null) {
-            healthCache.invalidate(solver.url());
+            healthCache.invalidate(solver.healthUrl());
         }
     }
 
-    /** Metadatos publicos de un solver junto a la URL y el cliente HTTP de su motor. */
-    private record RegisteredSolver(SolverInfo info, String url, WebClient client, String path) {
+    /** Metadatos publicos de un solver junto a la URL, las rutas y el cliente HTTP de su motor. */
+    private record RegisteredSolver(SolverInfo info, String url, String path, String healthPath,
+                                    String analyzePath, WebClient client) {
+
+        // La salud es la del servicio: solvers del mismo motor comparten sonda y entrada.
+        String healthUrl() {
+            return url + healthPath;
+        }
     }
 }

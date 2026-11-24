@@ -9,7 +9,7 @@ import FloatingPanel from '@/components/windows/FloatingPanel.vue';
 import { ref } from 'vue';
 import DockBar  from '@/components/windows/DockBar.vue';
 import { useSmartTranslation } from '@/composables/useSmartTranslation.js';
-import ParamsRender from '@/components/paramsRenderer/paramsRender.vue';
+import ParamsRender from '@/components/paramsRenderer/ParamsRender.vue';
 import { useParamBuilder } from '@/composables/useParamBuilder.js';
 import ErrorCard from '@/components/errorCard/ErrorCard.vue';
 
@@ -76,7 +76,10 @@ const {
         toggleCatalog,
         showCustomSection,
         updateSolverValues
-       
+        analyzingViability,
+        viabilitySummary,
+        runViabilityAnalysis,
+
 
     } = useRoutes()
 
@@ -415,6 +418,20 @@ const {
                                 :aria-label="`${(!showCatalog? t('routes.show') : t('routes.hide'))} ${t('routes.catalog')}`"
                                 @click="toggleCatalog()"
                             />
+                                <PButton
+                                    :label="t('routes.quantumViability.analyze')"
+                                    icon="pi pi-microchip"
+                                    severity="secondary"
+                                    :loading="analyzingViability"
+                                    :aria-label="t('routes.quantumViability.analyze')"
+                                    @click="runViabilityAnalysis()"
+                                />
+                                <small v-if="viabilitySummary.analyzed" class="quantum-viability-summary">
+                                    {{ t('routes.quantumViability.summary', viabilitySummary) }}
+                                </small>
+                                <small v-if="viabilitySummary.noDepot" class="quantum-viability-summary">
+                                    {{ t('routes.quantumViability.noDepotSummary', viabilitySummary) }}
+                                </small>
                             </div>
                         </div>
                     </div>

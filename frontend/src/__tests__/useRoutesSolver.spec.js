@@ -8,7 +8,7 @@ vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key) => key }),
 }))
 vi.mock('@/composables/useLoad', () => ({
-  useLoad: () => ({ post: vi.fn() }),
+  useLoad: () => ({ post: vi.fn(), executeLoad: vi.fn(() => Promise.resolve()) }),
 }))
 vi.mock('@/composables/useServices', () => ({
   useServices: () => ({}),
@@ -41,20 +41,21 @@ function loadLocale(name) {
 }
 
 describe('useRoutesSolver — solvers cuánticos', () => {
-  it('ofrece QISKIT y DWAVE junto a los clásicos', () => {
-    const { solvers, getSolverNames } = setup()
+  // allSolvers es el catálogo completo; solvers, solo los que el usuario tiene contratados.
+  it('ofrece QISKIT, DWAVE y HGS junto a los clásicos', () => {
+    const { allSolvers, getSolverNames } = setup()
 
-    expect(solvers.map((solver) => solver.type)).toEqual(['GREEDY', 'GENETIC', 'ANNEALING', 'QISKIT', 'DWAVE'])
+    expect(allSolvers.map((solver) => solver.type)).toEqual(['GREEDY', 'GENETIC', 'ANNEALING', 'QISKIT', 'DWAVE', 'HGS'])
     expect(getSolverNames()).toEqual(expect.arrayContaining(QUANTUM_SOLVERS))
   })
 
   it('cada solver cuántico tiene id único, icono y textos propios', () => {
-    const { solvers } = setup()
-    const ids = solvers.map((solver) => solver.id)
+    const { allSolvers } = setup()
+    const ids = allSolvers.map((solver) => solver.id)
 
     expect(new Set(ids).size).toBe(ids.length)
     for (const type of QUANTUM_SOLVERS) {
-      const solver = solvers.find((item) => item.type === type)
+      const solver = allSolvers.find((item) => item.type === type)
       expect(solver.icon).toMatch(/^pi pi-/)
       expect(solver.name).toBe(`routes.solvers.${type}.name`)
       expect(solver.description).toBe(`routes.solvers.${type}.description`)
@@ -62,8 +63,8 @@ describe('useRoutesSolver — solvers cuánticos', () => {
   })
 
   it('en modo comparación se pueden marcar los dos a la vez', () => {
-    const { solvers, selectSolver, selectedSolversId, phases } = setup({ comparison: true })
-    const idOf = (type) => solvers.find((solver) => solver.type === type).id
+    const { allSolvers, selectSolver, selectedSolversId, phases } = setup({ comparison: true })
+    const idOf = (type) => allSolvers.find((solver) => solver.type === type).id
 
     selectSolver(idOf('QISKIT'))
     selectSolver(idOf('DWAVE'))

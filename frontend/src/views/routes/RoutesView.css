@@ -353,3 +353,10 @@
     }
 }
 
+.quantum-viability-summary {
+    color: var(--text-color-secondary);
+}
+
+.quantum-viability-error {
+    color: #dc2626;
+}

@@ -244,9 +244,12 @@ async def base_solve_quantum_route(
     
     adapted_request = Adapter.adapt_request(request)
     print(adapted_request.parameters)
+    # Las opciones ya van como argumentos: si quedan en parameters, el fallback las
+    # rechaza como desconocidas.
     adapted_request.parameters.pop("classicalTimeLimit",None)
     adapted_request.parameters.pop("maxQubits",None)
     adapted_request.parameters.pop("includeMtz",None)
+    adapted_request.parameters.pop("quantumTimeoutSeconds",None)
     
     solution = await solve_quantum_route(
         adapted_request,

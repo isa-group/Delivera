@@ -145,6 +145,17 @@ No Java class changes: the HTTP client, the dispatch, the catalogue and the para
 derived from that block. `enabled: false` removes an engine from the catalogue without deleting its
 configuration.
 
+An engine with other paths declares them in the same block:
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `path` | `/api/v1/engine/solve` | Where the gateway sends the problem to solve |
+| `health-path` | `/actuator/health` | What the health probe calls |
+| `analyze-path` | not set | Analysis without solving, behind `POST /api/v1/fms/routing/analyze`. Without it, that endpoint answers 400 for the solver |
+
+The Python engine of the quantum line uses all three: `/health` for its health, and its own paths
+for solving (`HGS`) and analysing (`QISKIT` and `DWAVE`).
+
 An engine may ignore the `parameters` map it receives entirely (that is what the greedy one does). If
 it wants to use it, the only rule is that **its defaults match the declared ones**: otherwise the
 descriptor would be describing a run that is not the one that happens.
