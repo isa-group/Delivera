@@ -66,7 +66,7 @@ class PyvrpParameters(BaseApiModel):
     """Opciones del nuevo PyVRP recibidas dentro de request.parameters."""
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
-    classical_time_limit: float = Field(default=0.1, alias="classicalTimeLimit",
+    classical_time_limit: float = Field(default=1, alias="classicalTimeLimit",
         ge=0.1, le=300, strict=True, allow_inf_nan=False,
         description="Segundos de búsqueda PyVRP, admite decimales")
     seed: int = Field(default=42, ge=0, le=2**31-1, strict=True,
