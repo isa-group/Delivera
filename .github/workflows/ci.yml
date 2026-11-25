@@ -20,8 +20,12 @@ jobs:
           distribution: temurin
           cache: maven
 
+      - name: Instalar microservice-client-starter (dependencia del backend)
+        run: ./mvnw -B -q install -DskipTests
+        working-directory: microservice-client-starter
+
       - name: Test y cobertura
-        run: mvn -B verify
+        run: ./mvnw -B verify
         working-directory: backend
 
       - name: Subir reporte JaCoCo
@@ -118,8 +122,12 @@ jobs:
       - name: Ajustar rutas lcov para SonarCloud
         run: sed -i 's|^SF:src/|SF:frontend/src/|g' frontend/coverage/lcov.info
 
+      - name: Instalar microservice-client-starter (dependencia del backend)
+        run: ./mvnw -B -q install -DskipTests
+        working-directory: microservice-client-starter
+
       - name: Compilar backend y resolver dependencias (para Sonar)
-        run: mvn -B compile dependency:copy-dependencies -DincludeScope=compile -DoutputDirectory=target/dependency -DskipTests
+        run: ./mvnw -B compile dependency:copy-dependencies -DincludeScope=compile -DoutputDirectory=target/dependency -DskipTests
         working-directory: backend
 
       - name: Análisis SonarCloud

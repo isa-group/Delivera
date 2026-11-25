@@ -27,7 +27,7 @@ Usa la guía situada en docs/condig/deployment_guide.md para entender el desplie
 | Tests | JaCoCo (backend), Vitest + Playwright (frontend) |
 | Calidad | SonarCloud (Quality Gate en CI) |
 | Infraestructura | Docker, docker-compose |
-| Gestores de dependencias | Maven (backend), npm (frontend) |
+| Gestores de dependencias | Maven vía Maven Wrapper (servicios Java), npm (frontend) |
 
 ## Estructura
 
@@ -42,8 +42,8 @@ delivera/
 ## Requisitos
 
 - Java 21
-- Maven
 - Node.js >= 20
+- Maven **no** es necesario: cada proyecto Java (`backend`, `auth-service`, `data-service`, `microservice-client-starter`) incluye Maven Wrapper (`./mvnw`, o `mvnw.cmd` en Windows)
 - Docker Desktop
 - `jq` (para los scripts de seed)
 
@@ -61,20 +61,20 @@ docker compose up -d
 **2. Microservice-starter**
 ```bash
 cd microservice-client-starter/
-mvn clean install
+./mvnw clean install
 ```
 
 **3. Auth service**
 ```bash
 cd auth-service
-mvn spring-boot:run -D spring-boot.run.profiles=dev
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 **4 Data service**
 
 ```bash
 cd data-service
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
 ```
 
@@ -82,7 +82,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 ```bash
 cd backend
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
 ```
 
@@ -245,10 +245,10 @@ La contraseña se puede cambiar sin tocar el código con la propiedad `app.demo.
 
 ```bash
 # Backend (H2 in-memory, no requiere PostgreSQL)
-cd backend && mvn test
+cd backend && ./mvnw test
 
 # Backend — con informe de cobertura JaCoCo
-cd backend && mvn verify
+cd backend && ./mvnw verify
 
 # Frontend — unitarios (Vitest)
 cd frontend && npm run test:unit
