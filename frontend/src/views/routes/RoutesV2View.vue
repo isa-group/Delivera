@@ -12,10 +12,11 @@ import { useSmartTranslation } from '@/composables/useSmartTranslation.js';
 import ParamsRender from '@/components/paramsRenderer/ParamsRender.vue';
 import { useParamBuilder } from '@/composables/useParamBuilder.js';
 import ErrorCard from '@/components/errorCard/ErrorCard.vue';
+import CollapsibleSection from '@/components/collapsibleSection/CollapsibleSection.vue';
 
 
 
-const { t} = useI18n() 
+const { t, te } = useI18n()
 const { getDisplayName} = useSmartTranslation()
 const {build} = useParamBuilder()
 const {
@@ -620,10 +621,15 @@ const {
                 <div  
                     v-if="solverParams.length > 0"
                 >
-                    <div class="solver-config-card" :key="solver"  v-for="[solver,params] in solverParams">
-                        <div>
-                            <h2>{{solver}}</h2>
-                        </div>
+                    <!-- Una sección plegable por algoritmo, cerradas por defecto. -->
+                    <CollapsibleSection
+                        :key="solver"
+                        v-for="[solver,params] in solverParams"
+                        :title="te(`routes.solvers.${solver}.name`) ? t(`routes.solvers.${solver}.name`) : solver"
+                    >
+                        <template #badge>
+                            <small class="solver-params-count">{{ params.length }}</small>
+                        </template>
                         <ParamsRender
                             :key="solver"
                             :params="params"
@@ -631,7 +637,7 @@ const {
                         <div v-if="params.length == 0">
                             {{"EMPTY"}}
                         </div>
-                    </div>
+                    </CollapsibleSection>
                 </div>
                 
         
