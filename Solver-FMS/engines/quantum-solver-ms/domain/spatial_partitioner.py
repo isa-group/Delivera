@@ -36,8 +36,9 @@ class SpatialPartitioner:
     def apply_capacitated_voronoi(self) -> Dict[str, List[CustomerDto]]:
         """
         Resuelve el Problema de Asignación Generalizada (GAP) utilizando Programación Lineal Entera.
-        Asigna cada cliente a un depósito minimizando la distancia euclídea, 
-        sujeto a la restricción estricta de capacidad total de la flota de ese depósito.
+        Asigna cada cliente a un depósito minimizando la distancia de la petición
+        (su matriz si la trae, la euclídea si no), sujeto a la restricción estricta
+        de capacidad total de la flota de ese depósito.
         """
         # 1. Calcular la capacidad total disponible en cada depósito
         vehicles_by_depot = self.get_vehicles_by_depot()
@@ -56,7 +57,7 @@ class SpatialPartitioner:
 
         # 4. Función Objetivo: Minimizar la suma de distancias
         prob += pulp.lpSum(
-            c.euclidean_distance(d) * x[c.id, d.id] 
+            self.request.distance(c, d) * x[c.id, d.id]
             for c in self.customers for d in self.depots
         )
 
@@ -91,15 +92,25 @@ class SpatialPartitioner:
         if len(cluster) <= n_clusters:
             return cluster
 
-        coords = np.array([[c.x, c.y] for c in cluster])
-
-        # Usamos linkage='complete' (máxima distancia) para forzar agrupaciones compactas
-        clustering = AgglomerativeClustering(
-            n_clusters=n_clusters, 
-            linkage='complete',
-            metric='euclidean'
-        )
-        labels = clustering.fit_predict(coords)
+        # Usamos linkage='complete' (máxima distancia) para forzar agrupaciones compactas.
+        # Con matriz se agrupa sobre sus distancias (simetrizadas, porque una matriz
+        # real puede no serlo); sin ella, sobre las coordenadas como hasta ahora.
+        if self.request.uses_matrix:
+            distances = self._cluster_distances(cluster)
+            clustering = AgglomerativeClustering(
+                n_clusters=n_clusters,
+                linkage='complete',
+                metric='precomputed'
+            )
+            labels = clustering.fit_predict((distances + distances.T) / 2)
+        else:
+            coords = np.array([[c.x, c.y] for c in cluster])
+            clustering = AgglomerativeClustering(
+                n_clusters=n_clusters,
+                linkage='complete',
+                metric='euclidean'
+            )
+            labels = clustering.fit_predict(coords)
 
         super_clients = []
         
@@ -123,13 +134,27 @@ class SpatialPartitioner:
             
             # Guardamos los clientes originales para expandir después cada grupo
             # y calcular la distancia del recorrido completo, sin visitar centroides.
+            # El Súper-Cliente se sitúa en la media de coordenadas (para pintarlo y
+            # para PyVRP), pero sus distancias se leen de la fila de su cliente más
+            # central, de modo que el QUBO solo usa valores reales de la matriz.
             super_clients.append(CustomerDto(
-                id=composed_id, 
-                x=round(avg_x, 2), 
-                y=round(avg_y, 2), 
+                id=composed_id,
+                x=round(avg_x, 2),
+                y=round(avg_y, 2),
                 demand=total_demand,
+                matrix_index=self._medoid(internal_customers).matrix_index,
                 internal_nodes=internal_customers
             ))
 
         return super_clients
+
+    def _cluster_distances(self, cluster: List[CustomerDto]) -> np.ndarray:
+        return np.array([[self.request.distance(a, b) for b in cluster] for a in cluster])
+
+    def _medoid(self, members: List[CustomerDto]) -> CustomerDto:
+        """Miembro que minimiza la suma de distancias al resto del grupo."""
+        return min(
+            members,
+            key=lambda member: sum(self.request.distance(member, other) for other in members),
+        )
 

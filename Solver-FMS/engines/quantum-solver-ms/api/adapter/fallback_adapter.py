@@ -36,9 +36,10 @@ class PyvrpFallbackAdapter:
                        for i, c in enumerate(request.customers)],
             vehicles=[VehicleStd(id=v.id, capacity=v.capacity, start_depot_id=depot.id)
                       for depot in request.depots for v in fleets[depot.id]],
-            # Se conserva la métrica nativa, incluida su regla de redondeo.
-            # Dejar que PyVRP2 calcule su euclídea decimal cambiaría el objetivo.
-            distance_matrix=[[a.euclidean_distance(b) for b in nodes] for a in nodes],
+            # Se reindexan los nodos, pero cada distancia sale de la métrica de la
+            # petición: la matriz recibida (la de los demás algoritmos) o, sin ella,
+            # la euclídea redondeada nativa. Así el fallback no cambia de objetivo.
+            distance_matrix=[[request.distance(a, b) for b in nodes] for a in nodes],
         )
 
     @staticmethod

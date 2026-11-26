@@ -185,11 +185,11 @@ def _build_qiskit_model(request: RoutingRequest, include_mtz: bool):
                 )
 
     # El objetivo minimiza la suma de distancias de todos los arcos usados.
-    # Las distancias son euclideas redondeadas, igual que en el parser y
-    # en PyVRP.
+    # Las distancias salen de la matriz de la petición (la de los demás
+    # algoritmos) o, sin ella, de la euclídea redondeada del parser.
     problem.minimize(
         linear={
-            f"x_{origin.id}_{destination.id}_{vehicle_id}": origin.euclidean_distance(destination)
+            f"x_{origin.id}_{destination.id}_{vehicle_id}": request.distance(origin, destination)
             for vehicle_id in vehicle_ids
             for origin in nodes
             for destination in nodes
@@ -458,7 +458,7 @@ def solve_with_qiskit(
             # La distancia final se recalcula sobre la ruta decodificada para
             # que coincida con lo que se devuelve en RouteDto.
             route_distance = sum(
-                node_by_id[origin].euclidean_distance(node_by_id[destination])
+                request.distance(node_by_id[origin], node_by_id[destination])
                 for origin, destination in zip(route, route[1:])
             )
             route_load = sum(

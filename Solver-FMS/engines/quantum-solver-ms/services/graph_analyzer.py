@@ -48,7 +48,7 @@ class GraphAnalyzer:
         if num_customers > 1 and request.depots:
             # Distancia media de cada cliente a su depósito más próximo
             min_depot_dists = [
-                min(c.euclidean_distance(d) for d in request.depots) 
+                min(request.distance(c, d) for d in request.depots) 
                 for c in request.customers
             ]
             avg_dist_to_depot = np.mean(min_depot_dists)
@@ -56,7 +56,7 @@ class GraphAnalyzer:
             # Distancia media de cada cliente a su vecino más cercano (Nearest Neighbor)
             nn_distances = []
             for c1 in request.customers:
-                dists = [c1.euclidean_distance(c2) for c2 in request.customers if c1.id != c2.id]
+                dists = [request.distance(c1, c2) for c2 in request.customers if c1.id != c2.id]
                 nn_distances.append(min(dists))
             avg_nn_distance = np.mean(nn_distances)
             

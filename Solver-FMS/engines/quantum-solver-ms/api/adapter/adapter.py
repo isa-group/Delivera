@@ -12,6 +12,9 @@ class Adapter:
         return RoutingRequest(
             instance_name=request.problem_id,
             parameters=deepcopy(request.parameters),
+            # Se conserva la matriz recibida para que la vía cuántica y su
+            # fallback midan igual que los demás algoritmos.
+            distance_matrix=request.distance_matrix,
             depots=[
                 DtoMapper.to_depot(depot)
                 for depot in request.depots

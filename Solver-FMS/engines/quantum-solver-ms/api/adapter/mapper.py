@@ -11,6 +11,7 @@ class DtoMapper:
             x=customer.lng,
             y=customer.lat,
             demand=customer.demand,
+            matrix_index=customer.matrix_index,
             internal_nodes=(
                 [
                     DtoMapper.to_customer(node)
@@ -27,6 +28,7 @@ class DtoMapper:
             id=depot.id,
             x=depot.lng,
             y=depot.lat,
+            matrix_index=depot.matrix_index,
         )
 
     @staticmethod

@@ -8,6 +8,9 @@ from domain.models import (
     RoutingResponse,
 )
 
+# Misma escala que pyvrp_v2_solver para pasar distancias con decimales a PyVRP.
+DISTANCE_SCALE = 1000
+
 def solve_with_pyvrp(
     request: RoutingRequest,
     max_runtime_sec: int = 60,
@@ -69,14 +72,16 @@ def solve_with_pyvrp(
         # devolverá en cada ruta mediante route.vehicle_type().
         vehicle_ids_by_type.append(vehicle_ids)
         
-    # 4. Construir la matriz de distancias (Euclídea)
+    # 4. Construir la matriz de distancias con la métrica de la petición.
     # PyVRP almacena internamente las ubicaciones en m.locations en el orden de inserción
     all_dtos = request.depots + request.customers
+    # PyVRP solo admite distancias enteras. La euclídea ya está redondeada; la
+    # matriz recibida (km con decimales) se escala igual que en pyvrp_v2_solver.
+    scale = DISTANCE_SCALE if request.uses_matrix else 1
     
     for i, frm_loc in enumerate(m.locations):
         for j, to_loc in enumerate(m.locations):
-            # Distancia euclídea redondeada al entero más cercano (estándar de la literatura)
-            dist = all_dtos[i].euclidean_distance(all_dtos[j])
+            dist = round(request.distance(all_dtos[i], all_dtos[j]) * scale)
             m.add_edge(frm_loc, to_loc, distance=dist)
             
     # 5. Ejecutar la Búsqueda Genética Híbrida (HGS) de PyVRP (silenciado para orquestación)
@@ -137,7 +142,7 @@ def solve_with_pyvrp(
             RouteDto(
                 vehicle_id=vehicle_id,
                 stops=stops,
-                distance=float(route.distance()),
+                distance=float(route.distance()) / scale,
                 load=int(sum(route.delivery())),
             )
         )
@@ -148,7 +153,7 @@ def solve_with_pyvrp(
         instance_name=request.instance_name,
         solver_used="PyVRP",
         execution_time_ms=execution_time_ms,
-        total_distance=float(res.cost()),
+        total_distance=float(res.cost()) / scale,
         is_feasible=all(route.is_feasible() for route in res.best.routes()),
         routes=routes,
     )
