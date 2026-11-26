@@ -26,6 +26,12 @@ WORKDIR /app
 
 COPY --from=build /build/backend/target/*.jar app.jar
 
+RUN addgroup --system app && \
+    adduser --system --ingroup app --uid 10001 appuser
+
+USER appuser
+
+
 EXPOSE 8080
 EXPOSE 8081
 
