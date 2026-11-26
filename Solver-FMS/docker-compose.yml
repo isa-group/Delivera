@@ -11,6 +11,8 @@ services:
     environment:
       - FMS_ENGINES_GREEDY_URL=http://greedy-engine:8091
       - FMS_ENGINES_RANDOM_URL=http://random-engine:8092
+      # RANDOM is off: true here and "--profile random" bring it back.
+      - FMS_ENGINES_RANDOM_ENABLED=false
       - FMS_ENGINES_GENETIC_URL=http://genetic-engine:8093
       - FMS_ENGINES_ANNEALING_URL=http://annealing-engine:8094
       - FMS_ENGINES_QISKIT_URL=http://quantum-engine:8095
@@ -21,8 +23,6 @@ services:
       - ./instances-MD-CVRP-JSON:/app/instances-MD-CVRP-JSON:ro
     depends_on:
       greedy-engine:
-        condition: service_healthy
-      random-engine:
         condition: service_healthy
       genetic-engine:
         condition: service_healthy
@@ -49,6 +49,10 @@ services:
     restart: unless-stopped
 
   random-engine:
+    # Off by default: it adds nothing to the frontend and only takes resources.
+    # Created only on request: docker compose --profile random up
+    # (and FMS_ENGINES_RANDOM_ENABLED=true in the gateway to list it again).
+    profiles: ["random"]
     build:
       context: ./engines/random-engine
       dockerfile: Dockerfile

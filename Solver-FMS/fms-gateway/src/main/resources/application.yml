@@ -30,6 +30,10 @@ fms:
   # its constant to the TypeSolver enum and a block here; no Java class changes.
   engines:
     random:
+      # Off by default: its container is only created with the "random" Compose
+      # profile. While disabled it is left out of the catalogue, so the frontend
+      # does not show it. Turn it back on with FMS_ENGINES_RANDOM_ENABLED=true.
+      enabled: ${FMS_ENGINES_RANDOM_ENABLED:false}
       url: http://random-engine:8092
       path: /api/v1/engine/solve
       display-name: Random
