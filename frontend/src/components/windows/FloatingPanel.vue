@@ -1,12 +1,15 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { watch } from 'vue';
+import { watch, nextTick } from 'vue';
 import {onMounted, onUnmounted } from 'vue'
 import {inject} from 'vue'
+import { clampPosition } from './clampPosition'
 
 const registerPanel = inject('registerPanel')
 
 const minimizePanel = inject('minimizePanel')
+
+const restorePanel = inject('restorePanel', null)
 
 const getNextZIndex = inject('getNextZIndex')
 
@@ -107,7 +110,36 @@ const maximized = ref(false)
 const posX = ref(props.initialX)
 const posY = ref(props.initialY)
 
-const dockCoordinates = ref({x: 0, y:0}) 
+const dockCoordinates = ref({x: 0, y:0})
+
+const panelEl = ref(null)
+
+// Mantiene el panel dentro de su contenedor: si no, al arrastrarlo o al encoger la
+// ventana se puede perder fuera de la pantalla y ya no hay cabecera que agarrar.
+function keepInside() {
+    const el = panelEl.value
+    if (!el || maximized.value) return
+    const parent = el.offsetParent
+    const container = parent
+        ? { width: parent.clientWidth, height: parent.clientHeight }
+        : { width: window.innerWidth, height: window.innerHeight }
+    const { x, y } = clampPosition(
+        { x: posX.value, y: posY.value },
+        { width: el.offsetWidth, height: el.offsetHeight },
+        container
+    )
+    posX.value = x
+    posY.value = y
+}
+
+function restore() {
+    restorePanel?.(props.panelId)
+    minimized.value = false
+    bringToFront()
+    nextTick(keepInside)
+}
+
+defineExpose({ restore })
 
 function startDrag(event) {
 
@@ -132,6 +164,8 @@ function onDrag(event) {
 
     posY.value =
         event.clientY - dragOffsetY.value
+
+    keepInside()
 
 }
 
@@ -220,6 +254,13 @@ onMounted(() => {
         stopDrag
     )
 
+    window.addEventListener(
+        'resize',
+        keepInside
+    )
+
+    nextTick(keepInside)
+
 })
 
 
@@ -235,6 +276,21 @@ onUnmounted(() => {
         stopDrag
     )
 
+    window.removeEventListener(
+        'resize',
+        keepInside
+    )
+
+})
+
+// Al restaurarlo desde el dock vuelve a aparecer donde estaba, que puede haber
+// quedado fuera si la ventana ha cambiado de tamaño mientras estaba minimizado.
+watch(finalMinimized, isMinimized => {
+    if (!isMinimized) nextTick(keepInside)
+})
+
+watch(maximized, isMaximized => {
+    if (!isMaximized) nextTick(keepInside)
 })
 
 watch(
@@ -267,8 +323,9 @@ watch(
     </div>
 
     <div 
-        v-if="!finalMinimized" 
-        class="floating-panel" 
+        v-if="!finalMinimized"
+        ref="panelEl"
+        class="floating-panel"
         :class="{
             maximized
         }"

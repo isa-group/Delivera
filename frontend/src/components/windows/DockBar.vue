@@ -89,6 +89,11 @@ provide(
     registerPanel
 )
 
+provide(
+    'restorePanel',
+    restore
+)
+
 provide(    
     'getDockPosition', (panelId) => panelPositions[panelId]
 )
