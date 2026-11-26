@@ -10,11 +10,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.delivera.data.fms.dto.Cluster;
-import com.delivera.data.fms.dto.ClusterConfig;
-import com.delivera.data.fms.dto.CustomerDto;
-import com.delivera.data.fms.dto.DbscanResult;
-import com.delivera.data.fms.dto.DepotDto;
+import com.delivera.data.fms.dto.solver.cluster.Cluster;
+import com.delivera.data.fms.dto.solver.cluster.ClusterConfig;
+import com.delivera.data.fms.dto.solver.cluster.DbscanResult;
+import com.delivera.data.fms.dto.solver.data.CustomerDto;
+import com.delivera.data.fms.dto.solver.data.DepotDto;
 
 @ExtendWith (MockitoExtension.class)
 class FmsClusterServiceTest {

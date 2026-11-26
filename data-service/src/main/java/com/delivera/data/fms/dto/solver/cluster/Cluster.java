@@ -1,9 +1,11 @@
-package com.delivera.data.fms.dto;
+package com.delivera.data.fms.dto.solver.cluster;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import com.delivera.data.fms.dto.solver.data.CustomerDto;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -1,9 +1,14 @@
-package com.delivera.data.fms.dto;
+package com.delivera.data.fms.dto.solver.Instance;
 
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
+
+import com.delivera.data.fms.dto.solver.data.CustomerDto;
+import com.delivera.data.fms.dto.solver.data.DepotDto;
+import com.delivera.data.fms.dto.solver.data.VehicleDto;
+import com.delivera.data.fms.dto.solver.data.VehicleProjection;
 
 /**
  * Una instancia completa, ya traducida al modelo del gateway.

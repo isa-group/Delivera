@@ -1,4 +1,4 @@
-package com.delivera.data.fms.dto;
+package com.delivera.data.fms.dto.solver.data;
 
 import java.util.UUID;
 

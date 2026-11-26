@@ -5,13 +5,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.delivera.data.fms.dto.ClusterConfig;
-import com.delivera.data.fms.dto.DbscanResult;
-import com.delivera.data.fms.dto.DeliveryWindow;
-import com.delivera.data.fms.dto.InstanceCatalog;
-import com.delivera.data.fms.dto.RoutingRequest;
-import com.delivera.data.fms.dto.RoutingResponse;
-import com.delivera.data.fms.dto.TypeSolver;
+import com.delivera.data.fms.dto.solver.info.TypeSolver;
+import com.delivera.data.fms.dto.solver.Instance.InstanceCatalog;
+import com.delivera.data.fms.dto.solver.cluster.ClusterConfig;
+import com.delivera.data.fms.dto.solver.cluster.DbscanResult;
+import com.delivera.data.fms.dto.solver.cluster.DeliveryWindow;
+import com.delivera.data.fms.dto.solver.request.RoutingRequest;
+import com.delivera.data.fms.dto.solver.request.RoutingResponse;
 
 public interface FmsRoutingService {
 

@@ -1,7 +1,9 @@
-package com.delivera.data.fms.dto;
+package com.delivera.data.fms.dto.solver.cluster;
 
 import java.util.List;
 
+import com.delivera.data.fms.dto.solver.data.CustomerDto;
+import com.delivera.data.fms.dto.solver.data.DepotDto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.Builder;

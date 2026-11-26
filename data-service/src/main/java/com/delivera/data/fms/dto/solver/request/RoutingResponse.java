@@ -1,9 +1,12 @@
-package com.delivera.data.fms.dto;
+package com.delivera.data.fms.dto.solver.request;
 
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
+
+import com.delivera.data.fms.dto.solver.info.TypeSolver;
+import com.delivera.data.fms.dto.solver.data.RouteDto;
 
 @Schema(description = "Respuesta con la solucion del problema de ruteo")
 public record RoutingResponse(

@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.delivera.data.fms.dto.VehicleDto;
+import com.delivera.data.fms.dto.solver.data.VehicleDto;
 import com.delivera.data.vehicle.model.Vehicle;
 
 import java.util.List;
@@ -19,7 +19,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
 
 
     @Query("""
-    SELECT new com.delivera.data.fms.dto.VehicleDto(
+    SELECT new com.delivera.data.fms.dto.solver.data.VehicleDto(
         v.id,
         v.capacity,
         v.depot.id
@@ -30,7 +30,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
     List<VehicleDto> findDTOsByCompanyId(UUID companyId);
 
     @Query("""
-        SELECT new com.delivera.data.fms.dto.VehicleDto(
+        SELECT newcom.delivera.data.fms.dto.solver.data.VehicleDto(
             v.id,
             v.capacity,
             v.depot.id

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import com.delivera.data.fms.dto.solver.info.TypeSolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 class TypeSolverTest {

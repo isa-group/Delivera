@@ -1,6 +1,5 @@
 package com.delivera.data.fms.service;
 
-import java.util.List;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -8,10 +7,10 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
 import com.delivera.client.core.SmartMicroserviceClient;
-import com.delivera.data.fms.dto.RoutingRequest;
-import com.delivera.data.fms.dto.RoutingResponse;
-import com.delivera.data.fms.dto.TypeSolver;
+import com.delivera.data.fms.dto.solver.info.TypeSolver;
 import com.delivera.data.fms.dto.solver.info.SolverCatalog;
+import com.delivera.data.fms.dto.solver.request.RoutingRequest;
+import com.delivera.data.fms.dto.solver.request.RoutingResponse;
 
 import lombok.RequiredArgsConstructor;
 

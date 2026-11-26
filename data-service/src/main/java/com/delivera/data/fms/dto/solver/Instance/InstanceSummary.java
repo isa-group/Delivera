@@ -1,4 +1,4 @@
-package com.delivera.data.fms.dto;
+package com.delivera.data.fms.dto.solver.Instance;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

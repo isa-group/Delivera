@@ -5,18 +5,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
 import com.delivera.client.core.SmartMicroserviceClient;
-import com.delivera.client.exception.ServerException;
-import com.delivera.client.space.exception.SpaceValidationException;
 import com.delivera.client.space.service.SpaceManagment;
 
 import io.github.isagroup.spaceclient.SpaceClient;
 import io.github.isagroup.spaceclient.types.Contract;
 import io.github.isagroup.spaceclient.types.FeatureEvaluationResult;
-import io.github.isagroup.spaceclient.types.UsageLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,8 +50,8 @@ public class FmsSpaceOrchestrator {
 
     public Set<String> geUserSolvers(String orgId) {
         Contract contract = spaceClient.contracts.getContract(orgId);
-
-        Set<String> solvers = contract.getSubscriptionAddOns().get(service)
+        System.out.println(contract);
+        Set<String> solvers = contract.getSubscriptionAddOns().getOrDefault(service,Map.of())
         .entrySet().stream()
         .filter(kv -> kv.getValue() > 0)
         .map(

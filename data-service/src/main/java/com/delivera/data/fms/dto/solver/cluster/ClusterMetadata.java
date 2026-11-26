@@ -1,7 +1,8 @@
-package com.delivera.data.fms.dto;
+package com.delivera.data.fms.dto.solver.cluster;
 
 import java.util.List;
 
+import com.delivera.data.fms.dto.solver.data.CustomerDto;
 import com.delivera.data.fms.service.Haversine;
 
 import lombok.Getter;

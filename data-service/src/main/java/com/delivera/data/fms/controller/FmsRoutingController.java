@@ -1,16 +1,16 @@
 package com.delivera.data.fms.controller;
 
 import com.delivera.client.config.properties.SecurityUtils;
-import com.delivera.data.fms.dto.ClusterConfig;
-import com.delivera.data.fms.dto.DbscanResult;
-import com.delivera.data.fms.dto.DeliveryWindow;
-import com.delivera.data.fms.dto.InstanceCatalog;
-import com.delivera.data.fms.dto.RoutingRequest;
-import com.delivera.data.fms.dto.RoutingResponse;
-import com.delivera.data.fms.dto.SolveClusterRequest;
-import com.delivera.data.fms.dto.SolveInstanceClusterRequest;
-import com.delivera.data.fms.dto.TypeSolver;
+import com.delivera.data.fms.dto.solver.info.TypeSolver;
+import com.delivera.data.fms.dto.solver.Instance.InstanceCatalog;
+import com.delivera.data.fms.dto.solver.cluster.ClusterConfig;
+import com.delivera.data.fms.dto.solver.cluster.DbscanResult;
+import com.delivera.data.fms.dto.solver.cluster.DeliveryWindow;
 import com.delivera.data.fms.dto.solver.info.SolverSummary;
+import com.delivera.data.fms.dto.solver.request.RoutingRequest;
+import com.delivera.data.fms.dto.solver.request.RoutingResponse;
+import com.delivera.data.fms.dto.solver.request.SolveClusterRequest;
+import com.delivera.data.fms.dto.solver.request.SolveInstanceClusterRequest;
 import com.delivera.data.fms.service.FmsAvailableSolvers;
 import com.delivera.data.fms.service.FmsRoutingService;
 import io.swagger.v3.oas.annotations.Operation;

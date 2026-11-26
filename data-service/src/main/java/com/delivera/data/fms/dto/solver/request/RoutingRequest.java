@@ -1,4 +1,4 @@
-package com.delivera.data.fms.dto;
+package com.delivera.data.fms.dto.solver.request;
 
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -8,6 +8,11 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
+
+import com.delivera.data.fms.dto.solver.info.TypeSolver;
+import com.delivera.data.fms.dto.solver.data.CustomerDto;
+import com.delivera.data.fms.dto.solver.data.DepotDto;
+import com.delivera.data.fms.dto.solver.data.VehicleProjection;
 
 @Schema(description = "Solicitud de resolucion de un problema de ruteo de vehiculos")
 public record RoutingRequest(
