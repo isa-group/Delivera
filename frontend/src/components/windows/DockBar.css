@@ -1,0 +1,143 @@
+.dock-bar {
+
+    position: absolute;
+
+    bottom: 1rem;
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    display: flex;
+
+    gap: 0.75rem;
+
+    padding: 0.75rem;
+
+    max-width: 80vw;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    scrollbar-width: thin;
+
+    z-index: 5000;
+
+}
+
+.dock-bar::-webkit-scrollbar {
+
+    height: 8px;
+
+}
+
+.dock-bar::-webkit-scrollbar-thumb {
+
+    border-radius: 999px;
+
+    background: rgba(0,0,0,.2);
+
+}
+
+
+.dock-bar {
+
+    position: absolute;
+
+    bottom: 1rem;
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    display: flex;
+
+    gap: 0.75rem;
+
+    padding: 0.75rem 1rem;
+
+    max-width: 80vw;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    border-radius: 1.2rem;
+
+    background: var(--floating-panel-background);
+
+    border: 1px solid var(--floating-panel-border);
+
+    box-shadow: var(--floating-panel-shadow);
+
+    backdrop-filter: blur(16px);
+
+    z-index: 5000;
+}
+
+.dock-slot {
+
+    width: 72px;
+    height: 72px;
+
+    flex-shrink: 0;
+
+    display: flex;
+
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 20px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--color-surface-secondary) 70%,
+            transparent
+        );
+
+    border:
+        2px dashed
+        var(--color-border);
+
+    transition: .25s;
+
+}
+
+.dock-item {
+
+    width: 72px;
+    height: 72px;
+
+    border-radius: 18px;
+
+    border: none;
+
+    background:
+        var(--color-card);
+
+    box-shadow:
+        0 4px 10px rgba(0,0,0,.08);
+
+    font-size: 1.4rem;
+
+    color: var(--color-primary);
+
+    cursor: pointer;
+
+}
+
+.dock-item {
+
+    transition:
+        transform .15s ease;
+
+}
+
+.dock-item:hover {
+
+    transform:
+        scale(1.15)
+        translateY(-4px);
+
+}
+

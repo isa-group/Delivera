@@ -2,8 +2,9 @@
 import { useRoutes } from '@/composables/useRoutes';
 import { Checkbox, Column, DataTable, DatePicker, Select, Step, StepList, Stepper } from 'primevue';
 import { useI18n } from 'vue-i18n';
-import OptionsGrid from './OptionsGrid.vue';
+import OptionsGrid from '../../components/optionsGrid/OptionsGrid.vue';
 import { getLocaleFormat } from '@/composables/useDateRange.js';
+import QuotaUsage from '@/components/quotaUsage/QuotaUsage.vue';
 
 
 
@@ -37,6 +38,7 @@ const {
         fromDate,
         includeNullsFromDate,
         includeNullsToDate,
+        featureContexts,
         selectPhase,
         showGroupDatatable,
         canGoToPhase,
@@ -62,6 +64,10 @@ const {
         getAvailableSlots,
         toggleCatalog,
         showCustomSection,
+        analyzingViability,
+        viabilitySummary,
+        viabilityError,
+        runViabilityAnalysis,
        
 
     } = useRoutes()
@@ -76,12 +82,12 @@ const {
 
    
 
-    
+   // <QuotaUsage :features="featureContexts"/> 
 </script>
 
 <template>
     <div class="background">
-        <h1>{{t('routes.title')}}</h1>
+        <h1>{{t('routes.title')}}</h1>       
         <Stepper class="stepper" :value="currentPhase">
             <StepList>
                 <Step 
@@ -386,6 +392,21 @@ const {
                             :aria-label="`${(!showCatalog? t('routes.show') : t('routes.hide'))} ${t('routes.catalog')}`"
                             @click="toggleCatalog()"
                         />
+                        <PButton
+                            :label="t('routes.quantumViability.analyze')"
+                            icon="pi pi-microchip"
+                            severity="secondary"
+                            :loading="analyzingViability"
+                            :aria-label="t('routes.quantumViability.analyze')"
+                            @click="runViabilityAnalysis()"
+                        />
+                        <small v-if="viabilitySummary.analyzed" class="quantum-viability-summary">
+                            {{ t('routes.quantumViability.summary', viabilitySummary) }}
+                        </small>
+                        <small v-if="viabilitySummary.noDepot" class="quantum-viability-summary">
+                            {{ t('routes.quantumViability.noDepotSummary', viabilitySummary) }}
+                        </small>
+                        <small v-if="viabilityError" class="quantum-viability-error">{{ viabilityError }}</small>
                         </div>
                     </div>
                 </div>

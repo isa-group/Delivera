@@ -72,6 +72,7 @@ def prepare_quantum_subrequests(
             depots=[depot],
             customers=customers,
             vehicles=vehicles,
+            distance_matrix=request.distance_matrix,
         )
         k_i = calculate_cluster_k(region_request)
         requested_k = k_i + k_offset
@@ -105,6 +106,9 @@ def prepare_quantum_subrequests(
             depots=[depot],
             customers=compressed_customers,
             vehicles=vehicles_by_depot[depot.id],
+            # Los índices son los de la petición original, así que la matriz
+            # viaja completa: los Súper-Clientes apuntan a la fila de su medoide.
+            distance_matrix=request.distance_matrix,
         )
         subrequests.append(subrequest)
         
@@ -179,6 +183,7 @@ def solve_best_quantum_candidate(
             # orientan la salida, pero no forman parte del recorrido definitivo.
             response, expansion = expand_quantum_routes(
                 request, subrequests, response, max_runtime_sec=expansion_time_limit_sec,
+                distance=request.distance,
             )
             preparation.update(expansion)
             candidates.append((response.total_distance, response, preparation))

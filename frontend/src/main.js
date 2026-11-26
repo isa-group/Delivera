@@ -46,6 +46,17 @@ import { configurePricingRenderer } from 'pricing-renderer';
 
 import { refreshIfNeeded } from '@/composables/useRefreshToken'
 
+function setTheme(
+  theme = "light" //: 'light' | 'dark' 
+) {
+
+  document.documentElement.setAttribute(
+      'data-theme',
+      theme
+  )
+
+}
+
 configurePricingRenderer({
   locale: 'en-US',
   pricingPath: '/pricing',
@@ -118,6 +129,8 @@ try{
   //await refreshIfNeeded()
 } catch(e) {/**/}
 
+const x = 0
+setTheme(x == 0? undefined : "dark")
 
 
 

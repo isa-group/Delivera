@@ -38,7 +38,6 @@ class CustomerStd(NodeStd):
          alias="serviceDuration"
     )
 
-    # TODO: DELETE THIS?????
     # Campo opcional para almacenar el sub-grafo interno si este nodo es un Súper-Cliente.
     # Esto es vital para el Coarse-Graining: nos permite calcular a posteriori el C_interno (el TSP local)
     # sin perder la información topológica original del diagrama de Voronoi.
@@ -79,7 +78,27 @@ class PyvrpParameters(BaseApiModel):
         alias="vehicleStrategy", description="Estrategia de reparto entre vehículos compatibles")
     vehicle_strategy_config: HybridPresets = Field(default=HybridPresets.INTERURBAN,
         alias="vehicleStrategyConfig", description="Perfil de pesos de la estrategia híbrida")
+    
+class QuantumParameters(BaseApiModel):
+    """Opciones del nuevo PyVRP recibidas dentro de request.parameters."""
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
+    quantum_timeout_seconds: float = Field(
+        default=None, gt=0, le=300,
+        description="Segundos por candidato Qiskit. Si se omite, se adapta al QUBO hasta 300 s",
+        alias="quantumTimeoutSeconds"
+    )
+    classical_time_limit: int = Field(
+        default=60, ge=1, le=300,
+        alias="classicalTimeLimit"
+    )
+    
+    max_qubits: int = Field(
+        default=24, ge=1, le=24,
+        alias="maxQubits"
+    )
+
+    include_mtz: bool = Field(default=False, alias="includeMtz") 
 
 class RoutingRequestStd(BaseApiModel):
     """Standard request payload."""

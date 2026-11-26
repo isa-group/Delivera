@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Any, List, Optional
 import math
 
@@ -11,6 +11,9 @@ class NodeDto(BaseModel):
     id: str = Field(..., description="Identificador único del nodo")
     x: float = Field(..., description="Coordenada X (o Longitud)")
     y: float = Field(..., description="Coordenada Y (o Latitud)")
+    matrix_index: Optional[int] = Field(default=None, ge=0, description=(
+        "Fila del nodo en RoutingRequest.distance_matrix. En un Súper-Cliente es la "
+        "de su cliente más central (medoide)"))
 
     def euclidean_distance(self, other: 'NodeDto') -> int:
         """Distancia euclidiana redondeada al entero más cercano (Estándar Uchoa)."""
@@ -44,6 +47,42 @@ class RoutingRequest(BaseModel):
         "Opciones de ejecución. parameters.fallback configura exclusivamente el fallback PyVRP2, "
         "incluidos maxVehicleRepetition, vehicleStrategy, vehicleStrategyConfig, seed y classicalTimeLimit"
     ))
+    distance_matrix: Optional[List[List[float]]] = Field(default=None, description=(
+        "Matriz de distancias de la petición original (la misma que reciben los demás "
+        "algoritmos), indexada por matrix_index. Sin ella se usa la euclídea redondeada"))
+
+    @model_validator(mode="after")
+    def _matrix_covers_every_node(self) -> "RoutingRequest":
+        # Una matriz vacía equivale a no tenerla (data-service la manda así si no la construye).
+        if not self.distance_matrix:
+            self.distance_matrix = None
+            return self
+        size = len(self.distance_matrix)
+        for node in [*self.depots, *self.customers]:
+            if node.matrix_index is None or node.matrix_index >= size:
+                raise ValueError(
+                    f"El nodo {node.id} no tiene una fila válida en distance_matrix "
+                    f"(matrix_index={node.matrix_index}, tamaño={size})."
+                )
+        return self
+
+    @property
+    def uses_matrix(self) -> bool:
+        return self.distance_matrix is not None
+
+    def distance(self, origin: NodeDto, destination: NodeDto) -> float:
+        """Distancia entre dos nodos con la métrica de la petición.
+
+        Si la petición trae matriz, se lee de ella, igual que hacen los demás
+        algoritmos. Si no, se conserva la euclídea redondeada (benchmarks y v1).
+        """
+        if self.distance_matrix is not None:
+            if origin.matrix_index is None or destination.matrix_index is None:
+                raise ValueError(
+                    f"Falta matrix_index para medir {origin.id} -> {destination.id} con la matriz."
+                )
+            return float(self.distance_matrix[origin.matrix_index][destination.matrix_index])
+        return float(origin.euclidean_distance(destination))
 
     @property
     def total_demand(self) -> int:

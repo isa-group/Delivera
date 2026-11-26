@@ -2,6 +2,8 @@ package com.delivera.fms.routing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,10 +27,16 @@ class GatewayContextTest {
     private HealthStatusCache healthCache;
 
     @Test
-    void theApplicationStartsWithEveryConfiguredSolver() {
+    void theApplicationStartsWithEveryConfiguredSolverExceptRandom() {
+        // RANDOM esta apagado por defecto (fms.engines.random.enabled=false).
+        TypeSolver[] enabledByDefault = Arrays.stream(TypeSolver.values())
+                .filter(type -> type != TypeSolver.RANDOM)
+                .toArray(TypeSolver[]::new);
+
         assertThat(healthCache).isNotNull();
         assertThat(registry.findAll(false))
                 .extracting(info -> info.type())
-                .contains(TypeSolver.values());
+                .contains(enabledByDefault)
+                .doesNotContain(TypeSolver.RANDOM);
     }
 }

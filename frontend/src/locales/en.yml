@@ -446,6 +446,13 @@ common:
   delete: Delete
   close: Close
   filters: "Filters:"
+  active: "Active"
+  deactive: "Deactive"
+  defaultValue: "Default value"
+  valueType: "Value type"
+  integerType: "Integer"
+  numberType: "Number"
+  state: "State"
 
 validation:
   required: "{field} is required"
@@ -702,6 +709,8 @@ routes:
     ANNEALING: Annealing
     QISKIT: Quantum (Qiskit)
     DWAVE: Quantum (D-Wave)
+    HGS: HGS (PyVRP)
+    quantumViability: Quantum viability
 
   tables:
     group: Group
@@ -737,9 +746,27 @@ routes:
     QISKIT:
       name: Quantum (Qiskit)
       description: "Hybrid quantum-classical solver. It solves each region with the QAOA quantum algorithm on a local Qiskit simulator, and uses a classical solver when a region does not fit in the available qubits. Experimental: today only very small instances reach the quantum part."
+    HGS:
+      name: HGS (PyVRP)
+      description: "Hybrid genetic algorithm that combines the evolution of a population of solutions with intensive local search. It is one of the most competitive classical methods for routing problems and usually finds very high-quality solutions in a few seconds."
     DWAVE:
       name: Quantum (D-Wave)
       description: "Hybrid quantum-classical solver on D-Wave's cloud. It sends each region to the Leap hybrid solver, which handles much larger problems than the local simulator. It needs a D-Wave account; without access, a classical solver is used. Experimental."
+  quantumViability:
+    analyze: Show quantum viability
+    viable: Suitable for the quantum path
+    notViable: Not suitable for the quantum path
+    noDepot: No unit within the maximum radius, so it cannot be analysed.
+    noDepotSummary: "{noDepot} groups have no unit within the maximum radius and are not analysed (grey on the map)."
+    summary: "{viable} of {analyzed} groups pass the quantum filter. It is only the initial filter: it does not check whether they fit in the available qubits."
+    panelTitle: Quantum viability
+    empty: Press "Show quantum viability" after grouping to analyse the groups.
+    hint: "A group is suitable if it passes all three thresholds. The failing one is shown in red. Click a row to see it on the map."
+    verdict: Verdict
+    status:
+      viable: Suitable
+      notViable: Not suitable
+      noDepot: No unit
   slot:
     title: What is an execution slot?
     p1: A slot represents an independent solver execution.
@@ -751,6 +778,9 @@ routes:
   hide: Hide
   extraMetrics: extra metrics
   catalog: Catalog
+  quota: Quota
+  routing: Routing system
+  errors: Errors
   results: Results
   load: Load
   dataConfig: data configuration
@@ -761,3 +791,391 @@ routes:
   depot: Unit
   customer: Client
   viewDetail: View detail
+
+usageCard:
+  remaining: Remaining
+
+vocabulary:
+
+  # QUANTIFIER
+
+  amount: amount
+
+  capacity: capacity
+
+  limit: limit
+
+  max: maximum
+  maximum: maximum
+
+  min: minimum
+  minimum: minimum
+
+  quota: quota
+
+  threshold: threshold
+
+  total: total
+
+
+  # USAGE
+
+  allocated: allocated
+
+
+  consumed: consumed
+
+  free: free
+
+  remaining: remaining
+
+  reserved: reserved
+
+  spent: spent
+
+  usage: usage
+
+  used: used
+
+
+  # ACTION
+
+  call: call
+  calls: calls
+
+  deployment: deployment
+  deployments: deployments
+
+  execution: execution
+  executions: executions
+
+  job: job
+  jobs: jobs
+
+  operation: operation
+  operations: operations
+
+  request: request
+  requests: requests
+
+  run: run
+  runs: runs
+
+  solve: solve
+  solves: solves
+
+  task: task
+  tasks: tasks
+
+
+  # RESOURCE
+
+  account: account
+  accounts: accounts
+
+  company: company
+  companies: companies
+
+  customer: customer
+  customers: customers
+
+  depot: depot
+  depots: depots
+
+  driver: driver
+  drivers: drivers
+
+  license: license
+  licenses: licenses
+
+  order: order
+  orders: orders
+
+  organization: organization
+  organizations: organizations
+
+  project: project
+  projects: projects
+
+  route: route
+  routes: routes
+
+  solver: solver
+  solvers: solvers
+
+  subscription: subscription
+  subscriptions: subscriptions
+
+  token: token
+  tokens: tokens
+
+  unit: unit
+  units: units
+
+  user: user
+  users: users
+
+  vehicle: vehicle
+  vehicles: vehicles
+
+  worker: worker
+  workers: workers
+
+
+  # STATE
+
+  active: active
+
+  available: available
+
+  completed: completed
+
+  disabled: disabled
+
+  enabled: enabled
+
+  error: error
+
+  expired: expired
+
+  failed: failed
+
+  healthy: healthy
+
+  inactive: inactive
+
+  invalid: invalid
+
+  offline: offline
+
+  online: online
+
+  pending: pending
+
+  running: running
+
+  unavailable: unavailable
+
+  unhealthy: unhealthy
+
+  valid: valid
+
+
+  # QUALIFIER
+
+  noise: noise
+
+  per: per
+
+  basic: basic
+
+  classical: classical
+
+  custom: custom
+
+  default: default
+
+  final: final
+
+  global: global
+
+  initial: initial
+
+  inter: inter
+
+  intra: intra
+
+  local: local
+
+  loyal: loyal
+
+  operational: operational
+
+  premium: premium
+
+  priority: priority
+
+  private: private
+
+  public: public
+
+  stagnant: stagnant
+
+  standard: standard
+
+  temporary: temporary
+
+
+  # TECHNOLOGY
+
+  annealing: annealing
+
+  dwave: dwave
+
+  genetic: genetic
+
+  greedy: greedy
+
+  hgs: hgs
+
+  neural: neural
+
+  ortools: ortools
+
+  pyvrp: pyvrp
+
+  qiskit: qiskit
+
+  quantum: quantum
+
+
+  # PARAMETER
+
+  acceptance: acceptance
+
+  calibration: calibration
+
+  candidate: candidate
+
+  child: child
+
+  cluster: cluster
+
+  config: configuration
+
+  constraint: constraint
+  constraints: constraints
+
+  cooling: cooling
+
+  crossover: crossover
+
+  elitism: elitism
+
+  evaluation: evaluation
+  evaluations: evaluations
+
+  fitness: fitness
+
+  generation: generation
+  generations: generations
+
+  heuristic: heuristic
+
+  improvement: improvement
+
+  learning: learning
+
+  metaheuristic: metaheuristic
+
+  move: move
+  moves: moves
+
+  mutation: mutation
+
+  neighborhood: neighborhood
+
+  objective: objective
+
+  offspring: offspring
+
+  optimization: optimization
+  optimizations: optimizations
+
+  parent: parent
+
+  penalty: penalty
+
+  population: population
+
+  preset: preset
+
+  profile: profile
+
+  quantile: quantile
+
+  rebalance: rebalance
+
+  repair: repair
+
+  restart: restart
+  restarts: restarts
+
+  search: search
+
+  seed: seed
+
+  selection: selection
+
+  strategy: strategy
+
+  temperature: temperature
+
+  tournament: tournament
+
+  training: training
+
+  window: window
+
+  level: level
+  levels: levels
+
+  repetition: repetition
+  repetitions: repetitions
+
+
+  # MEASURE
+
+  budget: budget
+
+  cost: cost
+
+  count: count
+
+  distance: distance
+
+  duration: duration
+
+  factor: factor
+
+  frequency: frequency
+
+  interval: interval
+
+  latency: latency
+
+  percentage: percentage
+
+  percent: percent
+
+  probability: probability
+
+  rate: rate
+
+  ratio: ratio
+
+  score: score
+
+  size: size
+
+  step: step
+  steps: steps
+
+  time: time
+
+  timeout: timeout
+
+  weight: weight
+
+  radius: radius
+
+  # MISC
+
+  credits: credits
+
+  qubit: qubit
+  qubits: qubits
+
+  ms: ms
+
+  km: km

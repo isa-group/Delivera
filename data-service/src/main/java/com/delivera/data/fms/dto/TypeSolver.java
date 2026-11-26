@@ -1,14 +1,25 @@
 package com.delivera.data.fms.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(description = "Tipo de algoritmo de resolucion de rutas",
-        enumAsRef = true)
+/**
+ * Tipos de solver soportados por el gateway.
+ *
+ * Para dar de alta uno nuevo: anadir aqui la constante y su bloque
+ * correspondiente bajo fms.engines en application.yml. El cliente HTTP, el
+ * despacho y el catalogo GET /api/v1/fms/solvers se actualizan solos.
+ */
+@Schema(description = "Route-solving algorithm type", enumAsRef = true)
 public enum TypeSolver {
     RANDOM,
     GREEDY,
     GENETIC,
     ANNEALING,
     QISKIT,
-    DWAVE
+    DWAVE,
+    // El engine de PyVRP responde hoy con solverUsed "HGS"; versiones anteriores, con "HGS-ADC".
+    @JsonAlias("HGS-ADC")
+    HGS
 }

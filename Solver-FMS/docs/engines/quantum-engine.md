@@ -1,6 +1,6 @@
 # quantum-engine
 
-**Port 8095** · Python 3.14 / FastAPI + Qiskit + D-Wave Ocean · code in [`engines/quantum-solver-ms`](../../engines/quantum-solver-ms) · solvers `QISKIT` and `DWAVE`
+**Port 8095** · Python 3.14 / FastAPI + Qiskit + D-Wave Ocean · code in [`engines/quantum-solver-ms`](../../engines/quantum-solver-ms) · solvers `QISKIT`, `DWAVE` and `HGS`
 
 ## What it is for
 
@@ -22,23 +22,24 @@ image, dependencies, port and health check. The `quantum-engine` service in
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/health` | Service details and supported backends; used by the Docker health check |
-| GET | `/actuator/health` | Gateway health probe. Not available yet (see below) |
+| GET | `/health` | Service details and supported backends; used by the Docker health check and the gateway's probe |
 | POST | `/api/v1/quantum-routing/analyze` | Initial viability filter on a `cqvrp` request, without solving |
 | POST | `/api/v2/quantum-routing/analyze` | The same filter on a Delivera request, translated by the adapter |
 | POST | `/api/v1/quantum-routing/solve` | Solves a `cqvrp` request and returns routes and metrics |
+| POST | `/api/v2/QISKIT/solve` | Solves a Delivera request on the Qiskit backend, reading the options from `parameters` |
+| POST | `/api/v2/DWAVE/solve` | Solves a Delivera request on the D-Wave backend, reading the options from `parameters` |
 | POST | `/api/v1/HGS-ADC/solve` | Solves a Delivera request with PyVRP, reading the options from `parameters` |
 | POST | `/api/v1/adapter/test`, `/api/v1/manifest/test` | Debugging: the adapter's translation and the service manifest |
 
-The quantum path still uses the `cqvrp` contract (x/y coordinates, fleet per depot, options in
-`X-*` headers). The adapter in `api/adapter` already translates Delivera requests, but there is no
-`/api/v1/engine/solve` yet, which is the endpoint the gateway calls.
+Inside, the quantum path still uses the `cqvrp` contract (x/y coordinates, fleet per depot,
+options in `X-*` headers). The `/api/v2/*` endpoints wrap it: the adapter in `api/adapter`
+translates the Delivera request, passes its `parameters` as those options and translates the
+response back.
 
 ## In the gateway
 
 `cqvrp` has two quantum backends, and the gateway registers each one as its own solver. Both point
-to this same engine, which will choose the backend from the request's `solverType` once the
-contract adapter exists (today `cqvrp` chooses it with the `X-Target-Quantum-Backend` header):
+to this same engine, and each solver has its own solve path, which picks the backend:
 
 | Solver | Backend | Where it runs | Qubit limit |
 | --- | --- | --- | --- |
@@ -47,14 +48,25 @@ contract adapter exists (today `cqvrp` chooses it with the `X-Target-Quantum-Bac
 
 Both appear in `GET /api/v1/fms/solvers` with their metadata and parameters (blocks
 `fms.engines.qiskit` and `fms.engines.dwave` in the gateway's `application.yml`), and the gateway
-validates those parameters like any other solver's. Two things do not work yet:
+validates those parameters like any other solver's. Each block declares the engine's own paths
+(see [solver-metadata.md](../solver-metadata.md)): health on `/health`, solving on
+`/api/v2/QISKIT/solve` or `/api/v2/DWAVE/solve`, and analysis on `/api/v2/quantum-routing/analyze`.
 
-- **Status `DOWN`.** The gateway probes `/actuator/health`, which `cqvrp` does not have yet.
-- **Solving returns 404.** The gateway sends the problem to `/api/v1/engine/solve`, and the engine
-  only has the `cqvrp` endpoints. It will work once the contract adapter exists.
+- **Analysis.** `POST /api/v1/fms/routing/analyze` with `solverType` `QISKIT` or `DWAVE` forwards
+  the problem to `/api/v2/quantum-routing/analyze` and returns the initial viability filter
+  untouched. The routes wizard uses it to show the quantum viability of each group.
+- **Solving.** `POST /api/v1/fms/routing/solve` sends the problem to the solver's `/api/v2/*`
+  endpoint. The response keeps the engine's `solverUsed` (for example
+  `"IBM Quantum / BSC Simulator"` or `"D-Wave Leap Hybrid Solver"`), which is not a `TypeSolver`
+  constant, so data-service cannot read it yet.
 
-`FMS_ENGINES_QISKIT_ENABLED=false` or `FMS_ENGINES_DWAVE_ENABLED=false` in the gateway removes
-either one from the catalogue.
+The engine also serves a third solver, `HGS` (block `fms.engines.hgs`): PyVRP's hybrid genetic
+search, solved through `/api/v1/HGS-ADC/solve`, which already spoke the Delivera contract. It
+declares `classicalTimeLimit` (5 s by default), `seed` and `maxVehicleRepetition`, and answers with
+`solverUsed: "HGS"`. data-service also accepts the `"HGS-ADC"` of earlier engine versions.
+
+`FMS_ENGINES_QISKIT_ENABLED=false`, `FMS_ENGINES_DWAVE_ENABLED=false` or
+`FMS_ENGINES_HGS_ENABLED=false` in the gateway removes that solver from the catalogue.
 
 ## D-Wave credentials
 
@@ -120,10 +132,11 @@ code used for counting must match the service version used for the HTTP `/analyz
 
 The engine already transpiles QAOA circuits to basic gates, reads results by variable name and
 rejects infeasible or incomplete routes. Simulation uses `StatevectorSampler` below 18 qubits
-and Aer from 18, selecting GPU when Aer offers it, otherwise CPU. Remaining integration work:
+and Aer from 18, selecting GPU when Aer offers it, otherwise CPU. The gateway no longer needs
+`/api/v1/engine/solve` or `/actuator/health` from this engine: it uses the paths each solver
+declares. Remaining integration work:
 
-- `POST /api/v1/engine/solve`, translating the request, parameters and response to the gateway contract.
-- `GET /actuator/health`, the path the gateway probes.
+- A `solverUsed` that data-service can read on the `/api/v2/*` responses (a `TypeSolver` name).
 - `QUANTUM_MAX_QUBITS` as the default and upper bound of the `X-Max-Qubits` header, instead of a
   fixed 24.
 - Synchronous solving endpoints, so a long run does not block the health endpoints.

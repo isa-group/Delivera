@@ -23,6 +23,7 @@ import com.delivera.data.vehicle.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,7 @@ import org.springframework.web.client.RestClient;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,6 +48,7 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
     private final OrderRepository orderRepository;
     private final VehicleRepository vehicleRepository;
     private final FmsClusterService clusterService;
+    private final SolverClient solverClient;
 
 
 
@@ -300,12 +303,49 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
             depots, 
             solverType
         );
-        return fmsRoutingClient.post()
+
+        return solverClient.solve(request);
+        /*return fmsRoutingClient.post()
                 .uri("/api/v1/fms/routing/solve")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
-                .body(RoutingResponse.class);
+                .body(RoutingResponse.class);*/
+    }
+
+    @Override
+    public Map<String, Object> analyzeForCompany(
+        UUID companyId,
+        Set<UUID> customers,
+        Set<UUID> depots,
+        TypeSolver solverType
+    ) {
+        RoutingRequest request = getRoutingRequestForCompany(
+            companyId,
+            customers,
+            depots,
+            solverType
+        );
+        return analyze(request);
+    }
+
+    @Override
+    public Map<String, Object> analyzeForInstance(
+        String name,
+        Set<String> customers,
+        Set<String> depots,
+        TypeSolver solverType
+    ) {
+        return analyze(instanceSubsetRequest(name, customers, depots, solverType));
+    }
+
+    private Map<String, Object> analyze(RoutingRequest request) {
+        return fmsRoutingClient.post()
+                .uri("/api/v1/fms/routing/analyze")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .retrieve()
+                .body(new ParameterizedTypeReference<Map<String, Object>>() {});
     }
 
     @Override
@@ -315,7 +355,16 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
         Set<String> depots,
         TypeSolver solverType
     ) {
+        return solverClient.solve(instanceSubsetRequest(name, customers, depots, solverType));
+    }
 
+    /** Peticion con solo los clientes y depositos indicados de una instancia benchmark. */
+    private RoutingRequest instanceSubsetRequest(
+        String name,
+        Set<String> customers,
+        Set<String> depots,
+        TypeSolver solverType
+    ) {
         RoutingRequest request = getInstance(
             name,
             solverType,
@@ -359,21 +408,13 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
             }
         }
 
-        request = buildRequest(
-            customerDTOs, 
-            depotDTOs, 
-            vehicles, 
-            solverType, 
+        return buildRequest(
+            customerDTOs,
+            depotDTOs,
+            vehicles,
+            solverType,
             true
         );
-
-
-        return fmsRoutingClient.post()
-                .uri("/api/v1/fms/routing/solve")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(request)
-                .retrieve()
-                .body(RoutingResponse.class);
     }
 
 
@@ -422,6 +463,25 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
     }
 
 
+    private static double[][] buildEuclideanDistanceMatrix(List<Coordinates> coordinates) {
+        int n = coordinates.size();
+        double[][] matrix = new double[n][n];
+    
+        for (int i = 0; i < n; i++) {
+            Coordinates a = coordinates.get(i);
+    
+            for (int j = 0; j < n; j++) {
+                Coordinates b = coordinates.get(j);
+    
+                double dx = a.getLng() - b.getLng();
+                double dy = a.getLat() - b.getLat();
+    
+                matrix[i][j] = Math.sqrt(dx * dx + dy * dy);
+            }
+        }
+    
+        return matrix;
+    }
     
     private  RoutingRequest buildRequest(
         List<CustomerDto> customerDtos,
@@ -439,6 +499,8 @@ public class FmsRoutingServiceImpl implements FmsRoutingService {
         if (buildMatrix) {
             int totalNodes = depotDtos.size() + customerDtos.size();
             distanceMatrix = buildHaversineDistanceMatrix(totalNodes,coordinates);
+            // TODO: SOLVE THIS PROBLEM DUE TO  DIFFERENCES BETWEEN BENCHMARKS AND REAL INSTANCES
+            //distanceMatrix = buildEuclideanDistanceMatrix(coordinates);
         }
         
         

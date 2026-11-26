@@ -151,12 +151,19 @@ only overrides the URLs, through environment variables:
 |---|---|
 | `FMS_ENGINES_GREEDY_URL` | `http://greedy-engine:8091` |
 | `FMS_ENGINES_RANDOM_URL` | `http://random-engine:8092` |
+| `FMS_ENGINES_RANDOM_ENABLED` | `false` |
 | `FMS_ENGINES_GENETIC_URL` | `http://genetic-engine:8093` |
 | `FMS_ENGINES_ANNEALING_URL` | `http://annealing-engine:8094` |
 | `FMS_INSTANCES_DIR` | `/app/instances-MD-CVRP-JSON` |
 
 The instance directory is mounted as a read-only volume from `./instances-MD-CVRP-JSON`, so
 instances can be added without rebuilding the image.
+
+The random engine is off by default. Its container belongs to the `random` Compose profile, so a
+plain `docker compose up` does not create it, and `fms.engines.random.enabled` is `false`, so the
+gateway leaves it out of the catalogue and the frontend does not show it. To bring it back, start
+the stack with `docker compose --profile random up` and set `FMS_ENGINES_RANDOM_ENABLED=true` in
+the gateway's environment.
 
 ## Error handling
 
@@ -174,8 +181,8 @@ docker compose up --build
 ```
 
 The containers share the `fms-network` network. The gateway declares `depends_on` with
-`condition: service_healthy`, so it does not start until the four engines answer their
-*healthcheck*.
+`condition: service_healthy`, so it does not start until the greedy, genetic and annealing
+engines answer their *healthcheck* (the quantum engine is optional, and random is off by default).
 
 The engines that depend on `routing-core` (genetic and annealing) are built with `./engines` as
 Docker context and `engines/<engine>/Dockerfile` as the file, because the image has to compile the

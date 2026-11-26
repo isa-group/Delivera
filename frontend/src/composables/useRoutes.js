@@ -21,7 +21,9 @@ import { useRoutesModes } from "./useRoutesMode"
 import {  useRoutesData } from "./useRoutesData"
 import { useRoutesSolver } from "./useRoutesSolver"
 import { useRoutesGrouping } from "./useRoutesGrouping"
+import { useRoutesQuantumViability } from "./useRoutesQuantumViability"
 import { useNumberFormat } from "./useNumberFormat"
+import { useSpaceJwt } from "./useSpaceJwt"
 
 
 
@@ -29,6 +31,9 @@ export function useRoutes() {
 
     const CLUSTER_COLOR = "#a78bfa"
     const DEPOT_COLOR = "#7c3aed"
+    const VIABLE_COLOR = "#16a34a"
+    const NOT_VIABLE_COLOR = "#dc2626"
+    const NO_DEPOT_COLOR = "#6b7280"
 
     // =====================================
     // [START] MAP
@@ -56,7 +61,22 @@ export function useRoutes() {
     // =====================================
     const {numberI18n} = useNumberFormat()
 
+    const maxActiveOrdersLabel = "maxActiveOrders"
+
     const maxPerExecution = ref(20)
+
+
+    const {
+        featureContexts,
+        errorLoadingJwt
+    } = useSpaceJwt()
+
+    watch(featureContexts, () => {
+        const activeOrderslimit = featureContexts.value.find(
+            faeture => faeture.name === maxActiveOrdersLabel
+        ).limit
+        maxPerExecution.value = activeOrderslimit ?? 20
+    })
 
     const wizard = useRoutesWizard()
     const {goToPhase} = wizard
@@ -80,6 +100,7 @@ export function useRoutes() {
         data,
         dataError,
         selectedBenchmark,
+        allBenchmarkError,
         deliveryWindowConfig,
         loadInitialData: loadInitialData,
         isBenchmark,
@@ -95,13 +116,28 @@ export function useRoutes() {
         groupsRows
     } = groupingUtils
     const solverUtils = useRoutesSolver(wizard,modesUtils, groupingUtils)
-    const {executeAllSelected,executeSlots, getSolverDistance, routesBySolver} = solverUtils
+    const viabilityUtils = useRoutesQuantumViability(groupingUtils, dataUtils)
+    const { viabilityByCluster, viabilityError, analyzeViability, resetViability } = viabilityUtils
+    const {executeAllSelected,executeSlots, getSolverDistance, routesBySolver, routesErrors} = solverUtils
     const { t } = useI18n() 
     let initialCustomerLayer = null
     let initalDepotLayer = null
     let finalDepotLayer = null
     const groupLayers = ref([])
     const selectedClusterId = ref(null)
+
+    const globlaErrors = computed(() => {
+        console.log('aaa')
+        return [
+            { source:"availableSolvers" ,error: errorLoadingJwt.value},
+            {source: "benchmarksLoad", error: allBenchmarkError.value},
+            { source:"obtainingData", error: dataError.value},
+            {source: "groupingData", error: groupsError.value},
+            {source: "quantumViability", error: viabilityError.value},
+            ...routesErrors.value
+        ]
+    })
+    
 
     const computedMetricsBySlot = computed(() => {
         const result = []
@@ -199,7 +235,38 @@ export function useRoutes() {
    
     
 
+    // Pinta los clientes de cada grupo con el color de su veredicto, en lugar de un
+    // círculo en el centroide: el centroide de un grupo disperso cae donde no hay nadie.
+    // Al volver a agrupar se crean capas nuevas, así que el color se reinicia solo.
+    function colorGroupsByViability() {
+        const clustersById = Object.fromEntries((groups.value?.clusters || []).map(c => [c.id, c]))
+        for (const { id, layer } of groupLayers.value || []) {
+            const result = viabilityByCluster.value[id]
+            const cluster = clustersById[id]
+            if (!result || !cluster) continue
+            const color = result.noDepot ? NO_DEPOT_COLOR : (result.isViable ? VIABLE_COLOR : NOT_VIABLE_COLOR)
+            layer.clearLayers()
+            addCustomers({ map: layer, customers: cluster.customers, customColor: color })
+        }
+    }
+
+    // Encuadra el mapa en los clientes de un grupo (fila pulsada en el panel de viabilidad).
+    function zoomToGroup(clusterId) {
+        const cluster = (groups.value?.clusters || []).find(c => c.id === clusterId)
+        const points = (cluster?.customers || [])
+            .filter(customer => customer.lat != null && customer.lng != null)
+            .map(customer => [customer.lat, customer.lng])
+        if (!map || !points.length) return
+        map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 14 })
+    }
+
+    async function runViabilityAnalysis() {
+        await analyzeViability()
+        if (map) colorGroupsByViability()
+    }
+
     function removeGroupLayers() {
+        resetViability()
         for (const {id, layer} of groupLayers.value || []) {
             layer.remove()
             layerOverlay.removeLayer(layer)
@@ -324,8 +391,13 @@ export function useRoutes() {
         ...groupingUtils,
         ...modesUtils,
         ...solverUtils,
+        ...viabilityUtils,
+        runViabilityAnalysis,
+        zoomToGroup,
         mapEl,
         computedMetricsBySlot,
+        featureContexts,
+        globlaErrors,
         runSolvers,
         runInitialData,
         runGrouping,

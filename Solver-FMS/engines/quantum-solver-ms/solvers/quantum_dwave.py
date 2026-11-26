@@ -37,7 +37,7 @@ def solve_with_dwave(sub_requests: List[RoutingRequest]) -> RoutingResponse:
         Q = {vehiculo.id: vehiculo.capacity for vehiculo in request.vehicles}
 
         q = {c.id: c.demand for c in clientes}
-        c = {u.id: {v.id: u.euclidean_distance(v) for v in nodos} for u in nodos}
+        c = {u.id: {v.id: request.distance(u, v) for v in nodos} for u in nodos}
 
         # 2. Variables binarias de arcos/asignaciones y cargas enteras.
         cqm = ConstrainedQuadraticModel()
