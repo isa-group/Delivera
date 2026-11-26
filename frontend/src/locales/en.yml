@@ -759,6 +759,14 @@ routes:
     noDepot: No unit within the maximum radius, so it cannot be analysed.
     noDepotSummary: "{noDepot} groups have no unit within the maximum radius and are not analysed (grey on the map)."
     summary: "{viable} of {analyzed} groups pass the quantum filter. It is only the initial filter: it does not check whether they fit in the available qubits."
+    panelTitle: Quantum viability
+    empty: Press "Show quantum viability" after grouping to analyse the groups.
+    hint: "A group is suitable if it passes all three thresholds. The failing one is shown in red. Click a row to see it on the map."
+    verdict: Verdict
+    status:
+      viable: Suitable
+      notViable: Not suitable
+      noDepot: No unit
   slot:
     title: What is an execution slot?
     p1: A slot represents an independent solver execution.

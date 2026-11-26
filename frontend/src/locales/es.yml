@@ -745,6 +745,14 @@ routes:
     noDepot: Sin unidad asignada dentro del radio máximo, así que no se puede analizar.
     noDepotSummary: "{noDepot} grupos no tienen ninguna unidad dentro del radio máximo y no se analizan (en gris en el mapa)."
     summary: "{viable} de {analyzed} grupos pasan el filtro cuántico. Solo es el filtro inicial: no comprueba si caben en los qubits disponibles."
+    panelTitle: Viabilidad cuántica
+    empty: Pulsa "Ver viabilidad cuántica" después de agrupar para analizar los grupos.
+    hint: "Un grupo es apto si pasa los tres umbrales. En rojo, el que falla. Pulsa una fila para verlo en el mapa."
+    verdict: Veredicto
+    status:
+      viable: Apto
+      notViable: No apto
+      noDepot: Sin unidad
   slot:
     title: ¿Qué es una ranura de ejecución?
     p1: Una ranura representa una ejecución independiente del resolutor.

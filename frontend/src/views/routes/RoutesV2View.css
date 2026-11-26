@@ -431,3 +431,53 @@
 .quantum-viability-summary {
     color: var(--text-color-secondary);
 }
+
+.quantum-viability-summary {
+    display: block;
+    margin: 0 0 0.5rem;
+}
+
+.quantum-viability-table :deep(tr) {
+    cursor: pointer;
+}
+
+.viability-badge {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.viability-viable {
+    background: #16a34a;
+}
+
+.viability-notViable {
+    background: #dc2626;
+}
+
+.viability-noDepot {
+    background: #6b7280;
+}
+
+.indicator-failing {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.quantum-viability-table :deep(th),
+.quantum-viability-table :deep(td) {
+    padding: 0.4rem 0.45rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.solver-params-count {
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(124, 58, 237, 0.12);
+    color: #7c3aed;
+    font-weight: 600;
+}

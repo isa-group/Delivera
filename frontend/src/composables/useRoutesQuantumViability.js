@@ -5,6 +5,26 @@ import { useServices } from "./useServices"
 // El filtro de viabilidad es el mismo para QISKIT y DWAVE: basta con pedírselo a uno.
 const ANALYZER_SOLVER = "QISKIT"
 
+// Umbrales del filtro inicial del engine cuántico: un grupo es apto si pasa los tres.
+export const VIABILITY_THRESHOLDS = [
+    { key: "demand_granularity", label: "G", limit: "< 0.6", passes: value => value < 0.6 },
+    { key: "capacity_tightness", label: "Tc", limit: "≤ 0.9", passes: value => value <= 0.9 },
+    { key: "spatial_compressibility_index", label: "S", limit: "≤ 1.2", passes: value => value <= 1.2 },
+]
+
+function indicators(features = {}) {
+    return VIABILITY_THRESHOLDS.map(({ key, label, limit, passes }) => {
+        const value = typeof features[key] === "number" ? features[key] : null
+        // Sin valor no se puede decir que falle: se muestra "-" y no se marca.
+        return { key, label, value, limit, failing: value !== null && !passes(value) }
+    })
+}
+
+function statusOf(result) {
+    if (result.noDepot) return "noDepot"
+    return result.isViable ? "viable" : "notViable"
+}
+
 /**
  * Viabilidad cuántica de cada grupo: el filtro inicial del engine cuántico
  * (/analyze) aplicado a los clientes y depósitos de cada grupo por separado.
@@ -30,6 +50,22 @@ export function useRoutesQuantumViability({ groups }, { isBenchmark, selectedBen
             noDepot: results.filter(result => result.noDepot).length,
         }
     })
+
+    // Una fila por grupo analizado, en el orden de los grupos, para el panel de viabilidad.
+    const viabilityRows = computed(() =>
+        (groups.value?.clusters || [])
+            .filter(cluster => viabilityByCluster.value[cluster.id])
+            .map(cluster => {
+                const result = viabilityByCluster.value[cluster.id]
+                return {
+                    id: cluster.id,
+                    customerCount: cluster.metadata?.customerCount ?? cluster.customers?.length ?? 0,
+                    totalDemand: cluster.metadata?.totalDemand ?? null,
+                    status: statusOf(result),
+                    indicators: indicators(result.features),
+                }
+            })
+    )
 
     function clusterPayload(cluster) {
         const depotIndexes = new Set(cluster.depots || [])
@@ -87,6 +123,7 @@ export function useRoutesQuantumViability({ groups }, { isBenchmark, selectedBen
         viabilityError,
         analyzingViability,
         viabilitySummary,
+        viabilityRows,
         analyzeViability,
         resetViability,
         clusterPayload,

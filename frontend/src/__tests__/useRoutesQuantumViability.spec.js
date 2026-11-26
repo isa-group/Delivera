@@ -101,4 +101,40 @@ describe('useRoutesQuantumViability', () => {
     expect(viability.viabilityByCluster.value[2]).toEqual({ isViable: false, features: {}, noDepot: true })
     expect(viability.viabilitySummary.value).toEqual({ analyzed: 2, viable: 1, noDepot: 1 })
   })
+
+  it('da una fila por grupo analizado con su veredicto y los indicadores que fallan', async () => {
+    const withLonelyGroup = ref({
+      ...groups.value,
+      clusters: [
+        { ...groups.value.clusters[0], metadata: { customerCount: 2, totalDemand: 30 } },
+        groups.value.clusters[1],
+        { id: 2, customers: [{ id: 'C9' }], depots: [] },
+      ],
+    })
+    answerWith({
+      C1: { analysis: { is_viable: true, features: { demand_granularity: 0.2, capacity_tightness: 0.9, spatial_compressibility_index: 1.1 } } },
+      C3: { analysis: { is_viable: false, features: { demand_granularity: 0.6, capacity_tightness: 0.95 } } },
+    })
+    const viability = useRoutesQuantumViability({ groups: withLonelyGroup }, { isBenchmark: () => false, selectedBenchmark: ref('') })
+
+    await viability.analyzeViability()
+    const [viable, notViable, noDepot] = viability.viabilityRows.value
+
+    expect(viable).toMatchObject({ id: 0, customerCount: 2, totalDemand: 30, status: 'viable' })
+    expect(viable.indicators.map(i => i.failing)).toEqual([false, false, false])
+
+    expect(notViable).toMatchObject({ id: 1, customerCount: 1, status: 'notViable' })
+    expect(notViable.indicators).toEqual([
+      { key: 'demand_granularity', label: 'G', value: 0.6, limit: '< 0.6', failing: true },
+      { key: 'capacity_tightness', label: 'Tc', value: 0.95, limit: '≤ 0.9', failing: true },
+      { key: 'spatial_compressibility_index', label: 'S', value: null, limit: '≤ 1.2', failing: false },
+    ])
+
+    expect(noDepot).toMatchObject({ id: 2, status: 'noDepot' })
+    expect(noDepot.indicators.every(i => i.value === null && !i.failing)).toBe(true)
+  })
+
+  it('no da filas hasta que se analiza', () => {
+    expect(setup().viabilityRows.value).toEqual([])
+  })
 })

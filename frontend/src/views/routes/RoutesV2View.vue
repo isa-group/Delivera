@@ -77,12 +77,25 @@ const {
         showCustomSection,
         analyzingViability,
         viabilitySummary,
+        viabilityRows,
         runViabilityAnalysis,
+        zoomToGroup,
 
 
     } = useRoutes()
 
-    
+    // El panel de viabilidad se abre solo al terminar el análisis.
+    const viabilityPanel = ref(null)
+
+    async function analyzeAndShowViability() {
+        await runViabilityAnalysis()
+        viabilityPanel.value?.restore()
+    }
+
+    function formatIndicator(value) {
+        return value === null ? '-' : value.toFixed(2)
+    }
+
 
     function rowClass(data) {
         return data.best
@@ -423,14 +436,8 @@ const {
                                     severity="secondary"
                                     :loading="analyzingViability"
                                     :aria-label="t('routes.quantumViability.analyze')"
-                                    @click="runViabilityAnalysis()"
+                                    @click="analyzeAndShowViability()"
                                 />
-                                <small v-if="viabilitySummary.analyzed" class="quantum-viability-summary">
-                                    {{ t('routes.quantumViability.summary', viabilitySummary) }}
-                                </small>
-                                <small v-if="viabilitySummary.noDepot" class="quantum-viability-summary">
-                                    {{ t('routes.quantumViability.noDepotSummary', viabilitySummary) }}
-                                </small>
                             </div>
                         </div>
                     </div>
@@ -516,6 +523,64 @@ const {
             >
                <ErrorCard :errors="globlaErrors" />
 
+            </FloatingPanel>
+            <FloatingPanel
+                ref="viabilityPanel"
+                :title="t('routes.quantumViability.panelTitle')"
+                :panel-id="'QuantumViability'"
+                :display-name="t('routes.quantumViability.panelTitle')"
+                :icon="'pi pi-microchip'"
+                :initial-x="560"
+                :initial-y="80"
+            >
+                <p v-if="!viabilityRows.length" class="quantum-viability-summary">
+                    {{ t('routes.quantumViability.empty') }}
+                </p>
+                <template v-else>
+                    <p v-if="viabilitySummary.analyzed" class="quantum-viability-summary">
+                        {{ t('routes.quantumViability.summary', viabilitySummary) }}
+                    </p>
+                    <p v-if="viabilitySummary.noDepot" class="quantum-viability-summary">
+                        {{ t('routes.quantumViability.noDepotSummary', viabilitySummary) }}
+                    </p>
+                    <small class="quantum-viability-summary">{{ t('routes.quantumViability.hint') }}</small>
+                    <DataTable
+                        class="groups-table quantum-viability-table"
+                        :value="viabilityRows"
+                        dataKey="id"
+                        stripedRows
+                        rowHover
+                        scrollable
+                        scrollHeight="320px"
+                        @row-click="e => zoomToGroup(e.data.id)"
+                    >
+                        <Column field="id" :header="t('routes.tables.group')"/>
+                        <Column field="customerCount" :header="t('routes.tables.clients')"/>
+                        <Column field="totalDemand" :header="t('routes.tables.demand')">
+                            <template #body="{ data }">
+                                {{ data.totalDemand ?? '-' }}
+                            </template>
+                        </Column>
+                        <Column :header="t('routes.quantumViability.verdict')">
+                            <template #body="{ data }">
+                                <span :class="['viability-badge', `viability-${data.status}`]">
+                                    {{ t(`routes.quantumViability.status.${data.status}`) }}
+                                </span>
+                            </template>
+                        </Column>
+                        <Column
+                            v-for="(threshold, index) in viabilityRows[0].indicators"
+                            :key="threshold.key"
+                            :header="`${threshold.label} ${threshold.limit}`"
+                        >
+                            <template #body="{ data }">
+                                <span :class="{ 'indicator-failing': data.indicators[index].failing }">
+                                    {{ formatIndicator(data.indicators[index].value) }}
+                                </span>
+                            </template>
+                        </Column>
+                    </DataTable>
+                </template>
             </FloatingPanel>
             <FloatingPanel
                 v-if="allSolvers.length"
