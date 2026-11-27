@@ -14,7 +14,6 @@ const router = useRouter()
 const auth = useAuthStore()
 const { load: loadConfig, statusSeverity } = useAppConfig()
 const dataService = import.meta.env.VITE_DATA_API_URL
-const deliveraService = import.meta.env.VITE_API_URL
 const {
   validate,
   required,
@@ -24,7 +23,6 @@ const {
   usernameFormat,
   passwordStrength,
   errors,
-  invalids
 } = useValidation()
 
 const order = ref(null)

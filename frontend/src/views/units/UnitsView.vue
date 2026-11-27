@@ -3,10 +3,8 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'
-import { useApi } from '@/composables/useApi'
 import { buildDeleteConfirmOptions } from '@/composables/useConfirmDelete'
 import { useAuthStore } from '@/stores/auth'
-import { useResourceList } from '@/composables/useResourceList'
 import EmptyState from '@/components/EmptyState.vue'
 import L from 'leaflet'
 import { createMap, addMarker, clusterOptions, fitBounds } from '@/composables/useDeliveraMap'
@@ -16,7 +14,6 @@ import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
 const router = useRouter()
-const api = useApi()
 const dataApi = useServices("data-service")
 const confirm = useConfirm()
 const auth = useAuthStore()

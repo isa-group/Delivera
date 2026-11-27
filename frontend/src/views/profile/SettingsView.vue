@@ -238,16 +238,6 @@ async function load() {
   }
 }
 
-function usagePercent(usage) {
-  if (!usage || usage.unlimited) return 0
-  return Math.round((usage.current / usage.max) * 100)
-}
-const showUpgradeBanner = computed(() =>
-  subscription.value && ['units','workers','ordersThisMonth','loyalUsers','companies'].some(k => {
-    const r = subscription.value[k]
-    return !r.unlimited && usagePercent(r) > 85
-  })
-)
 
 
 watch(() => subscription.value?.planCode, code => { if (code) auth.setPlanCode(code) })
