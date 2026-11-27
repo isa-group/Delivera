@@ -2,14 +2,12 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useApi } from '@/composables/useApi'
 import L from 'leaflet'
 import { createMap, addMarker, clusterOptions, fitBounds } from '@/composables/useDeliveraMap'
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM_REGION } from '@/constants/map'
 import { useServices } from '@/composables/useServices'
 
 const { t } = useI18n()
-const api = useApi()
 const dataApi = useServices("data-service")
 const router = useRouter()
 

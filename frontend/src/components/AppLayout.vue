@@ -78,7 +78,7 @@ function applyUserLocale(email) {
 function handleLogout() {
   try {
       authApi.get('/auth/logout')
-    } catch(e) { /* empty */ }
+    } catch { /* empty */ }
   profileOpen.value = false
   locale.value = navigator.language?.startsWith('en') ? 'en' : 'es'
   auth.logout()

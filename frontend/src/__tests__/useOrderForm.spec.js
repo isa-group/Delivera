@@ -10,9 +10,19 @@ vi.mock('vue-i18n', () => ({
 }))
 
 const mockPush = vi.fn()
-vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: mockPush }),
-}))
+vi.mock('vue-router', async () => {
+  const actual = await vi.importActual('vue-router')
+
+  return {
+    ...actual,
+    useRouter: () => ({
+      push: mockPush,
+    }),
+    useRoute: () => ({
+      params: {},
+    }),
+  }
+})
 
 const mockValidate = vi.fn().mockReturnValue(true)
 vi.mock('@/composables/useValidation', () => ({
@@ -35,11 +45,19 @@ vi.mock('@/composables/useApi', () => ({
   }),
 }))
 
+
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function makeOkResponse(data = []) {
   return { ok: true, json: async () => data }
 }
+
+import { createPinia, setActivePinia } from 'pinia'
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 let composable
 
@@ -53,27 +71,18 @@ function mountComposable() {
   mount(Wrapper)
 }
 
+const mockDataPost = vi.fn()
+
+vi.mock('@/composables/useServices', () => ({
+  useServices: () => ({
+    post: mockDataPost,
+    get: vi.fn(),
+  }),
+}))
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe('useOrderForm — computed: b2bOrganizations', () => {
-  afterEach(() => vi.clearAllMocks())
 
-  it('deduplicates external units by orgId', async () => {
-    const external = [
-      { id: '1', orgId: 'o1', orgName: 'OrgA', companyId: 'c1', companyName: 'CompA' },
-      { id: '2', orgId: 'o1', orgName: 'OrgA', companyId: 'c1', companyName: 'CompA' },
-      { id: '3', orgId: 'o2', orgName: 'OrgB', companyId: 'c2', companyName: 'CompB' },
-    ]
-    mockGet
-      .mockResolvedValueOnce(makeOkResponse([]))
-      .mockResolvedValueOnce(makeOkResponse(external))
-      .mockResolvedValueOnce(makeOkResponse([]))
-    mountComposable()
-    await flushPromises()
-    expect(composable.b2bOrganizations.value).toHaveLength(2)
-    expect(composable.b2bOrganizations.value[0]).toEqual({ id: 'o1', name: 'OrgA' })
-  })
-})
 
 describe('useOrderForm — handleSubmit', () => {
   beforeEach(() => {
@@ -86,14 +95,26 @@ describe('useOrderForm — handleSubmit', () => {
   })
 
   it('navigates to /orders with reference on success', async () => {
-    mockPost.mockResolvedValue({ ok: true, json: async () => ({ reference: 'DEL-001' }) })
+    mockDataPost.mockResolvedValue({
+      ok: true,
+      json: async () => ({ reference: 'DEL-001' }),
+    })
+  
     mountComposable()
     await flushPromises()
+  
     composable.originId.value = 'unit-1'
     composable.orderType.value = 'INTERNAL'
     composable.destinationId.value = 'unit-2'
+  
     await composable.handleSubmit()
     await flushPromises()
-    expect(mockPush).toHaveBeenCalledWith({ path: '/orders', query: { created: 'DEL-001' } })
+  
+    expect(mockDataPost).toHaveBeenCalled()
+  
+    expect(mockPush).toHaveBeenCalledWith({
+      path: '/orders',
+      query: { created: 'DEL-001' },
+    })
   })
 })

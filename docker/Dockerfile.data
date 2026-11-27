@@ -26,6 +26,12 @@ WORKDIR /app
 
 COPY --from=build /build/data-service/target/*.jar app.jar
 
+RUN addgroup --system app && \
+    adduser --system --ingroup app --uid 10001 appuser
+
+USER appuser
+
+
 EXPOSE 9092
 EXPOSE 9093
 

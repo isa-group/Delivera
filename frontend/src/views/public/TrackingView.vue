@@ -7,6 +7,8 @@ import { useAuthStore } from '@/stores/auth'
 import TimelineList from '@/components/TimelineList.vue'
 import { getDeviceId } from '../../composables/useRefreshToken'
 import { useValidation } from '@/composables/useValidation'
+import { computed } from 'vue'
+import { useAvailabilityCheck } from '@/composables/useAvailabilityCheck'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -14,7 +16,6 @@ const router = useRouter()
 const auth = useAuthStore()
 const { load: loadConfig, statusSeverity } = useAppConfig()
 const dataService = import.meta.env.VITE_DATA_API_URL
-const deliveraService = import.meta.env.VITE_API_URL
 const {
   validate,
   required,
@@ -24,8 +25,9 @@ const {
   usernameFormat,
   passwordStrength,
   errors,
-  invalids
 } = useValidation()
+
+
 
 const order = ref(null)
 const loading = ref(false)
@@ -40,6 +42,27 @@ const claimUsername = ref('')
 const claimPassword = ref('')
 const claimLoading = ref(false)
 const claimError = ref('')
+
+function isUsernameFormat(val) {
+  return /^[a-z0-9_-]{3,50}$/.test(val)
+}
+
+const {
+  checking: usernameChecking,
+  available: usernameAvailable
+} = useAvailabilityCheck(claimUsername, {
+  endpoint: '/auth/check-username',
+  paramName: 'username',
+  validate: isUsernameFormat
+})
+
+const usernameState = computed(() => {
+  if (!claimUsername.value || !isUsernameFormat(claimUsername.value)) return 'invalid'
+  if (usernameChecking.value) return 'checking'
+  if (usernameAvailable.value === true) return 'available'
+  if (usernameAvailable.value === false) return 'taken'
+  return 'idle'
+})
 
 async function submitClaim() {
   const valid = validate({

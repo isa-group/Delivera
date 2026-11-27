@@ -90,6 +90,7 @@ async function fetchOrder() {
   loading.value = true
   try {
     const response = await dataApi.get(`/orders/${id}/me`)
+    if (!response.ok) { throw Error()}
     order.value = await response.json()
     loadMessages()
     try {
