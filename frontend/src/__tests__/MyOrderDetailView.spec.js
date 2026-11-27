@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import MyOrderDetailView from '@/views/orders/MyOrderDetailView.vue'
 
@@ -29,11 +29,28 @@ vi.mock('@/composables/useApi', async (importOriginal) => {
 
 const mockPush = vi.fn()
 let mockRouteQuery = { q: 'DEL-20240101-0001' }
-vi.mock('vue-router', () => ({
-  useRoute: () => ({ query: mockRouteQuery }),
-  useRouter: () => ({ push: mockPush }),
-  onBeforeRouteLeave: vi.fn(),
-}))
+vi.mock('vue-router', async () => {
+  const actual = await vi.importActual('vue-router')
+
+  return {
+    ...actual,
+    useRouter: () => ({
+      push: vi.fn(),
+    }),
+    useRoute: () => ({
+      params: {},
+      query: {
+        q: 'DEL-20240101-0001'
+      }
+    }),
+  }
+})
+
+import { createPinia, setActivePinia } from 'pinia'
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

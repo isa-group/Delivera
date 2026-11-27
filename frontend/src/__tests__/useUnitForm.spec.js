@@ -5,9 +5,19 @@ vi.mock('vue-i18n', () => ({
 }))
 
 const mockPush = vi.fn()
-vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: mockPush }),
-}))
+vi.mock('vue-router', async () => {
+  const actual = await vi.importActual('vue-router')
+
+  return {
+    ...actual,
+    useRouter: () => ({
+      push: mockPush,
+    }),
+    useRoute: () => ({
+      params: {},
+    }),
+  }
+})
 
 vi.mock('@/composables/useValidation', () => ({
   useValidation: () => ({
@@ -28,12 +38,25 @@ vi.mock('@/composables/useApi', () => ({
   }),
 }))
 
+vi.mock('@/composables/useServices', () => ({
+  useServices: () => ({
+    post: mockPost,
+    put: mockPut,
+  }),
+}))
+
 const { useUnitForm } = await import('@/composables/useUnitForm')
 
 beforeEach(() => {
   mockPost.mockReset()
   mockPut.mockReset()
   mockPush.mockReset()
+})
+
+import { createPinia, setActivePinia } from 'pinia'
+
+beforeEach(() => {
+  setActivePinia(createPinia())
 })
 
 describe('useUnitForm loadFromUnit', () => {

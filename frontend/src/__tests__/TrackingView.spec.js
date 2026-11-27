@@ -21,10 +21,22 @@ vi.mock('@/composables/useAppConfig', () => ({
 const mockPush = vi.fn()
 let mockRouteParams = { token: 'testtoken123' }
 let mockRouteQuery = {}
-vi.mock('vue-router', () => ({
-  useRoute: () => ({ params: mockRouteParams, query: mockRouteQuery }),
-  useRouter: () => ({ push: mockPush }),
-}))
+vi.mock('vue-router', async () => {
+  const actual = await vi.importActual('vue-router')
+
+  return {
+    ...actual,
+    useRouter: () => ({
+      push: mockPush,
+    }),
+    useRoute: () => ({
+      params: {
+        token: 'abc1234'
+      },
+      query: {}
+    }),
+  }
+})
 
 const mockApplyLoginData = vi.fn()
 vi.mock('@/stores/auth', () => ({
@@ -34,12 +46,43 @@ vi.mock('@/stores/auth', () => ({
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const STUBS = {
-  PInputText: { template: '<input />' },
-  PButton: { template: '<button type="submit"><slot /></button>', props: ['loading', 'label'] },
-  PMessage: { template: '<div class="p-message"><slot /></div>' },
-  PTag: { template: '<span />' },
-  PPassword: { template: '<div><input type="password" /></div>' },
+  PInputText: {
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+    template: `
+      <input
+        :value="modelValue"
+        @input="$emit('update:modelValue', $event.target.value)"
+      />
+    `,
+  },
+
+  PPassword: {
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+    template: `
+      <input
+        type="password"
+        :value="modelValue"
+        @input="$emit('update:modelValue', $event.target.value)"
+      />
+    `,
+  },
+
+  PButton: {
+    template: '<button><slot /></button>',
+    props: ['loading', 'label']
+  },
+
+  PMessage: {
+    template: '<div class="p-message"><slot /></div>'
+  },
+
+  PTag: {
+    template: '<span />'
+  }
 }
+
 
 function buildOrder(overrides = {}) {
   return {
@@ -71,6 +114,7 @@ function mountView() {
     global: { stubs: STUBS },
   })
 }
+
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
@@ -115,22 +159,40 @@ describe('TrackingView — submitClaim', () => {
 
   it('success — calls applyLoginData and redirects to /my-orders', async () => {
     const { wrapper, fetchMock } = await mountWithClaimableOrder()
+  
 
+    const inputs = wrapper.findAll('input')
+
+    await inputs[0].setValue('Juan')
+    await inputs[1].setValue('Garcia')
+    await inputs[2].setValue('juan@gmail.com')
+    await inputs[3].setValue('juan123')
+    await inputs[4].setValue('Abcd1234!')
+  
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 201,
       json: async () => ({ token: 'jwt-abc', email: 'juan@gmail.com' }),
     })
-
+  
     await wrapper.find('form').trigger('submit')
     await flushPromises()
-
+  
     expect(mockApplyLoginData).toHaveBeenCalledWith({ token: 'jwt-abc', email: 'juan@gmail.com' })
     expect(mockPush).toHaveBeenCalledWith('/my-orders')
   })
 
   it('ORDER_ALREADY_CLAIMED — shows error message', async () => {
     const { wrapper, fetchMock } = await mountWithClaimableOrder()
+
+    const inputs = wrapper.findAll('input')
+
+    await inputs[0].setValue('Juan')
+    await inputs[1].setValue('Garcia')
+    await inputs[2].setValue('juan@gmail.com')
+    await inputs[3].setValue('juan123')
+    await inputs[4].setValue('Abcd1234!')
+  
 
     fetchMock.mockResolvedValueOnce({
       ok: false,

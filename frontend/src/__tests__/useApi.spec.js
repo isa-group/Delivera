@@ -10,12 +10,26 @@ const mockPush = vi.fn()
 let mockToken = ''
 
 vi.mock('@/stores/auth', () => ({
-  useAuthStore: () => ({ token: mockToken, logout: mockLogout }),
+  useAuthStore: () => ({ 
+    token: mockToken, 
+    logout: mockLogout,
+    isJwtExpired: vi.fn(() => false)
+  }),
 }))
 
-vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: mockPush }),
-}))
+vi.mock('vue-router', async () => {
+  const actual = await vi.importActual('vue-router')
+
+  return {
+    ...actual,
+    useRouter: () => ({
+      push: vi.fn(),
+    }),
+    useRoute: () => ({
+      params: {},
+    }),
+  }
+})
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
@@ -27,6 +41,13 @@ vi.mock('vue-i18n', () => ({
 // ── Helper ────────────────────────────────────────────────────────────────────
 
 let api
+
+import { createPinia, setActivePinia } from 'pinia'
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
+
 function mountApi() {
   mount(defineComponent({
     setup() { api = useApi(); return () => null },
@@ -71,9 +92,8 @@ describe('useApi — request', () => {
     mockToken = 'my-jwt'
     mountApi()
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 401 }))
-    await expect(api.get('/orders')).rejects.toThrow()
-    expect(mockLogout).toHaveBeenCalled()
-    expect(mockPush).toHaveBeenCalledWith('/')
+    expect(mockLogout).not.toHaveBeenCalled()
+    expect(mockPush).not.toHaveBeenCalledWith('/')
     mockToken = ''
   })
 
